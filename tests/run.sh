@@ -46,7 +46,9 @@ write_map() {  # write_map <folder> <one-line purpose>: AGENTS.md + README + CLA
 new_repo empty
 R="$WORK/empty"
 expect_fail "empty repo: install alone asks for the root map" "$R" "AGENTS.md is missing"
-grep -q "linked .claude/skills" "$WORK/empty.install.log" && ok "install links .claude/skills" || bad "install links .claude/skills" "$(cat "$WORK/empty.install.log")"
+# A link on macOS and Linux; a copy where symlinks fail (Windows).
+grep -qE "linked .claude/skills|copied .agents/skills -> .claude/skills" "$WORK/empty.install.log" &&
+  ok "install creates .claude/skills" || bad "install creates .claude/skills" "$(cat "$WORK/empty.install.log")"
 printf '# empty\n\nA new project.\n\n| Path | What | Read first |\n|---|---|---|\n| `DECISIONS.md` | Lineage | |\n' > "$R/AGENTS.md"
 echo "@AGENTS.md" > "$R/CLAUDE.md"
 cp "$KIT/templates/docs/DECISIONS.md" "$R/DECISIONS.md"
