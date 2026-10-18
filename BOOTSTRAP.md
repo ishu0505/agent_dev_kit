@@ -22,8 +22,8 @@ the folder that contains this file. The kit gives the repo:
    `learning-docs`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit and after every
    editing turn, so the docs stay true.
-5. **Learning docs**: local `learning_docs/` that teach people the system.
-   Never committed.
+5. **Learning docs**: `learning_docs/` that teach people the system.
+6. **A share mode** (`SHARE`): which of these reach the remote repo.
 
 The scripts and skills are ready-made in `KIT/templates/`; copy them, do not
 rewrite them. Your work is the repo-specific part: the config, the maps,
@@ -102,7 +102,19 @@ Every case:
 9. Learning docs: who reads them, which flows matter most (API requests,
    queue / worker jobs, pipelines, CLI), which units first.
 10. Folders agents must never edit (generated, vendored, data).
-11. Operating systems the team uses. Windows without symlink support means
+11. **Share mode**: what may reach the remote repo. Explain the four
+    choices and recommend one:
+    - `agent` (default): agent files pushed, learning docs local;
+    - `all`: agent files and learning docs pushed;
+    - `learning`: learning docs pushed, agent files local;
+    - `none`: nothing pushed, everything stays on this machine.
+    "Agent files" are every `AGENTS.md` and pointer file, `DECISIONS.md`,
+    `PLAN.md`, the ledger, `.agents/`, `.claude/`, `.codex/`, `.githooks/`.
+    Local files are ignored through `.git/info/exclude`, which is never
+    committed, so not even an ignore rule shows up in the remote. Local
+    files exist only on this machine: a fresh clone or another computer
+    does not get them.
+12. Operating systems the team uses. Windows without symlink support means
     `SKILLS_LINK="copy"`; the install also switches to it by itself when a
     symlink cannot be made.
 
@@ -114,13 +126,16 @@ the root `AGENTS.md`. Wait for my approval.
 ## Phase 4 — Build
 
 1. **Install** (all cases; this is also the upgrade):
-   `sh KIT/install.sh .` (on Windows, run every kit command in Git Bash).
+   `sh KIT/install.sh --share <mode> .` (on Windows, run every kit command
+   in Git Bash). In case C, leave out `--share` to keep the repo's mode;
+   pass it only when I ask to change the mode.
    It copies `.agents/kit/`, the four skills, `.githooks/pre-commit`,
    creates `.agents/agent-kit.conf`, `.claude/settings.json`,
    `.codex/hooks.json`, `.claude/skills` (a link, or a copy where symlinks
-   fail), the `learning_docs/` ignore line and the LF rules in
-   `.gitattributes`, sets `core.hooksPath`, and stages the scripts as
-   executable. It never overwrites repo-owned
+   fail), writes the ignore and LF rules for the share mode (shared rules in
+   `.gitignore` / `.gitattributes`, local ones in `.git/info/`), sets
+   `core.hooksPath`, and, when agent files are shared, stages the scripts
+   as executable. It never overwrites repo-owned
    files. Do everything it prints under "For the agent".
 2. **Config**: fill `.agents/agent-kit.conf` from the interview.
 3. **Maps**: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`
@@ -135,13 +150,15 @@ the root `AGENTS.md`. Wait for my approval.
    `KIT/templates/docs/EXPERIMENTS.md`, one row per experiment.
 5. **Case B**: `PLAN.md` from `KIT/templates/docs/PLAN.md`. Map only
    folders that exist; each unit gets its map when its folder is created.
-6. **Command card**: add `KIT/templates/docs/README-agent-context.md` as a
-   section of the root `README.md`, with the kit's repo URL if I give one.
+6. **Command card**: `KIT/templates/docs/README-agent-context.md`. With
+   `SHARE` `agent` or `all`, add it as a section of the root `README.md`.
+   With `learning` or `none`, write it to `.agents/README.md` instead and
+   leave the committed README untouched.
 7. **Agent configs**: if more agents than Claude Code and Codex are used,
    tell me where each loads hooks and skills (check its docs) and add what
    is needed. Other agents rely on the pre-commit check.
-8. **Commit-ready**: `git add` everything the kit created except
-   `learning_docs/`. Do not commit unless I ask.
+8. **Commit-ready**: `git add` only what the share mode pushes. Never
+   `git add -f` an ignored file. Do not commit unless I ask.
 
 Rules for what you write: plain short sentences; only paths that exist;
 only commands you ran or found; never invent a decision's reason.
@@ -149,7 +166,9 @@ only commands you ran or found; never invent a decision's reason.
 ## Phase 5 — Verify and report
 
 - `sh .agents/kit/check.sh` passes; show the output.
-- `git add -A --dry-run` does not list anything in `learning_docs/`.
+- `git add -A --dry-run` lists nothing the share mode keeps local
+  (learning docs for `agent` and `none`; agent files for `learning` and
+  `none`), and every file it pushes is staged.
 - Ask me whether to write the learning docs now (all, overview only, or
   later), and if yes run the `learning-docs` skill.
 - Run `docs-sync check` once and show its report.

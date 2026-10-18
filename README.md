@@ -20,7 +20,45 @@ repo of any language, on macOS, Linux and Windows. The HTML guide is
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long, names a missing path, a unit has no map, agent files are not in git, a hook is not portable, or learning docs are tracked |
 | Automatic runs | `.githooks/pre-commit`, Stop hook | The checks run before every commit and after every agent turn that edits |
 | Config | `.agents/agent-kit.conf` | Which folders are units, line limits, which pointer files |
-| Learning docs | `learning_docs/` (git-ignored) | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Never committed |
+| Learning docs | `learning_docs/` | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Local or pushed, by share mode |
+
+## Share modes: what reaches GitHub
+
+You pick one when you set a repo up. The agent asks.
+
+| Mode | Agent files | Learning docs | Use it when |
+|---|---|---|---|
+| `agent` (default) | pushed | local | The team shares the agent context; learning docs are yours |
+| `all` | pushed | pushed | Everyone, including new people, should get both |
+| `learning` | local | pushed | You want people to learn the system, but keep your agent setup private |
+| `none` | local | local | Nothing about agents or learning docs may reach the remote |
+
+**Agent files** are every `AGENTS.md` and pointer file (`CLAUDE.md`),
+`DECISIONS.md`, `PLAN.md`, the experiment ledger, and the folders `.agents/`,
+`.claude/`, `.codex/`, `.githooks/`.
+
+How it works:
+
+- A pushed file is a normal tracked file.
+- A local file is ignored through `.git/info/exclude`. That file sits inside
+  `.git/` and is never committed, so not even the ignore rule shows up on
+  GitHub. In `learning` and `none` mode the kit also keeps its line-ending
+  rules in `.git/info/attributes` instead of `.gitattributes`.
+- `check.sh` guards it before every commit: in a local mode it blocks a
+  commit that tracks or stages an agent file (for example after
+  `git add -f`). In `agent` mode it does the same for learning docs.
+- Local files exist only on that machine. A fresh clone, another computer
+  or a teammate does not get them; back them up yourself if they matter.
+
+Change the mode of a repo later:
+
+```bash
+sh ~/agent_dev_kit/install.sh --share none .
+```
+
+The install rewrites the rules and, when files that are now local are still
+tracked, prints the `git rm -r --cached ...` command that stops tracking
+them (the files stay on disk). Run it, then commit.
 
 ## Words used here
 
@@ -101,8 +139,10 @@ using it: fork it, or clone it and push it to your own GitHub repo.
 
 3. The agent sees an empty repo and says "case B, new project". Confirm.
 4. Answer its questions one at a time: the goal, the first milestone, the
-   stack, the planned units, the constraints. "Not decided yet" is a fine
-   answer; it is recorded as an open question.
+   stack, the planned units, the constraints, and the **share mode**
+   (`agent`, `all`, `learning` or `none`; see "Share modes"). "Not decided
+   yet" is a fine answer; it is recorded as an open question. To skip that
+   question, say it up front: `/agent-kit setup, share mode none`.
 5. Read the file list it proposes and say OK.
 6. It runs `install.sh`, then writes `PLAN.md`, `DECISIONS.md`, the root
    `AGENTS.md` and the README section, and runs the checks.
@@ -118,12 +158,13 @@ unit gets its map, and `check.sh` stays green.
 3. The agent reads the code and build files and reports, in under 30 lines,
    the units, commands and conventions it found. Confirm it says "case A".
 4. Answer its questions; each one comes with a proposed answer you can
-   accept.
+   accept. One is the share mode (see "Share modes").
 5. Approve the file list. It installs the kit and writes the maps, the
    config and the first decisions.
 6. It asks whether to write learning docs now. Say "overview only" for a
    quick start, or "all" for every unit and flow.
-7. Review and commit. `learning_docs/` never shows up in `git status`.
+7. Review and commit. Files the share mode keeps local never show up in
+   `git status`.
 
 ## 4. Upgrade a repo to a newer kit
 
@@ -207,7 +248,7 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
 ## 7. Change the kit itself
 
 1. Edit the templates (`templates/`), skills or scripts.
-2. Run `sh tests/run.sh` (40 tests in throwaway repos; needs sh, git,
+2. Run `sh tests/run.sh` (54 tests in throwaway repos; needs sh, git,
    Python 3). Pushing runs them on macOS, Ubuntu, Fedora and Windows
    (`.github/workflows/test.yml`).
 3. Bump `VERSION`, add a `CHANGELOG.md` entry saying what an upgrading repo

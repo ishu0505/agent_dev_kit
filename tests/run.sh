@@ -163,6 +163,50 @@ expect_fail "ledger row without an outcome" "$V" "latency has no outcome"
 edit 's#| 1 run |  |#| 1 run | pending: not run yet |#' "$V/experiments/EXPERIMENTS.md"
 expect_pass "ledger row with pending outcome" "$V"
 
+# --- Share modes --------------------------------------------------------------
+mode_repo() {  # mode_repo <mode>: a new repo in that share mode, maps written, all staged
+  R="$WORK/mode-$1"
+  mkdir "$R" && git -C "$R" init -q
+  sh "$KIT/install.sh" --share "$1" "$R" > "$WORK/mode-$1.log" 2>&1
+  printf '# m\n\nA repo.\n' > "$R/AGENTS.md"; echo "@AGENTS.md" > "$R/CLAUDE.md"
+  cp "$KIT/templates/docs/DECISIONS.md" "$R/DECISIONS.md"
+  mkdir -p "$R/learning_docs"; echo "# Overview" > "$R/learning_docs/00-overview.md"
+  echo "package main" > "$R/main.go"
+  git_quiet -C "$R" add -A
+}
+staged() { git -C "$1" diff --cached --name-only; }  # staged <repo>
+has() { staged "$1" | grep -qx "$2"; }               # has <repo> <path>
+
+mode_repo agent; R="$WORK/mode-agent"
+expect_pass "share agent: checks pass" "$R"
+has "$R" AGENTS.md && has "$R" .agents/kit/check.sh && ! has "$R" learning_docs/00-overview.md &&
+  ok "share agent: agent files staged, learning docs not" || bad "share agent: agent files staged, learning docs not" "$(staged "$R")"
+
+mode_repo all; R="$WORK/mode-all"
+expect_pass "share all: checks pass" "$R"
+has "$R" AGENTS.md && has "$R" learning_docs/00-overview.md &&
+  ok "share all: agent files and learning docs staged" || bad "share all: agent files and learning docs staged" "$(staged "$R")"
+
+mode_repo learning; R="$WORK/mode-learning"
+expect_pass "share learning: checks pass" "$R"
+has "$R" learning_docs/00-overview.md && has "$R" main.go && [ -z "$(staged "$R" | grep -E '^(AGENTS|CLAUDE|DECISIONS)\.md$|^\.(agents|claude|codex|githooks)/|^\.git(ignore|attributes)$')" ] &&
+  ok "share learning: learning docs staged, no agent file or kit rule" || bad "share learning: learning docs staged, no agent file or kit rule" "$(staged "$R")"
+git_quiet -C "$R" commit -m first && ok "share learning: pre-commit runs from local files" || bad "share learning: pre-commit runs from local files"
+
+mode_repo none; R="$WORK/mode-none"
+expect_pass "share none: checks pass" "$R"
+[ "$(staged "$R")" = "main.go" ] && ok "share none: only code is staged" || bad "share none: only code is staged" "$(staged "$R")"
+git_quiet -C "$R" add -f AGENTS.md
+expect_fail "share none: a force-added map is caught" "$R" "keeps agent files local"
+if git_quiet -C "$R" commit -m leak; then bad "share none: pre-commit blocks the leak"; else ok "share none: pre-commit blocks the leak"; fi
+
+V=$(variant switch)   # the committed Go repo (share agent) moves to share none
+sh "$KIT/install.sh" --share none "$V" > "$WORK/switch.log" 2>&1
+grep -q "git rm -r --cached" "$WORK/switch.log" && ok "switch to none: install says how to untrack" || bad "switch to none: install says how to untrack" "$(cat "$WORK/switch.log")"
+expect_fail "switch to none: tracked agent files are caught" "$V" "keeps agent files local"
+(cd "$V" && set -f && git rm -r --cached -q --ignore-unmatch -- AGENTS.md ':(glob)**/AGENTS.md' CLAUDE.md ':(glob)**/CLAUDE.md' DECISIONS.md PLAN.md .agents .claude .codex .githooks .gitattributes 2>/dev/null; true)
+expect_pass "switch to none: passes once untracked" "$V"
+
 # --- Upgrade keeps repo-owned files ----------------------------------------
 V=$(variant upgrade)
 echo "# note" >> "$V/.agents/agent-kit.conf"

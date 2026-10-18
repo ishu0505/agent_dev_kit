@@ -21,6 +21,8 @@ Then:
 
 - **setup** (default): read `KIT/BOOTSTRAP.md` and follow it in the current
   repository. Phase 0 decides between a new project and an existing one.
+  If the user named a share mode (`agent`, `all`, `learning`, `none`), use
+  it; otherwise BOOTSTRAP's interview asks.
 - **upgrade**: read `KIT/BOOTSTRAP.md` and follow it with `mode: upgrade`.
 - **check**: run `sh .agents/kit/check.sh` in the repo and show the result.
   If `.agents/kit/` does not exist, say the kit is not installed here and

@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.2.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.3.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -118,6 +118,21 @@ footer { color: var(--muted); font-size: 14px; }
 </section>
 
 <section>
+  <h2>Share modes: what reaches GitHub</h2>
+  <p>Chosen at setup; the agent asks. Change it later with <code>install.sh --share &lt;mode&gt;</code>.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Mode</th><th>Agent files</th><th>Learning docs</th><th>Use it when</th></tr></thead>
+    <tbody>
+      <tr><td><code>agent</code> (default)</td><td><span class="pill ok">pushed</span></td><td><span class="pill check">local</span></td><td>The team shares the agent context; learning docs are yours</td></tr>
+      <tr><td><code>all</code></td><td><span class="pill ok">pushed</span></td><td><span class="pill ok">pushed</span></td><td>Everyone should get both</td></tr>
+      <tr><td><code>learning</code></td><td><span class="pill check">local</span></td><td><span class="pill ok">pushed</span></td><td>People learn the system; your agent setup stays private</td></tr>
+      <tr><td><code>none</code></td><td><span class="pill check">local</span></td><td><span class="pill check">local</span></td><td>Nothing about agents reaches the remote</td></tr>
+    </tbody>
+  </table></div>
+  <p>Agent files are every <code>AGENTS.md</code> and <code>CLAUDE.md</code>, <code>DECISIONS.md</code>, <code>PLAN.md</code>, the ledger, and <code>.agents/</code>, <code>.claude/</code>, <code>.codex/</code>, <code>.githooks/</code>. Local files are ignored through <code>.git/info/exclude</code>, which is never committed, so not even the ignore rule appears on GitHub. The pre-commit check blocks a commit that stages a local file. Local files exist only on that machine: a clone or another computer does not get them.</p>
+</section>
+
+<section>
   <h2>What lands in a repo</h2>
   <p>The scripts and skills are copied from the kit, ready-made and tested. The agent writes only what is specific to the repo.</p>
   <div class="table-wrap"><table>
@@ -130,7 +145,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root, in top folders and in every unit</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>DECISIONS.md</code>, <code>PLAN.md</code></td><td>Lineage; the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>learning_docs/</code></td><td>Local learning docs, git-ignored</td><td><span class="pill check">you only</span></td></tr>
+      <tr><td><code>learning_docs/</code></td><td>Learning docs; pushed or local by share mode</td><td><span class="pill check">repo</span></td></tr>
     </tbody>
   </table></div>
   <p>Kit files are replaced on upgrade. Repo files are created once and never overwritten. Nothing is a setup-only leftover, so there is nothing to clean up.</p>
@@ -138,7 +153,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Learning docs</h2>
-  <p>Local files that teach a person the system: <code>00-overview.md</code> for the whole architecture, one file per service or component in the order data flows, and one file per flow that crosses units, such as an API request, a queue worker job or a retry path. They are written in ASD-STE100 Simplified Technical English and never leave your machine.</p>
+  <p>Local files that teach a person the system: <code>00-overview.md</code> for the whole architecture, one file per service or component in the order data flows, and one file per flow that crosses units, such as an API request, a queue worker job or a retry path. They are written in ASD-STE100 Simplified Technical English. The share mode decides whether they are pushed.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Section</th><th>What it holds</th></tr></thead>
     <tbody>
@@ -166,7 +181,7 @@ footer { color: var(--muted); font-size: 14px; }
 3. The error is logged and suppressed, so the message can arrive again later.
 &lt;/details&gt;</pre></div>
   <p>Each file records the commit and the code paths it was written from. When <code>git diff</code> shows those paths changed, the <code>learning-docs</code> skill rewrites the stale parts. The docs step after each change asks for that refresh.</p>
-  <div class="note"><p><strong>Never committed.</strong> The setup adds <code>learning_docs/</code> to <code>.gitignore</code>, and the setup check blocks any commit that tracks or stages a file in it.</p></div>
+  <div class="note"><p><strong>Local or pushed, you choose.</strong> In share mode <code>agent</code> or <code>none</code> they are ignored, and the check blocks any commit that stages one. In <code>all</code> or <code>learning</code> they are committed like code.</p></div>
 </section>
 
 <section>
@@ -214,7 +229,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Tracked in git</td><td>A file under <code>.agents/</code>, <code>.claude/</code>, <code>.codex/</code> or <code>.githooks/</code> is untracked, so a fresh clone would not have it</td></tr>
       <tr><td>Portable hooks</td><td>A hook command contains your home folder or the repo's absolute path, or runs a missing script</td></tr>
       <tr><td>Hooks active</td><td>This clone never ran <code>git config core.hooksPath .githooks</code></td></tr>
-      <tr><td>Learning docs stay local</td><td>A file under <code>learning_docs/</code> is tracked or staged, or the folder is not git-ignored</td></tr>
+      <tr><td>Share mode</td><td>A file the mode keeps local is tracked or staged (after <code>git add -f</code>, say), or its ignore rule is missing; or learning docs are ignored in a mode that pushes them</td></tr>
       <tr><td>Ledger</td><td>An experiment has no ledger row, or a row has no outcome (new ones say <code>pending: not run yet</code>)</td></tr>
     </tbody>
   </table></div>
@@ -239,7 +254,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Works on macOS, Linux and Windows</h2>
-  <p>The same commands work on all three. CI runs the 40 tests on macOS, Ubuntu, Fedora and Windows on every push.</p>
+  <p>The same commands work on all three. CI runs the 54 tests on macOS, Ubuntu, Fedora and Windows on every push.</p>
   <div class="table-wrap"><table>
     <thead><tr><th></th><th>macOS</th><th>Linux</th><th>Windows</th></tr></thead>
     <tbody>
@@ -288,8 +303,8 @@ the folder that contains this file. The kit gives the repo:
    `learning-docs`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit and after every
    editing turn, so the docs stay true.
-5. **Learning docs**: local `learning_docs/` that teach people the system.
-   Never committed.
+5. **Learning docs**: `learning_docs/` that teach people the system.
+6. **A share mode** (`SHARE`): which of these reach the remote repo.
 
 The scripts and skills are ready-made in `KIT/templates/`; copy them, do not
 rewrite them. Your work is the repo-specific part: the config, the maps,
@@ -368,7 +383,19 @@ Every case:
 9. Learning docs: who reads them, which flows matter most (API requests,
    queue / worker jobs, pipelines, CLI), which units first.
 10. Folders agents must never edit (generated, vendored, data).
-11. Operating systems the team uses. Windows without symlink support means
+11. **Share mode**: what may reach the remote repo. Explain the four
+    choices and recommend one:
+    - `agent` (default): agent files pushed, learning docs local;
+    - `all`: agent files and learning docs pushed;
+    - `learning`: learning docs pushed, agent files local;
+    - `none`: nothing pushed, everything stays on this machine.
+    &quot;Agent files&quot; are every `AGENTS.md` and pointer file, `DECISIONS.md`,
+    `PLAN.md`, the ledger, `.agents/`, `.claude/`, `.codex/`, `.githooks/`.
+    Local files are ignored through `.git/info/exclude`, which is never
+    committed, so not even an ignore rule shows up in the remote. Local
+    files exist only on this machine: a fresh clone or another computer
+    does not get them.
+12. Operating systems the team uses. Windows without symlink support means
     `SKILLS_LINK=&quot;copy&quot;`; the install also switches to it by itself when a
     symlink cannot be made.
 
@@ -380,13 +407,16 @@ the root `AGENTS.md`. Wait for my approval.
 ## Phase 4 — Build
 
 1. **Install** (all cases; this is also the upgrade):
-   `sh KIT/install.sh .` (on Windows, run every kit command in Git Bash).
+   `sh KIT/install.sh --share &lt;mode&gt; .` (on Windows, run every kit command
+   in Git Bash). In case C, leave out `--share` to keep the repo&#x27;s mode;
+   pass it only when I ask to change the mode.
    It copies `.agents/kit/`, the four skills, `.githooks/pre-commit`,
    creates `.agents/agent-kit.conf`, `.claude/settings.json`,
    `.codex/hooks.json`, `.claude/skills` (a link, or a copy where symlinks
-   fail), the `learning_docs/` ignore line and the LF rules in
-   `.gitattributes`, sets `core.hooksPath`, and stages the scripts as
-   executable. It never overwrites repo-owned
+   fail), writes the ignore and LF rules for the share mode (shared rules in
+   `.gitignore` / `.gitattributes`, local ones in `.git/info/`), sets
+   `core.hooksPath`, and, when agent files are shared, stages the scripts
+   as executable. It never overwrites repo-owned
    files. Do everything it prints under &quot;For the agent&quot;.
 2. **Config**: fill `.agents/agent-kit.conf` from the interview.
 3. **Maps**: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`
@@ -401,13 +431,15 @@ the root `AGENTS.md`. Wait for my approval.
    `KIT/templates/docs/EXPERIMENTS.md`, one row per experiment.
 5. **Case B**: `PLAN.md` from `KIT/templates/docs/PLAN.md`. Map only
    folders that exist; each unit gets its map when its folder is created.
-6. **Command card**: add `KIT/templates/docs/README-agent-context.md` as a
-   section of the root `README.md`, with the kit&#x27;s repo URL if I give one.
+6. **Command card**: `KIT/templates/docs/README-agent-context.md`. With
+   `SHARE` `agent` or `all`, add it as a section of the root `README.md`.
+   With `learning` or `none`, write it to `.agents/README.md` instead and
+   leave the committed README untouched.
 7. **Agent configs**: if more agents than Claude Code and Codex are used,
    tell me where each loads hooks and skills (check its docs) and add what
    is needed. Other agents rely on the pre-commit check.
-8. **Commit-ready**: `git add` everything the kit created except
-   `learning_docs/`. Do not commit unless I ask.
+8. **Commit-ready**: `git add` only what the share mode pushes. Never
+   `git add -f` an ignored file. Do not commit unless I ask.
 
 Rules for what you write: plain short sentences; only paths that exist;
 only commands you ran or found; never invent a decision&#x27;s reason.
@@ -415,7 +447,9 @@ only commands you ran or found; never invent a decision&#x27;s reason.
 ## Phase 5 — Verify and report
 
 - `sh .agents/kit/check.sh` passes; show the output.
-- `git add -A --dry-run` does not list anything in `learning_docs/`.
+- `git add -A --dry-run` lists nothing the share mode keeps local
+  (learning docs for `agent` and `none`; agent files for `learning` and
+  `none`), and every file it pushes is staged.
 - Ask me whether to write the learning docs now (all, overview only, or
   later), and if yes run the `learning-docs` skill.
 - Run `docs-sync check` once and show its report.

@@ -19,6 +19,7 @@ cd "$ROOT" || exit 1
 UNITS=""
 UNIT_PARENTS=""
 SKILLS_LINK="symlink"
+SHARE="agent"
 TOP_MAP_MAX=70
 UNIT_MAP_MAX=40
 POINTER_FILES="CLAUDE.md"
@@ -154,10 +155,34 @@ check_skills() {
   fi
 }
 
+agent_paths() {  # pathspecs of every agent file: maps, pointers, lineage, kit folders
+  printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' DECISIONS.md PLAN.md .agents .claude .codex .githooks
+  for pointer in $POINTER_FILES; do printf '%s\n' "$pointer" ":(glob)**/$pointer"; done
+  [ -z "$LEDGER" ] || printf '%s\n' "$LEDGER"
+}
+
+check_share_mode() {  # files reach the remote only when SHARE allows it
+  case "$SHARE" in
+    agent|all|learning|none) ;;
+    *) fail "SHARE=\"$SHARE\" is not a share mode" "set SHARE to agent, all, learning or none in $CONF"; return ;;
+  esac
+  if [ "$SHARE" = agent ] || [ "$SHARE" = all ]; then
+    untracked=$(git ls-files --others --exclude-standard -- .agents .claude .codex .githooks | tr '\n' ' ')
+    [ -z "$untracked" ] || fail "agent files are not in git, so a fresh clone lacks them: $untracked" \
+      "git add them (put personal files in your global git ignore)"
+  else
+    set -f  # the pathspecs contain ** for git, not for the shell
+    # shellcheck disable=SC2046  # one pathspec per line
+    tracked=$(git ls-files -- $(agent_paths) | head -5 | tr '\n' ' ')
+    set +f
+    [ -z "$tracked" ] || fail "SHARE=$SHARE keeps agent files local, but git tracks or stages: $tracked" \
+      "run: git rm -r --cached -q --ignore-unmatch -- $(agent_paths | tr '\n' ' ') (the files stay on disk)"
+    { git check-ignore -q AGENTS.md && git check-ignore -q .agents/kit/check.sh; } || fail "agent files are not ignored, so they can be committed by mistake" \
+      "run once: sh <agent_dev_kit>/install.sh  (it writes .git/info/exclude for SHARE=$SHARE)"
+  fi
+}
+
 check_git_setup() {
-  untracked=$(git ls-files --others --exclude-standard -- .agents .claude .codex .githooks | tr '\n' ' ')
-  [ -z "$untracked" ] || fail "agent files are not in git, so a fresh clone lacks them: $untracked" \
-    "git add them (put personal files in your global git ignore)"
   # The commit check is active when the hooks folder git uses runs check.sh
   # (.githooks by default; husky or .git/hooks also work), or when the
   # pre-commit framework's config does.
@@ -194,11 +219,18 @@ check_portability() {  # works on Windows, macOS and Linux clones alike
 
 check_learning_docs() {
   [ -n "$LEARNING_DIR" ] || return
+  if [ "$SHARE" = all ] || [ "$SHARE" = learning ]; then
+    if git check-ignore -q "$LEARNING_DIR/probe.md"; then
+      fail "SHARE=$SHARE pushes learning docs, but $LEARNING_DIR/ is git-ignored" \
+        "remove the $LEARNING_DIR/ rule from .gitignore or .git/info/exclude (install.sh rewrites its own)"
+    fi
+    return
+  fi
   tracked=$(git ls-files -- "$LEARNING_DIR" | head -3 | tr '\n' ' ')
   [ -z "$tracked" ] || fail "learning docs are tracked or staged: $tracked" \
     "run: git rm -r --cached $LEARNING_DIR (they stay local)"
   git check-ignore -q "$LEARNING_DIR/probe.md" || fail "$LEARNING_DIR/ is not git-ignored" \
-    "add the line $LEARNING_DIR/ to .gitignore"
+    "run: sh <agent_dev_kit>/install.sh  (it writes the ignore rule for SHARE=$SHARE)"
 }
 
 check_ledger() {  # every folder beside the ledger has a row with an outcome
@@ -231,6 +263,7 @@ TMP_MISSING=$(mktemp) || exit 1
 trap 'rm -f "$TMP_MISSING"' EXIT
 check_maps
 check_skills
+check_share_mode
 check_git_setup
 check_portability
 check_learning_docs

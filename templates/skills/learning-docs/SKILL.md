@@ -1,15 +1,21 @@
 ---
 name: learning-docs
-description: Write or refresh the local learning docs (LEARNING_DIR, default learning_docs/) that teach a person the whole architecture and each unit and flow in ASD-STE100 Simplified Technical English, with real code references, invented examples, Mermaid diagrams and easy/medium/hard quizzes with hidden answers. They are git-ignored and never committed. Use when the user asks for learning docs, an explanation of the system for a newcomer, when a unit is added, or when docs-sync reports a stale learning doc. Scope - all, a unit, a flow, or stale.
+description: Write or refresh the local learning docs (LEARNING_DIR, default learning_docs/) that teach a person the whole architecture and each unit and flow in ASD-STE100 Simplified Technical English, with real code references, invented examples, Mermaid diagrams and easy/medium/hard quizzes with hidden answers. Whether they are committed follows SHARE in .agents/agent-kit.conf. Use when the user asks for learning docs, an explanation of the system for a newcomer, when a unit is added, or when docs-sync reports a stale learning doc. Scope - all, a unit, a flow, or stale.
 ---
 
 # Learning docs
 
 The folder is `LEARNING_DIR` in `.agents/agent-kit.conf` (default
 `learning_docs/`). It explains the system to a person who has never seen
-it. **Never commit or push it.** Before writing, confirm
-`git check-ignore -q <LEARNING_DIR>/probe.md` succeeds; if not, add the
-folder to `.gitignore` first. Committed docs and maps never link into it.
+it. Whether it is pushed depends on `SHARE` in the same file:
+
+- `agent` or `none`: the docs stay local. **Never commit or push them.**
+  Before writing, confirm `git check-ignore -q <LEARNING_DIR>/probe.md`
+  succeeds; if not, run the kit's `install.sh` first. Committed docs and
+  maps never link into the folder, since a clone does not have it.
+- `all` or `learning`: the docs are committed like code. Stage them with
+  the change they describe. Never put secrets, customer data or private
+  hosts in them, even in examples.
 
 **Scope argument:** `all` (default for a first run), a unit path, a flow
 name, or `stale` (only docs whose code changed; see "Staying current").
@@ -110,6 +116,7 @@ A learning doc is stale when
 
 - Every relative code link resolves to an existing file.
 - Every file has the quiz with hidden answers.
-- `git status --short` shows nothing under `LEARNING_DIR`.
+- With `SHARE` `agent` or `none`: `git status --short` shows nothing under
+  `LEARNING_DIR`.
 
 Report the files written and any claim marked "not shown in this repo".

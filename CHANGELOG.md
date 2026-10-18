@@ -3,6 +3,27 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.3.0 — 2026-10-18
+
+Share modes: choose what reaches the remote repo.
+
+- New `SHARE` setting: `agent` (default: agent files pushed, learning docs
+  local), `all`, `learning` (learning docs pushed, agent files local) or
+  `none`. Set it with `install.sh --share <mode>`; the setup interview
+  asks.
+- Rules for local files go in `.git/info/exclude` and `.git/info/attributes`
+  (never committed); shared rules go in `.gitignore` and `.gitattributes`,
+  inside a marked `agent-kit` block that each install rewrites.
+- `check.sh` enforces the mode: a local file that is tracked or staged
+  fails the check and so blocks the commit.
+- Changing the mode prints the `git rm -r --cached` command for files that
+  must stop being tracked.
+
+Upgrade: run `agent-kit upgrade`. The repo keeps `SHARE="agent"`, which is
+how 0.1 and 0.2 behaved. The old unmarked learning-docs line in
+`.gitignore` and LF rules in `.gitattributes` are replaced by the marked
+block.
+
 ## 0.2.0 — 2026-10-18
 
 Works on Windows (Git Bash), macOS and Linux; CI tests all of them.

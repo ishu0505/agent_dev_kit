@@ -118,6 +118,21 @@ footer { color: var(--muted); font-size: 14px; }
 </section>
 
 <section>
+  <h2>Share modes: what reaches GitHub</h2>
+  <p>Chosen at setup; the agent asks. Change it later with <code>install.sh --share &lt;mode&gt;</code>.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Mode</th><th>Agent files</th><th>Learning docs</th><th>Use it when</th></tr></thead>
+    <tbody>
+      <tr><td><code>agent</code> (default)</td><td><span class="pill ok">pushed</span></td><td><span class="pill check">local</span></td><td>The team shares the agent context; learning docs are yours</td></tr>
+      <tr><td><code>all</code></td><td><span class="pill ok">pushed</span></td><td><span class="pill ok">pushed</span></td><td>Everyone should get both</td></tr>
+      <tr><td><code>learning</code></td><td><span class="pill check">local</span></td><td><span class="pill ok">pushed</span></td><td>People learn the system; your agent setup stays private</td></tr>
+      <tr><td><code>none</code></td><td><span class="pill check">local</span></td><td><span class="pill check">local</span></td><td>Nothing about agents reaches the remote</td></tr>
+    </tbody>
+  </table></div>
+  <p>Agent files are every <code>AGENTS.md</code> and <code>CLAUDE.md</code>, <code>DECISIONS.md</code>, <code>PLAN.md</code>, the ledger, and <code>.agents/</code>, <code>.claude/</code>, <code>.codex/</code>, <code>.githooks/</code>. Local files are ignored through <code>.git/info/exclude</code>, which is never committed, so not even the ignore rule appears on GitHub. The pre-commit check blocks a commit that stages a local file. Local files exist only on that machine: a clone or another computer does not get them.</p>
+</section>
+
+<section>
   <h2>What lands in a repo</h2>
   <p>The scripts and skills are copied from the kit, ready-made and tested. The agent writes only what is specific to the repo.</p>
   <div class="table-wrap"><table>
@@ -130,7 +145,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root, in top folders and in every unit</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>DECISIONS.md</code>, <code>PLAN.md</code></td><td>Lineage; the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>learning_docs/</code></td><td>Local learning docs, git-ignored</td><td><span class="pill check">you only</span></td></tr>
+      <tr><td><code>learning_docs/</code></td><td>Learning docs; pushed or local by share mode</td><td><span class="pill check">repo</span></td></tr>
     </tbody>
   </table></div>
   <p>Kit files are replaced on upgrade. Repo files are created once and never overwritten. Nothing is a setup-only leftover, so there is nothing to clean up.</p>
@@ -138,7 +153,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Learning docs</h2>
-  <p>Local files that teach a person the system: <code>00-overview.md</code> for the whole architecture, one file per service or component in the order data flows, and one file per flow that crosses units, such as an API request, a queue worker job or a retry path. They are written in ASD-STE100 Simplified Technical English and never leave your machine.</p>
+  <p>Local files that teach a person the system: <code>00-overview.md</code> for the whole architecture, one file per service or component in the order data flows, and one file per flow that crosses units, such as an API request, a queue worker job or a retry path. They are written in ASD-STE100 Simplified Technical English. The share mode decides whether they are pushed.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Section</th><th>What it holds</th></tr></thead>
     <tbody>
@@ -166,7 +181,7 @@ footer { color: var(--muted); font-size: 14px; }
 3. The error is logged and suppressed, so the message can arrive again later.
 &lt;/details&gt;</pre></div>
   <p>Each file records the commit and the code paths it was written from. When <code>git diff</code> shows those paths changed, the <code>learning-docs</code> skill rewrites the stale parts. The docs step after each change asks for that refresh.</p>
-  <div class="note"><p><strong>Never committed.</strong> The setup adds <code>learning_docs/</code> to <code>.gitignore</code>, and the setup check blocks any commit that tracks or stages a file in it.</p></div>
+  <div class="note"><p><strong>Local or pushed, you choose.</strong> In share mode <code>agent</code> or <code>none</code> they are ignored, and the check blocks any commit that stages one. In <code>all</code> or <code>learning</code> they are committed like code.</p></div>
 </section>
 
 <section>
@@ -214,7 +229,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Tracked in git</td><td>A file under <code>.agents/</code>, <code>.claude/</code>, <code>.codex/</code> or <code>.githooks/</code> is untracked, so a fresh clone would not have it</td></tr>
       <tr><td>Portable hooks</td><td>A hook command contains your home folder or the repo's absolute path, or runs a missing script</td></tr>
       <tr><td>Hooks active</td><td>This clone never ran <code>git config core.hooksPath .githooks</code></td></tr>
-      <tr><td>Learning docs stay local</td><td>A file under <code>learning_docs/</code> is tracked or staged, or the folder is not git-ignored</td></tr>
+      <tr><td>Share mode</td><td>A file the mode keeps local is tracked or staged (after <code>git add -f</code>, say), or its ignore rule is missing; or learning docs are ignored in a mode that pushes them</td></tr>
       <tr><td>Ledger</td><td>An experiment has no ledger row, or a row has no outcome (new ones say <code>pending: not run yet</code>)</td></tr>
     </tbody>
   </table></div>
@@ -239,7 +254,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Works on macOS, Linux and Windows</h2>
-  <p>The same commands work on all three. CI runs the 40 tests on macOS, Ubuntu, Fedora and Windows on every push.</p>
+  <p>The same commands work on all three. CI runs the 54 tests on macOS, Ubuntu, Fedora and Windows on every push.</p>
   <div class="table-wrap"><table>
     <thead><tr><th></th><th>macOS</th><th>Linux</th><th>Windows</th></tr></thead>
     <tbody>
