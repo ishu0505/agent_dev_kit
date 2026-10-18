@@ -1,6 +1,6 @@
 ---
 name: agent-kit
-description: Set up, upgrade or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version. Arguments - setup (default), upgrade, check.
+description: Set up, upgrade, clean up or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version. Arguments - setup (default), upgrade, cleanup, check.
 ---
 
 # agent-kit
@@ -24,6 +24,9 @@ Then:
   If the user named a share mode (`agent`, `all`, `learning`, `none`), use
   it; otherwise BOOTSTRAP's interview asks.
 - **upgrade**: read `KIT/BOOTSTRAP.md` and follow it with `mode: upgrade`.
+- **cleanup**: house cleaning only. Read `KIT/BOOTSTRAP.md` and run its
+  phase 1b in the current repository (inventory, then one question per
+  group, then apply only what the user approved). Install nothing.
 - **check**: run `sh .agents/kit/check.sh` in the repo and show the result.
   If `.agents/kit/` does not exist, say the kit is not installed here and
   offer `setup`. For a deeper check, run the repo's `docs-sync` skill in

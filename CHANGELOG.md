@@ -3,6 +3,28 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.4.0 — 2026-10-18
+
+Your skills are never lost, and existing repos get a house cleaning first.
+
+- `install.sh` records a fingerprint of each kit skill it installs
+  (`.agents/kit/skills.sum`). On upgrade it replaces a kit skill only when
+  the repo never edited it. An edited skill is kept; a newer kit version
+  waits in `.git/agent-kit/incoming/<skill>/` for the agent to merge, and
+  is offered once. A skill the repo had before the kit, with a kit skill's
+  name, is kept too.
+- New setting `OWN_SKILLS`: skills the kit never touches.
+- New `inventory.sh` (read only): every agent and doc file, grouped, with
+  git state, last commit, size, staleness and duplicates.
+- BOOTSTRAP phase 1b, house cleaning: before setup in existing projects
+  and before every upgrade, the agent proposes keep / merge / own / remove
+  per file and asks one group at a time. On its own: `agent-kit cleanup`.
+
+Upgrade: run `agent-kit upgrade`. The four kit skills are unchanged since
+0.3.0, so unedited copies are recognised and recorded. A repo with its own
+`lineage` or `scaffold` (like docu_nom_nom_69) is told so once; answer
+"it is ours" and the agent adds them to `OWN_SKILLS`.
+
 ## 0.3.0 — 2026-10-18
 
 Share modes: choose what reaches the remote repo.

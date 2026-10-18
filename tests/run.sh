@@ -207,6 +207,54 @@ expect_fail "switch to none: tracked agent files are caught" "$V" "keeps agent f
 (cd "$V" && set -f && git rm -r --cached -q --ignore-unmatch -- AGENTS.md ':(glob)**/AGENTS.md' CLAUDE.md ':(glob)**/CLAUDE.md' DECISIONS.md PLAN.md .agents .claude .codex .githooks .gitattributes 2>/dev/null; true)
 expect_pass "switch to none: passes once untracked" "$V"
 
+# --- Skills the repo edited or owns are never lost ---------------------------
+KIT2="$WORK/kit2"; cp -R "$KIT" "$KIT2"; echo "- a step added in a newer kit" >> "$KIT2/templates/skills/scaffold/SKILL.md"
+skill_is() { grep -q "$2" "$1/.agents/skills/scaffold/SKILL.md"; }  # skill_is <repo> <text>
+incoming() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/agent-kit/incoming/scaffold"; }
+
+V=$(variant untouched); sh "$KIT2/install.sh" "$V" > /dev/null 2>&1
+skill_is "$V" "a step added in a newer kit" && ok "unedited kit skill takes the new version" || bad "unedited kit skill takes the new version"
+
+V=$(variant edited); echo "- our own step" >> "$V/.agents/skills/scaffold/SKILL.md"
+sh "$KIT/install.sh" "$V" > "$WORK/edited.log" 2>&1
+skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill kept when the kit has no newer version" || bad "edited skill kept when the kit has no newer version" "$(cat "$WORK/edited.log")"
+sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
+skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
+  grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold)$')" ] &&
+  ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
+git_quiet -C "$V" add -A
+expect_pass "checks pass while an update waits in incoming" "$V"
+sh "$KIT2/install.sh" "$V" > "$WORK/edited3.log" 2>&1
+! grep -q "Merge the new kit version" "$WORK/edited3.log" && skill_is "$V" "our own step" && ok "the same update is offered only once" || bad "the same update is offered only once" "$(cat "$WORK/edited3.log")"
+
+V=$(variant owned); echo "- our own step" >> "$V/.agents/skills/scaffold/SKILL.md"
+edit 's/^OWN_SKILLS=.*/OWN_SKILLS="scaffold"/' "$V/.agents/agent-kit.conf"
+sh "$KIT2/install.sh" "$V" > "$WORK/owned.log" 2>&1
+skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && grep -q "in OWN_SKILLS" "$WORK/owned.log" &&
+  ok "OWN_SKILLS: never touched, no update offered" || bad "OWN_SKILLS: never touched, no update offered" "$(cat "$WORK/owned.log")"
+
+mkdir "$WORK/ownskill" && git -C "$WORK/ownskill" init -q
+mkdir -p "$WORK/ownskill/.agents/skills/lineage" "$WORK/ownskill/.agents/skills/deploy"
+printf -- '---\nname: lineage\n---\nOur lineage.\n' > "$WORK/ownskill/.agents/skills/lineage/SKILL.md"
+printf -- '---\nname: deploy\n---\nDeploy.\n' > "$WORK/ownskill/.agents/skills/deploy/SKILL.md"
+sh "$KIT/install.sh" "$WORK/ownskill" > "$WORK/ownskill.log" 2>&1
+grep -q "Our lineage." "$WORK/ownskill/.agents/skills/lineage/SKILL.md" && grep -q "is not the kit's version" "$WORK/ownskill.log" &&
+  grep -q "Deploy." "$WORK/ownskill/.agents/skills/deploy/SKILL.md" &&
+  ok "repo's own skills survive setup, same name or not" || bad "repo's own skills survive setup, same name or not" "$(cat "$WORK/ownskill.log")"
+
+# --- House-cleaning inventory -------------------------------------------------
+R="$WORK/ownskill"
+printf '# Notes\n' > "$R/NOTES.md"; printf 'rule\n' > "$R/.cursorrules"; printf '# x\n' > "$R/AGENTS.md"
+edit 's/^OWN_SKILLS=.*/OWN_SKILLS="lineage"/' "$R/.agents/agent-kit.conf"
+before=$(git -C "$R" status --porcelain | cksum)
+out=$(sh "$KIT/templates/kit/inventory.sh" "$R")
+after=$(git -C "$R" status --porcelain | cksum)
+printf '%s' "$out" | grep -q "^Maps and pointer files" && printf '%s' "$out" | grep -q "^Rules for other agents" &&
+  printf '%s' "$out" | grep -q "lineage .*repo-owned (OWN_SKILLS)" && printf '%s' "$out" | grep -q "docs-sync .*same name as a kit skill" &&
+  printf '%s' "$out" | grep -q "NOTES.md  \[untracked" && ok "inventory groups maps, rules, skills and stray docs" || bad "inventory groups maps, rules, skills and stray docs" "$out"
+[ "$before" = "$after" ] && ok "inventory changes nothing" || bad "inventory changes nothing"
+
 # --- Upgrade keeps repo-owned files ----------------------------------------
 V=$(variant upgrade)
 echo "# note" >> "$V/.agents/agent-kit.conf"

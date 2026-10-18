@@ -11,6 +11,7 @@ agents, `DECISIONS.md` for the reason behind each choice, skills in
 | Are code and docs in sync? | ask the agent: `docs-sync check` |
 | Make the docs match the code | `docs-sync fix` |
 | Learn the system | `learning-docs` (writes `learning_docs/`; pushed only in share mode `all` or `learning`) |
+| Tidy agent and doc files | `agent-kit cleanup` |
 | Record a decision or result | `lineage` |
 | Add a service, package or experiment | `scaffold` |
 | Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |

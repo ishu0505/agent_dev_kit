@@ -49,6 +49,9 @@ Look at the repo, then tell me which case you see and wait for my OK:
   `.agents/agent-kit.conf` from the old setup (unit folders, ledger path,
   line limits).
 
+Cases A and C go through **phase 1b, house cleaning**, after exploring and
+before anything is installed. Case B has nothing to clean.
+
 ## Phase 1 — Explore (read only; case B skips to phase 2)
 
 - List the tree; skip dependency, build and generated folders
@@ -71,6 +74,38 @@ Look at the repo, then tell me which case you see and wait for my OK:
 
 Report in under 30 lines: units, commands, conventions, existing docs,
 unclear points.
+
+## Phase 1b — House cleaning (cases A and C; nothing is changed without my yes)
+
+1. **Inventory.** Run `sh KIT/templates/kit/inventory.sh .` (read only). It
+   lists every agent and doc file in groups: maps and pointer files, rules
+   for other agents (`.cursorrules`, `.cursor/rules`, Copilot), skills,
+   commands, hooks and agent settings, decisions and plans, learning docs,
+   other Markdown. For each file it gives the git state, the last commit,
+   the size, and notes: not changed for months, same content as another
+   file, same name as a kit skill, repo-owned skill.
+2. **Propose.** For each file, propose one action with a one-line reason:
+   - **keep** as it is;
+   - **merge** its content into a kit file (old rules into `AGENTS.md`, old
+     decisions into `DECISIONS.md`, other agents' rule files into the maps
+     so every agent reads the same rules), then remove it;
+   - **own**: a skill the repo keeps as its own, added to `OWN_SKILLS` in
+     `.agents/agent-kit.conf`. Propose this for every repo skill that has a
+     kit skill's name but different content;
+   - **remove**: stale, duplicate, or replaced by the kit;
+   - **leave alone**: not about agents or docs (data, generated output,
+     reports). Say so once for a whole folder instead of file by file.
+3. **Ask one group at a time.** Show the group as a table (path, action,
+   reason) and wait for my answer before the next group. I may change any
+   action. Never touch an existing skill without my yes.
+4. **Apply** only what I approved. Remove tracked files with `git rm`
+   (recoverable from history), untracked ones with `rm` after I confirm
+   that path. Write merged content in the target file before removing the
+   source. Do not commit.
+5. **Record** the cleanup as one `DECISIONS.md` entry (with the `lineage`
+   skill after phase 4): what was kept, merged, owned and removed, and why.
+
+Run this phase again whenever I ask for `agent-kit cleanup`.
 
 ## Phase 2 — Interview
 
@@ -135,8 +170,15 @@ the root `AGENTS.md`. Wait for my approval.
    fail), writes the ignore and LF rules for the share mode (shared rules in
    `.gitignore` / `.gitattributes`, local ones in `.git/info/`), sets
    `core.hooksPath`, and, when agent files are shared, stages the scripts
-   as executable. It never overwrites repo-owned
-   files. Do everything it prints under "For the agent".
+   as executable. It never overwrites repo-owned files. Kit skills are
+   replaced only if the repo never edited them (fingerprints in
+   `.agents/kit/skills.sum`); skills in `OWN_SKILLS` are never touched. Do
+   everything it prints under "For the agent". For each skill it kept
+   because the repo edited it or had its own, ask me: is it the repo's own
+   (add it to `OWN_SKILLS`), or should it take the kit's update (merge the
+   new version from `.git/agent-kit/incoming/<skill>/` into it, keeping the
+   repo's additions; `KIT/CHANGELOG.md` says what changed)? The kit offers
+   each update once: the next upgrade keeps the merged skill.
 2. **Config**: fill `.agents/agent-kit.conf` from the interview.
 3. **Maps**: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`
    (at most `TOP_MAP_MAX` lines), then one map per first-level folder that

@@ -171,12 +171,67 @@ unit gets its map, and `check.sh` stays green.
 1. Update the kit: `cd ~/agent_dev_kit && git pull`. On Windows, then run
    `sh ~/agent_dev_kit/install-global.sh` again (the global skill is a copy).
 2. In the repo, type `agent-kit upgrade`.
-3. The agent compares `.agents/kit/VERSION` with the kit's `VERSION`, reads
-   `CHANGELOG.md`, and runs `install.sh`. Kit-owned files are replaced; your
-   config, maps, decisions and settings stay byte for byte.
+3. It runs house cleaning first (see "House cleaning"), then compares
+   `.agents/kit/VERSION` with the kit's `VERSION`, reads `CHANGELOG.md`, and
+   runs `install.sh`. Your config, maps, decisions and settings stay byte
+   for byte. Skills are handled as in "Your skills are safe".
 4. It lists anything partial or missing and asks only about that.
-
 5. Review the changes and commit.
+
+## Your skills are safe
+
+The kit brings four skills: `lineage`, `scaffold`, `docs-sync`,
+`learning-docs`. A skill with any other name is never touched. For these
+four, `install.sh` records a fingerprint of each one it installs
+(`.agents/kit/skills.sum`) and on every later run:
+
+| The skill in your repo | What the install does |
+|---|---|
+| is missing, or exactly the kit's version | installs the kit's version |
+| you never edited it | replaces it with the new kit version |
+| you edited it, and the kit has no newer version | keeps yours |
+| you edited it, and the kit has a newer version | keeps yours; puts the new kit version in `.git/agent-kit/incoming/<skill>/`; the agent asks you whether to merge it in |
+| it was your own before the kit (same name, different content) | keeps yours, and the agent asks whether it is your own |
+| it is listed in `OWN_SKILLS` | never touched, no update offered |
+
+Mark a skill as yours in `.agents/agent-kit.conf`:
+
+```sh
+OWN_SKILLS="lineage scaffold"
+```
+
+The kit offers each update once. `.git/agent-kit/incoming/` is inside
+`.git`, so it is never committed and agents do not load it as a skill.
+
+## House cleaning
+
+Before setting the kit up in an existing project, and before every upgrade,
+the agent tidies the repo with you. Run it on its own any time:
+`agent-kit cleanup` (`/agent-kit cleanup` in Claude Code and agy,
+`$agent-kit cleanup` in Codex).
+
+1. **Inventory.** `inventory.sh` lists every agent and doc file in groups:
+   maps and pointer files, other agents' rule files (`.cursorrules`,
+   `.cursor/rules`, Copilot), skills, commands, hooks and settings,
+   decisions and plans, learning docs, other Markdown. For each: tracked or
+   not, last commit, size, and notes such as "not changed in 200 days",
+   "same content as X", "same name as a kit skill". It changes nothing.
+   You can run it yourself:
+
+   ```bash
+   sh ~/agent_dev_kit/templates/kit/inventory.sh .
+   ```
+
+2. **Proposal.** For each file the agent proposes **keep**, **merge** (into
+   `AGENTS.md` or `DECISIONS.md`, then remove), **own** (a skill that goes
+   into `OWN_SKILLS`), **remove**, or **leave alone** (data and generated
+   output, one answer per folder), with a reason.
+3. **One group at a time.** You answer each group; you can change any
+   action. No existing skill is touched without your yes.
+4. **Apply.** Only what you approved. Tracked files go with `git rm`, so
+   they can come back from history. Nothing is committed.
+5. **Record.** One `DECISIONS.md` entry lists what was kept, merged and
+   removed, and why.
 
 ## 4b. Move a repo with a hand-made setup onto the kit
 
@@ -217,6 +272,7 @@ mode.
 | Record a decision or a result | `lineage` | It asks why, what else, evidence, what would reverse it |
 | Add a service, package or experiment | `scaffold` | Creates its README, map and pointer files |
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |
+| Tidy agent and doc files | `agent-kit cleanup` | Inventory, then one question per group; nothing removed without your yes |
 | Edit a repo skill | edit it in `.agents/skills/` | In copy mode, then run `sh .agents/kit/sync-skills.sh` |
 
 ### How to see and call skills in each agent
@@ -248,7 +304,7 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
 ## 7. Change the kit itself
 
 1. Edit the templates (`templates/`), skills or scripts.
-2. Run `sh tests/run.sh` (54 tests in throwaway repos; needs sh, git,
+2. Run `sh tests/run.sh` (64 tests in throwaway repos; needs sh, git,
    Python 3). Pushing runs them on macOS, Ubuntu, Fedora and Windows
    (`.github/workflows/test.yml`).
 3. Bump `VERSION`, add a `CHANGELOG.md` entry saying what an upgrading repo

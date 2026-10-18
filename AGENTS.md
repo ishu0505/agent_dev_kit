@@ -12,7 +12,7 @@ docs. Humans start at `README.md`.
 | `install.sh` | Copies kit files into a target repo; also the upgrade |
 | `install-global.sh` | Links the `agent-kit` skill into each agent's skill folder |
 | `global-skills/agent-kit/` | The one global skill: setup, upgrade, check |
-| `templates/kit/` | `check.sh`, the Stop hook; copied to `.agents/kit/` |
+| `templates/kit/` | `check.sh`, `inventory.sh` (house cleaning), the Stop hook; copied to `.agents/kit/` |
 | `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs` |
 | `templates/config/` | `agent-kit.conf`, Claude and Codex hook configs |
 | `templates/docs/` | Map, decision, ledger, plan, learning-doc and README templates |

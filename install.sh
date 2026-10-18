@@ -3,6 +3,12 @@
 #
 # Usage: /path/to/agent_dev_kit/install.sh [--share MODE] [target repo]
 #
+# Skills: a kit skill is replaced only when the repo never edited it (its
+# fingerprint matches .agents/kit/skills.sum). An edited skill, or one the
+# repo had before the kit, is kept; the new kit version goes to
+# .git/agent-kit/incoming/<skill>/ for the agent to merge. Skills listed in
+# OWN_SKILLS (.agents/agent-kit.conf) are never touched.
+#
 #   --share agent     agent files pushed, learning docs local (default)
 #   --share all       agent files and learning docs pushed
 #   --share learning  learning docs pushed, agent files local
@@ -91,12 +97,6 @@ cp "$T"/kit/*.sh "$T/kit/docs_reminder.py" .agents/kit/
 cp "$KIT/VERSION" .agents/kit/VERSION
 chmod +x .agents/kit/*.sh
 say "updated .agents/kit/ (check.sh, sync-skills.sh, stop hook, VERSION)"
-for skill in "$T"/skills/*/; do
-  name=$(basename "$skill")
-  rm -rf ".agents/skills/$name"
-  cp -R "$skill" ".agents/skills/$name"
-  say "updated .agents/skills/$name"
-done
 
 # Pre-commit: ours is replaced; someone else's is left for the agent to merge.
 if [ ! -f .githooks/pre-commit ] || grep -q 'agents/kit/check.sh' .githooks/pre-commit; then
@@ -116,6 +116,8 @@ fi
 
 # Repo-owned: created once, never overwritten.
 create_if_missing "$T/config/agent-kit.conf" .agents/agent-kit.conf || true
+grep -q '^OWN_SKILLS=' .agents/agent-kit.conf ||
+  printf '\n# Skills the repo owns: the kit never replaces them, even if they share\n# a name with a kit skill (e.g. "lineage scaffold").\nOWN_SKILLS=""\n' >> .agents/agent-kit.conf
 create_if_missing "$T/config/codex-hooks.json" .codex/hooks.json || true
 if ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json; then
   grep -q 'agents/kit/stop-hook.sh' .claude/settings.json ||
@@ -123,6 +125,51 @@ if ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json; t
 fi
 grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
+
+# Skills: replace only what the repo never edited.
+skill_sum() {  # skill_sum <folder>: one fingerprint for every file in a skill
+  (cd "$1" && find . -type f | LC_ALL=C sort | while IFS= read -r file; do
+    printf '%s %s\n' "$file" "$(cksum < "$file")"; done) | cksum | cut -d' ' -f1
+}
+SUMS=.agents/kit/skills.sum   # <skill> <fingerprint installed, or -> <fingerprint of that kit version>
+INCOMING="$(git rev-parse --git-dir)/agent-kit/incoming"
+recorded() {  # recorded <skill> <field>: from skills.sum; empty when not recorded
+  [ -f "$SUMS" ] || return 0
+  awk -v n="$1" -v f="$2" '$1 == n { print $f; exit }' "$SUMS"
+}
+NEW_SUMS=""
+remember() { NEW_SUMS="$NEW_SUMS$1 $2 $3
+"; }
+rm -rf "$INCOMING"
+for skill in "$T"/skills/*/; do
+  name=$(basename "$skill")
+  dest=".agents/skills/$name"
+  kit_sum=$(skill_sum "$skill")
+  case " $(conf OWN_SKILLS) " in
+    *" $name "*) say "kept .agents/skills/$name (in OWN_SKILLS)"; continue ;;
+  esac
+  installed=$(recorded "$name" 2); last_kit=$(recorded "$name" 3)
+  current=""; [ -d "$dest" ] && current=$(skill_sum "$dest")
+  if [ -z "$current" ] || [ "$current" = "$kit_sum" ] ||
+     { [ -n "$installed" ] && [ "$installed" != "-" ] && [ "$current" = "$installed" ]; }; then
+    rm -rf "$dest" && cp -R "$skill" "$dest"
+    remember "$name" "$kit_sum" "$kit_sum"
+    say "updated $dest"
+  elif [ "$kit_sum" = "$last_kit" ]; then
+    remember "$name" "${installed:--}" "$kit_sum"
+    say "kept $dest (edited here; the kit has no newer version)"
+  else
+    mkdir -p "$INCOMING" && cp -R "$skill" "$INCOMING/$name"
+    remember "$name" "${installed:--}" "$kit_sum"
+    if [ -z "$installed" ] || [ "$installed" = "-" ]; then
+      note "$dest is not the kit's version (the repo had its own, or edited it before 0.4). Kept it. If it is the repo's own, add $name to OWN_SKILLS in .agents/agent-kit.conf. If not, merge the kit version from $INCOMING/$name/ into it"
+    else
+      note "$dest was edited here and the kit has a newer version. Kept yours. Merge the new kit version from $INCOMING/$name/ (see CHANGELOG.md), keeping the repo's additions"
+    fi
+  fi
+done
+printf '%s' "$NEW_SUMS" > "$SUMS"
+say "recorded skill fingerprints in $SUMS"
 
 # Share mode: what may reach the remote.
 SHARE=$(conf SHARE)

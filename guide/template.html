@@ -112,6 +112,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Learn the system</td><td><code>learning-docs</code></td><td>Writes local <code>learning_docs/</code>; <code>learning-docs stale</code> refreshes only what changed</td></tr>
       <tr><td>A decision or result</td><td><code>lineage</code></td><td>Asks why, alternatives, evidence; appends to <code>DECISIONS.md</code></td></tr>
       <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>
+      <tr><td>Tidy agent and doc files</td><td><code>agent-kit cleanup</code></td><td>Lists every agent and doc file, proposes keep, merge, own or remove, and asks one group at a time</td></tr>
     </tbody>
   </table></div>
   <p>How to call a skill: Claude Code and agy use a slash (<code>/agent-kit setup</code>). Codex uses a dollar sign (<code>$agent-kit setup</code>); its <code>/</code> menu does not list skills. Cursor and Muse take the name in plain words. <code>/skills</code> lists skills in Claude Code, Codex and agy. Start a new session after installing a skill. Any agent without skills: <code>Read ~/agent_dev_kit/BOOTSTRAP.md and follow it.</code></p>
@@ -130,6 +131,22 @@ footer { color: var(--muted); font-size: 14px; }
     </tbody>
   </table></div>
   <p>Agent files are every <code>AGENTS.md</code> and <code>CLAUDE.md</code>, <code>DECISIONS.md</code>, <code>PLAN.md</code>, the ledger, and <code>.agents/</code>, <code>.claude/</code>, <code>.codex/</code>, <code>.githooks/</code>. Local files are ignored through <code>.git/info/exclude</code>, which is never committed, so not even the ignore rule appears on GitHub. The pre-commit check blocks a commit that stages a local file. Local files exist only on that machine: a clone or another computer does not get them.</p>
+</section>
+
+<section>
+  <h2>Your skills are safe, and the repo gets a clean-up first</h2>
+  <p>The kit brings four skills. A skill with any other name is never touched. For those four it records a fingerprint at install, so it can tell whether you edited one.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>The skill in your repo</th><th>What the install does</th></tr></thead>
+    <tbody>
+      <tr><td>Never edited</td><td>Replaces it with the new kit version</td></tr>
+      <tr><td>Edited, kit has no newer version</td><td>Keeps yours</td></tr>
+      <tr><td>Edited, kit has a newer version</td><td>Keeps yours; the new one waits in <code>.git/agent-kit/incoming/</code>; the agent asks whether to merge it</td></tr>
+      <tr><td>Your own from before the kit</td><td>Keeps yours; the agent asks whether to mark it as yours</td></tr>
+      <tr><td>In <code>OWN_SKILLS</code></td><td>Never touched</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>House cleaning</strong> runs before setup in an existing project and before every upgrade, or on its own with <code>agent-kit cleanup</code>. <code>inventory.sh</code> lists every agent and doc file (maps, other agents' rule files, skills, commands, hooks, decisions, stray Markdown) with its git state, age and duplicates. The agent proposes keep, merge, own or remove for each one, asks you one group at a time, and removes only what you approve, with <code>git rm</code>.</p>
 </section>
 
 <section>
@@ -254,7 +271,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Works on macOS, Linux and Windows</h2>
-  <p>The same commands work on all three. CI runs the 54 tests on macOS, Ubuntu, Fedora and Windows on every push.</p>
+  <p>The same commands work on all three. CI runs the 64 tests on macOS, Ubuntu, Fedora and Windows on every push.</p>
   <div class="table-wrap"><table>
     <thead><tr><th></th><th>macOS</th><th>Linux</th><th>Windows</th></tr></thead>
     <tbody>
