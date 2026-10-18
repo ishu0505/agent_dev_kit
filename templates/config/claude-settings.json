@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.agents/kit/stop-hook.sh\""
+            "command": "sh -c 'sh \"$(git rev-parse --show-toplevel)/.agents/kit/stop-hook.sh\"'"
           }
         ]
       }

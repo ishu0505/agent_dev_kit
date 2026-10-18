@@ -1,0 +1,14 @@
+# agent-kit: scripts and config keep LF line endings on every OS
+# (Windows CRLF breaks sh).
+*.sh text eol=lf
+.githooks/* text eol=lf
+.agents/** text eol=lf
+.claude/settings.json text eol=lf
+.codex/hooks.json text eol=lf
+
+# The kit itself
+install.sh text eol=lf
+install-global.sh text eol=lf
+templates/** text eol=lf
+tests/** text eol=lf
+global-skills/** text eol=lf

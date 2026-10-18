@@ -1,8 +1,8 @@
 # Agent kit bootstrap
 
 The setup prompt for any coding agent (Claude Code, Codex, Cursor,
-Antigravity, Gemini CLI, Muse; app or CLI) in a repo of any language. Run the
-agent inside the target repo and say:
+Antigravity, Gemini CLI, Muse; app or CLI) in a repo of any language, on
+macOS, Linux or Windows. Run the agent inside the target repo and say:
 
     Read <path to agent_dev_kit>/BOOTSTRAP.md and follow it.
 
@@ -44,7 +44,10 @@ Look at the repo, then tell me which case you see and wait for my OK:
   me only about the missing and partial parts. Keep all existing content.
 - An older hand-made setup (maps or checks but no `.agents/kit/`) is case C
   without a version: also list what the old setup has that the kit replaces
-  (old hooks, old check scripts) and propose removing it.
+  (old hooks, old check scripts, old hook entries in `.claude/settings.json`
+  and `.codex/hooks.json`) and ask about removing each one. Fill
+  `.agents/agent-kit.conf` from the old setup (unit folders, ledger path,
+  line limits).
 
 ## Phase 1 — Explore (read only; case B skips to phase 2)
 
@@ -99,6 +102,9 @@ Every case:
 9. Learning docs: who reads them, which flows matter most (API requests,
    queue / worker jobs, pipelines, CLI), which units first.
 10. Folders agents must never edit (generated, vendored, data).
+11. Operating systems the team uses. Windows without symlink support means
+    `SKILLS_LINK="copy"`; the install also switches to it by itself when a
+    symlink cannot be made.
 
 ## Phase 3 — Propose
 
@@ -108,11 +114,13 @@ the root `AGENTS.md`. Wait for my approval.
 ## Phase 4 — Build
 
 1. **Install** (all cases; this is also the upgrade):
-   `sh KIT/install.sh .`
+   `sh KIT/install.sh .` (on Windows, run every kit command in Git Bash).
    It copies `.agents/kit/`, the four skills, `.githooks/pre-commit`,
    creates `.agents/agent-kit.conf`, `.claude/settings.json`,
-   `.codex/hooks.json`, the `.claude/skills` link and the `learning_docs/`
-   ignore line, and sets `core.hooksPath`. It never overwrites repo-owned
+   `.codex/hooks.json`, `.claude/skills` (a link, or a copy where symlinks
+   fail), the `learning_docs/` ignore line and the LF rules in
+   `.gitattributes`, sets `core.hooksPath`, and stages the scripts as
+   executable. It never overwrites repo-owned
    files. Do everything it prints under "For the agent".
 2. **Config**: fill `.agents/agent-kit.conf` from the interview.
 3. **Maps**: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`

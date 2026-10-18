@@ -19,6 +19,7 @@ docs. Humans start at `README.md`.
 | `templates/githooks/` | The pre-commit hook |
 | `guide/` | The HTML guide: `template.html` + `build.py` |
 | `tests/run.sh` | End-to-end tests in throwaway repos |
+| `.github/workflows/test.yml` | CI: the tests on macOS, Ubuntu, Fedora and Windows |
 
 ## Rules
 
@@ -28,9 +29,11 @@ docs. Humans start at `README.md`.
 - **Kit-owned files** (`templates/kit/`, `templates/skills/`,
   `templates/githooks/`) are overwritten on upgrade; never put repo content
   in them. Repo-owned templates are created once and never overwritten.
-- **Scripts are POSIX sh** with `git`, `grep`, `awk`, `sed` only. The Stop
-  hook is the one Python file (standard library) and must never block when
-  it fails.
+- **Scripts are POSIX sh** with `git`, `grep`, `awk`, `sed`, `cksum` only,
+  and must run on macOS, Linux and Windows Git Bash: no `sed -i`, no
+  `readlink -f`, no `cmp`/`diff`, no GNU-only flags; tolerate CRLF input.
+  The Stop hook is the one Python file (standard library, 3.9+) and must
+  never block when it fails.
 - **Every check failure prints its fix.**
 
 ## Before calling a change done

@@ -1,6 +1,6 @@
 ## Agent context
 
-This repo uses [agent_dev_kit](<kit repo URL>): `AGENTS.md` maps for coding
+This repo uses [agent_dev_kit](https://github.com/ishu0505/agent_dev_kit): `AGENTS.md` maps for coding
 agents, `DECISIONS.md` for the reason behind each choice, skills in
 `.agents/skills/`, and checks that keep the docs true.
 
@@ -13,9 +13,10 @@ agents, `DECISIONS.md` for the reason behind each choice, skills in
 | Learn the system | `learning-docs` (writes local `learning_docs/`, never committed) |
 | Record a decision or result | `lineage` |
 | Add a service, package or experiment | `scaffold` |
+| Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |
 | Newer kit version | in the kit folder `git pull`, then ask the agent: `agent-kit upgrade` |
 
-How to call a skill: Claude Code `/docs-sync check`. Codex, Cursor,
+On Windows, run the shell commands in Git Bash. How to call a skill: Claude Code `/docs-sync check`. Codex, Cursor,
 Antigravity and other agents that load `.agents/skills`: name the skill.
 Any agent: "Read `.agents/skills/docs-sync/SKILL.md` and run it in check
 mode."

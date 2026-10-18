@@ -18,6 +18,7 @@ cd "$ROOT" || exit 1
 # Defaults; the repo's config overrides them.
 UNITS=""
 UNIT_PARENTS=""
+SKILLS_LINK="symlink"
 TOP_MAP_MAX=70
 UNIT_MAP_MAX=40
 POINTER_FILES="CLAUDE.md"
@@ -68,8 +69,9 @@ top_folders() {  # first-level folders that have their own map
 
 mapped_paths() {  # mapped_paths <AGENTS.md>: paths the map names
   awk '
+    { sub(/\r$/, "") }
     function ticked(text) { if (match(text, /`[^`]+`/)) return substr(text, RSTART + 1, RLENGTH - 2); return "" }
-    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    function trim(s) { gsub(/^[ \t\r]+|[ \t\r]+$/, "", s); return s }
     /^#/ { section = $0; header = 0; next }
     !/^\|/ { header = 0 }
     /^- `/ && section ~ /Further reading/ { print ticked($0) }
@@ -127,14 +129,28 @@ check_maps() {
   done
 }
 
+tree_sum() {  # tree_sum <folder>: one checksum line per file, for comparing copies
+  (cd "$1" && find . -type f | LC_ALL=C sort | while IFS= read -r file; do
+    printf '%s %s\n' "$file" "$(cksum < "$file")"; done)
+}
+
 check_skills() {
-  if [ -e .claude/skills ] && [ -d .agents/skills ]; then
+  [ -d .agents/skills ] || return
+  if [ -f .claude/skills ]; then
+    # A symlink checked out where links are off (Windows) becomes a text file.
+    fail ".claude/skills is a plain file: this clone cannot use symlinks" \
+      "set SKILLS_LINK=\"copy\" in .agents/agent-kit.conf, run: rm .claude/skills && sh .agents/kit/sync-skills.sh, and commit"
+  elif [ ! -e .claude/skills ]; then
+    [ -d .claude ] && fail ".claude/skills is missing, so Claude Code sees no skills" "run: sh .agents/kit/sync-skills.sh"
+  elif [ "$SKILLS_LINK" = "copy" ]; then
+    [ "$(tree_sum .claude/skills)" = "$(tree_sum .agents/skills)" ] ||
+      fail ".claude/skills is out of sync with .agents/skills" \
+        "edit skills in .agents/skills only, then run: sh .agents/kit/sync-skills.sh"
+  else
     claude=$(cd -P .claude/skills && pwd)
     agents=$(cd -P .agents/skills && pwd)
-    [ "$claude" = "$agents" ] || fail ".claude/skills and .agents/skills are two copies; they will drift" \
-      "keep skills in .agents/skills and run: rm -r .claude/skills && ln -s ../.agents/skills .claude/skills"
-  elif [ -d .claude ] && [ -d .agents/skills ]; then
-    fail ".claude/skills is missing, so Claude Code sees no skills" "run: ln -s ../.agents/skills .claude/skills"
+    [ "$claude" = "$agents" ] || fail ".claude/skills is a copy, not a link to .agents/skills; copies drift" \
+      "run: sh .agents/kit/sync-skills.sh (or set SKILLS_LINK=\"copy\" where symlinks do not work)"
   fi
 }
 
@@ -154,13 +170,25 @@ check_git_setup() {
   fi
   for config in .claude/settings.json .codex/hooks.json; do
     [ -f "$config" ] || continue
-    if grep -qF "$HOME/" "$config" || grep -qF "$ROOT" "$config"; then
+    if grep -qF "$ROOT" "$config" ||
+       grep -qE '(/Users/|/home/|[A-Za-z]:[\\/]+Users)' "$config"; then
       fail "$config hard-codes a path on this machine" \
         "use \"\$CLAUDE_PROJECT_DIR/...\" or \"\$(git rev-parse --show-toplevel)/...\""
     fi
     for script in $(grep -oE '\.(agents|claude|codex|githooks)/[A-Za-z0-9_./-]+\.(sh|py)' "$config"); do
       [ -f "$script" ] || fail "$config runs $script, which does not exist" "fix the path in $config"
     done
+  done
+}
+
+check_portability() {  # works on Windows, macOS and Linux clones alike
+  eol=$(git check-attr eol -- .agents/kit/check.sh | sed 's/.*: //')
+  [ "$eol" = "lf" ] || fail "scripts may get Windows line endings (CRLF), which breaks sh" \
+    "add the agent-kit lines from agent_dev_kit/templates/config/gitattributes to .gitattributes"
+  for script in .githooks/pre-commit .agents/kit/check.sh .agents/kit/stop-hook.sh .agents/kit/sync-skills.sh; do
+    mode=$(git ls-files -s -- "$script" | cut -c1-6)
+    [ -z "$mode" ] || [ "$mode" = "100755" ] || fail "$script is not executable in git; macOS and Linux clones skip it" \
+      "run: git add --chmod=+x $script"
   done
 }
 
@@ -176,7 +204,8 @@ check_learning_docs() {
 check_ledger() {  # every folder beside the ledger has a row with an outcome
   [ -n "$LEDGER" ] && [ -f "$LEDGER" ] || return
   rows=$(awk '
-    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    { sub(/\r$/, "") }
+    function trim(s) { gsub(/^[ \t\r]+|[ \t\r]+$/, "", s); return s }
     /^\|/ && $0 !~ /^[|: -]+$/ {
       n = split($0, cells, "|")
       if (!col) { for (i = 2; i < n; i++) if (trim(cells[i]) == "Outcome") col = i; next }
@@ -203,6 +232,7 @@ trap 'rm -f "$TMP_MISSING"' EXIT
 check_maps
 check_skills
 check_git_setup
+check_portability
 check_learning_docs
 check_ledger
 

@@ -5,7 +5,8 @@ the code. Keep the reason behind every decision. Keep the docs true without
 remembering to check them. Teach people the system with local learning docs.
 
 Works with Claude Code, Codex, Cursor, Muse, Antigravity and Gemini CLI, in a
-repo of any language. The HTML guide is `guide/agent-context-kit.html`.
+repo of any language, on macOS, Linux and Windows. The HTML guide is
+`guide/agent-context-kit.html`.
 
 ## What you get in a repo
 
@@ -31,12 +32,40 @@ repo of any language. The HTML guide is `guide/agent-context-kit.html`.
 - **Kit-owned file**: copied from this kit and replaced on upgrade.
   **Repo-owned file**: written for your repo and never overwritten.
 
+## Operating systems
+
+Every kit command is a POSIX `sh` script that needs only `git`, `grep`,
+`awk`, `sed` and `cksum`. The Stop hook also needs Python 3.9 or newer. CI
+tests every push on macOS, Ubuntu, Fedora and Windows.
+
+| | macOS | Linux (Fedora, Ubuntu, ...) | Windows |
+|---|---|---|---|
+| Where you type commands | Terminal | Terminal | **Git Bash** (comes with Git for Windows) |
+| Install first | nothing (git comes with Xcode tools) | `git`, `python3` (Fedora: `sudo dnf install git python3`) | [Git for Windows](https://git-scm.com/download/win) and Python 3 |
+| `.claude/skills` | symlink | symlink | copy, chosen by the install (`SKILLS_LINK="copy"`); with Developer Mode and `git config --global core.symlinks true` it can be a symlink |
+| Global `agent-kit` skill | symlink, follows `git pull` | symlink, follows `git pull` | copy: run `install-global.sh` again after each `git pull` |
+| Python name the hook uses | `python3` | `python3` | `python3`, `python` or `py`, whichever exists |
+
+The commands below are the same on all three. On Windows, `~` is your user
+folder (`C:\Users\<you>`), and you type them in Git Bash, not PowerShell
+or cmd. Line endings are handled for you: the kit adds `.gitattributes`
+rules that keep its scripts LF on Windows.
+
+A repo set up on one OS works on the others. A repo in copy mode works
+everywhere; a repo in symlink mode cloned on Windows without symlink
+support is caught by `check.sh`, which tells you how to switch to copy mode.
+
+## 0. Your own copy of the kit (once)
+
+The kit lives at `git@github.com:ishu0505/agent_dev_kit.git`. Someone else
+using it: fork it, or clone it and push it to your own GitHub repo.
+
 ## 1. One time on your computer
 
 1. Clone the kit (any folder; the examples use `~/agent_dev_kit`):
 
    ```bash
-   git clone <your agent_dev_kit repo URL> ~/agent_dev_kit
+   git clone git@github.com:ishu0505/agent_dev_kit.git ~/agent_dev_kit
    ```
 
 2. Give every agent the `agent-kit` skill:
@@ -46,8 +75,9 @@ repo of any language. The HTML guide is `guide/agent-context-kit.html`.
    ```
 
    This links `global-skills/agent-kit` into `~/.claude/skills`,
-   `~/.agents/skills` and `~/.gemini/antigravity/skills`. Links, not copies:
-   a `git pull` in the kit updates every agent. Another agent folder:
+   `~/.agents/skills` and `~/.gemini/antigravity/skills`. On macOS and Linux
+   these are links, so a `git pull` in the kit updates every agent. On
+   Windows it copies them and says so; run it again after each `git pull`. Another agent folder:
    `AGENT_KIT_SKILL_DIRS="/path/to/skills" sh ~/agent_dev_kit/install-global.sh`.
    Remove: `sh ~/agent_dev_kit/install-global.sh --remove`.
 
@@ -95,16 +125,30 @@ unit gets its map, and `check.sh` stays green.
 
 ## 4. Upgrade a repo to a newer kit
 
-1. Update the kit: `cd ~/agent_dev_kit && git pull`.
+1. Update the kit: `cd ~/agent_dev_kit && git pull`. On Windows, then run
+   `sh ~/agent_dev_kit/install-global.sh` again (the global skill is a copy).
 2. In the repo, type `agent-kit upgrade`.
 3. The agent compares `.agents/kit/VERSION` with the kit's `VERSION`, reads
    `CHANGELOG.md`, and runs `install.sh`. Kit-owned files are replaced; your
    config, maps, decisions and settings stay byte for byte.
 4. It lists anything partial or missing and asks only about that.
 
-A repo with an older hand-made setup (maps and checks, no `.agents/kit/`)
-upgrades the same way; the agent also lists the old hooks and scripts the
-kit replaces.
+5. Review the changes and commit.
+
+## 4b. Move a repo with a hand-made setup onto the kit
+
+For a repo that already has maps and checks but no `.agents/kit/` (for
+example docu_nom_nom_69, with its pytest docs checks and its own Stop hook):
+
+1. Open the agent in the repo and type `agent-kit upgrade`.
+2. It installs the kit next to the old setup, then lists what the kit now
+   does that the old setup also does: old check tests, old hook scripts,
+   old hook entries in `.claude/settings.json` and `.codex/hooks.json`.
+3. Say yes or no to removing each one. Keep a repo-specific check the kit
+   does not replace; it can stay in the test suite.
+4. It fills `.agents/agent-kit.conf` from the old setup (unit folders,
+   ledger path, line limits) and runs `sh .agents/kit/check.sh`.
+5. Review and commit.
 
 ## 5. A teammate clones a repo that has the kit
 
@@ -114,7 +158,10 @@ Everything is in git except one setting. Run once in the clone:
 git config core.hooksPath .githooks
 ```
 
-Until then, `check.sh` reminds them.
+Until then, `check.sh` reminds them. On Windows they type it in Git Bash.
+If the repo uses symlink mode and their Windows clone cannot make symlinks,
+`check.sh` says so and gives the two commands that switch the repo to copy
+mode.
 
 ## 6. Everyday use
 
@@ -127,6 +174,7 @@ Until then, `check.sh` reminds them.
 | Record a decision or a result | `lineage` | It asks why, what else, evidence, what would reverse it |
 | Add a service, package or experiment | `scaffold` | Creates its README, map and pointer files |
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |
+| Edit a repo skill | edit it in `.agents/skills/` | In copy mode, then run `sh .agents/kit/sync-skills.sh` |
 
 Claude Code wants a slash before a skill name (`/docs-sync check`).
 
@@ -143,8 +191,9 @@ Claude Code wants a slash before a skill name (`/docs-sync check`).
 ## 7. Change the kit itself
 
 1. Edit the templates (`templates/`), skills or scripts.
-2. Run `sh tests/run.sh` (26 tests in throwaway repos; needs sh, git,
-   python3).
+2. Run `sh tests/run.sh` (40 tests in throwaway repos; needs sh, git,
+   Python 3). Pushing runs them on macOS, Ubuntu, Fedora and Windows
+   (`.github/workflows/test.yml`).
 3. Bump `VERSION`, add a `CHANGELOG.md` entry saying what an upgrading repo
    must do, and run `python3 guide/build.py`.
 4. Commit and push. Repos pick it up with `agent-kit upgrade`.
@@ -153,8 +202,9 @@ Claude Code wants a slash before a skill name (`/docs-sync check`).
 
 - The Stop hook reads Claude Code's transcript format. Codex's hook input is
   not verified; Cursor, Muse and Antigravity rely on the pre-commit check.
-- The hook needs `python3`; without it the hook steps aside.
-- On Windows use Git Bash, and `git config core.symlinks true` for the
-  `.claude/skills` link.
+- The Stop hook needs Python 3.9+; without it the hook steps aside and the
+  pre-commit check still runs.
+- On Windows, the Stop hook depends on how each agent runs hook commands;
+  only the pre-commit check is guaranteed there.
 - `docs-sync` and `learning-docs` are agent work; their quality depends on
   the agent reading the code. The checks are the part that is guaranteed.

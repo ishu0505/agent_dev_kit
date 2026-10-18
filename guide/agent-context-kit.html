@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.1.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.2.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -86,13 +86,13 @@ footer { color: var(--muted); font-size: 14px; }
   <h2>First time on your machine</h2>
   <ol class="steps">
     <li><div><h3>Clone the kit once</h3>
-      <div class="cmd"><pre id="clone">git clone &lt;your agent_dev_kit repo URL&gt; ~/agent_dev_kit</pre>
+      <div class="cmd"><pre id="clone">git clone git@github.com:ishu0505/agent_dev_kit.git ~/agent_dev_kit</pre>
         <button class="copy" type="button" data-target="clone">Copy</button></div>
-      <p>Any folder works. This page calls it <code>KIT</code>.</p></div></li>
+      <p>Any folder works. This page calls it <code>KIT</code>. On Windows, type every command on this page in Git Bash.</p></div></li>
     <li><div><h3>Give every agent the setup skill</h3>
       <div class="cmd"><pre id="global">sh ~/agent_dev_kit/install-global.sh</pre>
         <button class="copy" type="button" data-target="global">Copy</button></div>
-      <p>Links one skill, <code>agent-kit</code>, into <code>~/.claude/skills</code> (Claude Code), <code>~/.agents/skills</code> (Codex, Cursor, Muse, Gemini CLI) and <code>~/.gemini/antigravity/skills</code> (Antigravity). They are links, so <code>git pull</code> in the kit updates all agents.</p></div></li>
+      <p>Links one skill, <code>agent-kit</code>, into <code>~/.claude/skills</code> (Claude Code), <code>~/.agents/skills</code> (Codex, Cursor, Muse, Gemini CLI) and <code>~/.gemini/antigravity/skills</code> (Antigravity). On macOS and Linux they are links, so <code>git pull</code> in the kit updates all agents. On Windows they are copies: run it again after each <code>git pull</code>.</p></div></li>
   </ol>
 </section>
 
@@ -235,7 +235,23 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>JS, TS</td><td>Workspace packages</td><td><code>UNIT_PARENTS="packages apps"</code></td></tr>
     </tbody>
   </table></div>
-  <p>The Stop hook needs <code>python3</code>; without it the hook steps aside and the pre-commit check still runs. On Windows, run the scripts in Git Bash, and turn on <code>git config core.symlinks true</code> for the <code>.claude/skills</code> link.</p>
+</section>
+
+<section>
+  <h2>Works on macOS, Linux and Windows</h2>
+  <p>The same commands work on all three. CI runs the 40 tests on macOS, Ubuntu, Fedora and Windows on every push.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>macOS</th><th>Linux</th><th>Windows</th></tr></thead>
+    <tbody>
+      <tr><td>Type commands in</td><td>Terminal</td><td>Terminal</td><td>Git Bash, from Git for Windows</td></tr>
+      <tr><td>Install first</td><td>Nothing</td><td><code>git</code>, <code>python3</code> (Fedora: <code>sudo dnf install git python3</code>)</td><td>Git for Windows, Python 3</td></tr>
+      <tr><td><code>.claude/skills</code></td><td>Symlink</td><td>Symlink</td><td>Copy, chosen by the install; <code>sync-skills.sh</code> refreshes it</td></tr>
+      <tr><td>Global skill</td><td>Symlink, follows <code>git pull</code></td><td>Symlink, follows <code>git pull</code></td><td>Copy; rerun <code>install-global.sh</code> after <code>git pull</code></td></tr>
+      <tr><td>Line endings</td><td colspan="3"><code>.gitattributes</code> keeps the scripts LF, so a Windows checkout cannot break them</td></tr>
+      <tr><td>Stop hook</td><td>Runs</td><td>Runs</td><td>Depends on how the agent runs hooks; the pre-commit check always runs</td></tr>
+    </tbody>
+  </table></div>
+  <p>A repo set up on one OS works on the others. If a Windows clone cannot use the repo's symlink, <code>check.sh</code> says so and gives the commands to switch to copy mode.</p>
 </section>
 
 <section>
@@ -294,7 +310,10 @@ Look at the repo, then tell me which case you see and wait for my OK:
   me only about the missing and partial parts. Keep all existing content.
 - An older hand-made setup (maps or checks but no `.agents/kit/`) is case C
   without a version: also list what the old setup has that the kit replaces
-  (old hooks, old check scripts) and propose removing it.
+  (old hooks, old check scripts, old hook entries in `.claude/settings.json`
+  and `.codex/hooks.json`) and ask about removing each one. Fill
+  `.agents/agent-kit.conf` from the old setup (unit folders, ledger path,
+  line limits).
 
 ## Phase 1 — Explore (read only; case B skips to phase 2)
 
@@ -349,6 +368,9 @@ Every case:
 9. Learning docs: who reads them, which flows matter most (API requests,
    queue / worker jobs, pipelines, CLI), which units first.
 10. Folders agents must never edit (generated, vendored, data).
+11. Operating systems the team uses. Windows without symlink support means
+    `SKILLS_LINK=&quot;copy&quot;`; the install also switches to it by itself when a
+    symlink cannot be made.
 
 ## Phase 3 — Propose
 
@@ -358,11 +380,13 @@ the root `AGENTS.md`. Wait for my approval.
 ## Phase 4 — Build
 
 1. **Install** (all cases; this is also the upgrade):
-   `sh KIT/install.sh .`
+   `sh KIT/install.sh .` (on Windows, run every kit command in Git Bash).
    It copies `.agents/kit/`, the four skills, `.githooks/pre-commit`,
    creates `.agents/agent-kit.conf`, `.claude/settings.json`,
-   `.codex/hooks.json`, the `.claude/skills` link and the `learning_docs/`
-   ignore line, and sets `core.hooksPath`. It never overwrites repo-owned
+   `.codex/hooks.json`, `.claude/skills` (a link, or a copy where symlinks
+   fail), the `learning_docs/` ignore line and the LF rules in
+   `.gitattributes`, sets `core.hooksPath`, and stages the scripts as
+   executable. It never overwrites repo-owned
    files. Do everything it prints under &quot;For the agent&quot;.
 2. **Config**: fill `.agents/agent-kit.conf` from the interview.
 3. **Maps**: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`

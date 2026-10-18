@@ -33,10 +33,10 @@ echo "agent-kit $NEW_VERSION -> $ROOT (installed before: $OLD_VERSION)"
 
 # Kit-owned: always replaced.
 mkdir -p .agents/kit .agents/skills .githooks
-cp "$T/kit/check.sh" "$T/kit/stop-hook.sh" "$T/kit/docs_reminder.py" .agents/kit/
+cp "$T"/kit/*.sh "$T/kit/docs_reminder.py" .agents/kit/
 cp "$KIT/VERSION" .agents/kit/VERSION
-chmod +x .agents/kit/check.sh .agents/kit/stop-hook.sh
-say "updated .agents/kit/ (check.sh, stop hook, VERSION)"
+chmod +x .agents/kit/*.sh
+say "updated .agents/kit/ (check.sh, sync-skills.sh, stop hook, VERSION)"
 for skill in "$T"/skills/*/; do
   name=$(basename "$skill")
   rm -rf ".agents/skills/$name"
@@ -69,13 +69,19 @@ if ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json; t
 fi
 grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
-if [ -L .claude/skills ]; then
-  :
-elif [ -e .claude/skills ]; then
-  note ".claude/skills is a real folder: move its skills into .agents/skills, then: rm -r .claude/skills && ln -s ../.agents/skills .claude/skills"
-else
-  ln -s ../.agents/skills .claude/skills
-  say "linked .claude/skills -> ../.agents/skills"
+# .claude/skills: a link, or a copy where symlinks fail (Windows).
+skills_mode=$(sed -n 's/^SKILLS_LINK="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' .agents/agent-kit.conf)
+if [ -d .claude/skills ] && [ ! -L .claude/skills ] && [ "$skills_mode" != "copy" ]; then
+  note ".claude/skills is a real folder: move its own skills into .agents/skills, then run: sh .agents/kit/sync-skills.sh"
+elif [ ! -L .claude/skills ]; then
+  sh .agents/kit/sync-skills.sh | sed 's/^/  /'
+fi
+
+# Line endings: scripts must stay LF on every OS.
+if [ "$(git check-attr eol -- .agents/kit/check.sh | sed 's/.*: //')" != "lf" ]; then
+  [ -s .gitattributes ] && printf '\n' >> .gitattributes
+  cat "$T/config/gitattributes" >> .gitattributes
+  say "added LF line-ending rules to .gitattributes"
 fi
 
 # Learning docs stay local.
@@ -84,6 +90,11 @@ if [ -n "$LEARNING_DIR" ] && ! git check-ignore -q "$LEARNING_DIR/probe.md"; the
   printf '\n# Local learning docs (agent-kit); never committed\n%s/\n' "$LEARNING_DIR" >> .gitignore
   say "added $LEARNING_DIR/ to .gitignore"
 fi
+
+# Executable bit in git, so macOS and Linux clones of a repo set up on
+# Windows still run the hooks. This stages these few files.
+git add --chmod=+x .githooks/pre-commit .agents/kit/*.sh 2>/dev/null &&
+  say "staged scripts as executable (git add --chmod=+x)"
 
 if [ -n "$NOTES" ]; then
   echo

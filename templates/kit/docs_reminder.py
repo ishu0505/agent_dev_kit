@@ -108,14 +108,15 @@ def main() -> None:
             print(json.dumps({"decision": "block", "reason": CHECKS_FAILING.format(failures=failures)}))
             return
     skip = set(config.get("SKIP_DIRS", "").split()) | {config.get("LEARNING_DIR", "")}
-    # Resolve symlinks first: /var/x and /private/var/x are the same file.
+    # Resolve symlinks first (/var/x and /private/var/x are the same file);
+    # is_relative_to also copes with Windows drive letters and backslashes.
     resolved = [path.resolve() for path in edited_files(calls) if path.is_absolute()]
-    files = [path for path in resolved if str(path).startswith(str(repo) + "/")
+    files = [path for path in resolved if path.is_relative_to(repo)
              and not skip & set(path.relative_to(repo).parts)]
     if any(path.suffix == ".md" for path in files):
         return
     extensions = {"." + ext for ext in config.get("CODE_EXTENSIONS", "").split()}
-    code = sorted({str(path.relative_to(repo)) for path in files if path.suffix in extensions})
+    code = sorted({path.relative_to(repo).as_posix() for path in files if path.suffix in extensions})
     if code:
         shown = ", ".join(code[:4]) + (" ..." if len(code) > 4 else "")
         learning = config.get("LEARNING_DIR", "")

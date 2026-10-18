@@ -1,0 +1,32 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash  # Git Bash on Windows
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax
+        run: for f in install.sh install-global.sh templates/kit/*.sh templates/githooks/pre-commit tests/run.sh; do sh -n "$f"; done
+      - name: End-to-end tests
+        run: sh tests/run.sh
+
+  fedora:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - run: dnf -y -q install git python3
+      - uses: actions/checkout@v4
+      - name: End-to-end tests
+        run: sh tests/run.sh
