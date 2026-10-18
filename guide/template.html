@@ -1,0 +1,286 @@
+<title>Agent Context Kit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; reference tables break out wider; the prompt sits last as a copyable block */
+:root {
+  --bg: #f6f7f8; --surface: #ffffff; --fg: #1b2228; --muted: #5a6670;
+  --line: #dde2e6; --accent: #1f7a6d; --accent-soft: #e3f1ee; --warn: #9a6200; --warn-soft: #fbf0dc;
+  --code-bg: #eef1f3;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171b; --surface: #182026; --fg: #e3e8ec; --muted: #9aa7b1;
+  --line: #2a343c; --accent: #5cc4b2; --accent-soft: #173a35; --warn: #e3b25a; --warn-soft: #3a2e17;
+  --code-bg: #1d272e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171b; --surface: #182026; --fg: #e3e8ec; --muted: #9aa7b1;
+  --line: #2a343c; --accent: #5cc4b2; --accent-soft: #173a35; --warn: #e3b25a; --warn-soft: #3a2e17;
+  --code-bg: #1d272e; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 48px 72px; display: grid; gap: 48px; }
+header { display: grid; gap: 12px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 clamp(34px, 6vw, 48px)/1.05 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 24px/1.2 var(--display); margin: 0; text-wrap: balance; }
+h3 { font: 600 16px/1.3 var(--body); margin: 0; }
+p { margin: 0; max-width: 66ch; }
+.lede { font-size: 18px; color: var(--muted); }
+section { display: grid; gap: 16px; min-width: 0; }
+code, kbd { font: 14px/1.4 var(--mono); background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+
+ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 14px; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
+ol.steps li::before { content: counter(s); font: 600 14px/32px var(--mono); text-align: center;
+  width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+ol.steps li > div { display: grid; gap: 6px; min-width: 0; padding-top: 4px; }
+
+.cmd { display: flex; gap: 8px; align-items: stretch; min-width: 0; }
+.cmd pre { flex: 1; min-width: 0; margin: 0; overflow-x: auto; background: var(--code-bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font: 14px/1.5 var(--mono); }
+button.copy { font: 500 13px var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  border-radius: 6px; padding: 0 14px; cursor: pointer; white-space: nowrap; }
+button.copy:hover { border-color: var(--accent); color: var(--accent); }
+button.copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+.pill { display: inline-block; font: 500 12px/1 var(--mono); padding: 4px 7px; border-radius: 99px; white-space: nowrap; }
+.ok { background: var(--accent-soft); color: var(--accent); }
+.check { background: var(--warn-soft); color: var(--warn); }
+
+.layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.layer { border-top: 3px solid var(--accent); background: var(--surface); padding: 14px; display: grid; gap: 6px; align-content: start; border-radius: 0 0 6px 6px; }
+.layer p { font-size: 14.5px; color: var(--muted); }
+
+.note { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; }
+.note p { max-width: none; }
+
+.prompt-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.prompt-head button.copy { padding: 8px 14px; }
+pre.prompt { margin: 0; max-height: 560px; overflow: auto; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 16px 18px; font: 13.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; }
+footer { color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">agent_dev_kit __VERSION__ · any agent · any language</span>
+  <h1>Agent Context Kit</h1>
+  <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
+</header>
+
+
+<section>
+  <h2>First time on your machine</h2>
+  <ol class="steps">
+    <li><div><h3>Clone the kit once</h3>
+      <div class="cmd"><pre id="clone">git clone &lt;your agent_dev_kit repo URL&gt; ~/agent_dev_kit</pre>
+        <button class="copy" type="button" data-target="clone">Copy</button></div>
+      <p>Any folder works. This page calls it <code>KIT</code>.</p></div></li>
+    <li><div><h3>Give every agent the setup skill</h3>
+      <div class="cmd"><pre id="global">sh ~/agent_dev_kit/install-global.sh</pre>
+        <button class="copy" type="button" data-target="global">Copy</button></div>
+      <p>Links one skill, <code>agent-kit</code>, into <code>~/.claude/skills</code> (Claude Code), <code>~/.agents/skills</code> (Codex, Cursor, Muse, Gemini CLI) and <code>~/.gemini/antigravity/skills</code> (Antigravity). They are links, so <code>git pull</code> in the kit updates all agents.</p></div></li>
+  </ol>
+</section>
+
+<section>
+  <h2>Which command when</h2>
+  <p>Open the agent inside the repo you want to work on. Every row below is something you type to the agent, except the two shell commands.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Situation</th><th>Type this</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td>New, empty repo</td><td><code>git init</code>, then<br><code>agent-kit setup</code></td><td>Asks for the goal, milestone, stack and planned units. Installs the kit, writes <code>PLAN.md</code>, the first decisions and the root map</td></tr>
+      <tr><td>Existing project</td><td><code>agent-kit setup</code></td><td>Reads the code, proposes units and rules, installs the kit, writes the maps and decisions, then offers to write learning docs</td></tr>
+      <tr><td>Repo with an older kit</td><td>In the kit: <code>git pull</code><br>In the repo: <code>agent-kit upgrade</code></td><td>Replaces the kit files, keeps your config, maps and decisions, and adds only what is missing</td></tr>
+      <tr><td>Fresh clone of a kit repo</td><td><code>git config core.hooksPath .githooks</code></td><td>Turns on the commit check. Once per clone</td></tr>
+      <tr><td>Quick check, no AI</td><td><code>sh .agents/kit/check.sh</code></td><td>Map sizes, dead paths, pointer files, setup plumbing. Seconds</td></tr>
+      <tr><td>Are code and docs in sync?</td><td><code>docs-sync check</code></td><td>Report only: each doc claim the code no longer supports, with evidence</td></tr>
+      <tr><td>Make them agree</td><td><code>docs-sync fix</code></td><td>Rewrites stale docs. Asks first when a change breaks a decision</td></tr>
+      <tr><td>Learn the system</td><td><code>learning-docs</code></td><td>Writes local <code>learning_docs/</code>; <code>learning-docs stale</code> refreshes only what changed</td></tr>
+      <tr><td>A decision or result</td><td><code>lineage</code></td><td>Asks why, alternatives, evidence; appends to <code>DECISIONS.md</code></td></tr>
+      <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>
+    </tbody>
+  </table></div>
+  <p>Claude Code wants a slash: <code>/agent-kit setup</code>, <code>/docs-sync check</code>. Codex, Cursor, Muse and Antigravity take the skill name in plain words. Any agent without skills: <code>Read ~/agent_dev_kit/BOOTSTRAP.md and follow it.</code></p>
+</section>
+
+<section>
+  <h2>What lands in a repo</h2>
+  <p>The scripts and skills are copied from the kit, ready-made and tested. The agent writes only what is specific to the repo.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop hook, <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.githooks/pre-commit</code></td><td>Runs <code>check.sh</code> before every commit</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, line limits, pointer files, code extensions, ledger</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root, in top folders and in every unit</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>DECISIONS.md</code>, <code>PLAN.md</code></td><td>Lineage; the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>learning_docs/</code></td><td>Local learning docs, git-ignored</td><td><span class="pill check">you only</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>Kit files are replaced on upgrade. Repo files are created once and never overwritten. Nothing is a setup-only leftover, so there is nothing to clean up.</p>
+</section>
+
+<section>
+  <h2>Learning docs</h2>
+  <p>Local files that teach a person the system: <code>00-overview.md</code> for the whole architecture, one file per service or component in the order data flows, and one file per flow that crosses units, such as an API request, a queue worker job or a retry path. They are written in ASD-STE100 Simplified Technical English and never leave your machine.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Section</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td>Simple summary</td><td>Three to five sentences: what it does, its input and output, and what it does not do</td></tr>
+      <tr><td>A concrete example</td><td>A realistic request, message or input, marked as invented, with fake ids and hosts</td></tr>
+      <tr><td>The exact path</td><td>Numbered steps in execution order, each naming the real function with a link to its file and line</td></tr>
+      <tr><td>Diagram</td><td>A Mermaid flowchart or sequence diagram, error paths included</td></tr>
+      <tr><td>What comes out</td><td>The shape of the reply, record or event, with an example</td></tr>
+      <tr><td>Failure and edge cases</td><td>Retries, timeouts, duplicates, what is not atomic, and the wrong assumption a reader is likely to make</td></tr>
+      <tr><td>Next</td><td>Links to the files to read next</td></tr>
+      <tr><td>Quiz</td><td>Two easy, two medium and two hard questions on how the project works. Answers sit in a collapsed <code>&lt;details&gt;</code> block with the reason and the code reference</td></tr>
+    </tbody>
+  </table></div>
+  <div class="cmd"><pre id="quiz-sample">## Quiz
+
+1. **Easy.** Which field selects the function the worker runs?
+2. **Medium.** Why can a job finish but the caller never get the reply?
+3. **Hard.** The reply is sent but deleting the message fails. What happens next?
+
+&lt;details&gt;
+&lt;summary&gt;Check your answers&lt;/summary&gt;
+
+1. `endpoint`. The worker looks it up in the router (`src/worker/router.py`).
+2. The completion log is written before the reply is sent (`process_message()`).
+3. The error is logged and suppressed, so the message can arrive again later.
+&lt;/details&gt;</pre></div>
+  <p>Each file records the commit and the code paths it was written from. When <code>git diff</code> shows those paths changed, the <code>learning-docs</code> skill rewrites the stale parts. The docs step after each change asks for that refresh.</p>
+  <div class="note"><p><strong>Never committed.</strong> The setup adds <code>learning_docs/</code> to <code>.gitignore</code>, and the setup check blocks any commit that tracks or stages a file in it.</p></div>
+</section>
+
+<section>
+  <h2>Keeping code and docs in sync</h2>
+  <p>Two layers. The checks are fast and run on their own. The <code>docs-sync</code> skill reads the docs against the code, so it runs when you ask.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Layer</th><th>Finds</th><th>Runs</th></tr></thead>
+    <tbody>
+      <tr><td>Checks</td><td>Long maps, dead paths, missing files, untracked agent files, local hook paths, tracked learning docs</td><td>Every commit and every editing turn</td></tr>
+      <tr><td><code>docs-sync</code></td><td>A README with an old default, a map naming a removed command, a broken invariant, a learning doc that describes a removed step</td><td>On request: before a merge, after a refactor, after pulling others' changes</td></tr>
+    </tbody>
+  </table></div>
+  <ol class="steps">
+    <li><div><h3>Run the checks</h3><p>Their failures go into the report.</p></div></li>
+    <li><div><h3>Find candidates with git only</h3><p>Docs whose folder has code changes newer than the doc's last commit, learning docs whose <code>source_paths</code> changed since their <code>source_commit</code>, and decisions or invariants that name code.</p></div></li>
+    <li><div><h3>Read and compare</h3><p>Each claim against the code diff: paths, commands, env vars, defaults, interfaces, flow steps, invariants. A claim it cannot confirm is marked unverified, not wrong.</p></div></li>
+    <li><div><h3>Report</h3><p>One table: doc, claim, what the code does, <code>file:line</code> evidence, proposed fix. <code>check</code> stops here.</p></div></li>
+    <li><div><h3>Fix (<code>fix</code> mode)</h3><p>Docs follow the code; code is never changed to match a doc. When a change breaks a decision or invariant, it asks whether the change was intended (new decision) or a bug. Then it reruns the checks.</p></div></li>
+  </ol>
+  <p>Scope it with a unit path or <code>since main</code> to read only what a branch changed.</p>
+</section>
+
+<section>
+  <h2>What runs on its own</h2>
+  <p>There is no periodic command to remember. The checks run at the two moments a gap can enter the repo. Only the deeper <code>docs-sync</code> reading is on request.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>When</th><th>What runs</th><th>Who it covers</th></tr></thead>
+    <tbody>
+      <tr><td>Every commit</td><td><code>.githooks/pre-commit</code> runs both tests and blocks the commit on a failure</td><td><span class="pill ok">every agent</span> <span class="pill ok">humans</span></td></tr>
+      <tr><td>End of an agent turn</td><td>Stop hook: after a turn that edited files or ran a shell command, runs both tests and sends the failures back to the agent. If code changed but no doc did, it asks for the docs step once</td><td><span class="pill ok">Claude Code</span> <span class="pill check">Codex: verify</span></td></tr>
+      <tr><td>Test suite</td><td>Both tests are ordinary tests, so the normal check command and CI run them too</td><td><span class="pill ok">everyone</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>What the checks catch</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Check</th><th>Fails when</th></tr></thead>
+    <tbody>
+      <tr><td>Map size</td><td>An <code>AGENTS.md</code> is over 70 lines (top level) or 40 (unit)</td></tr>
+      <tr><td>Dead paths</td><td>A map names a path that does not exist</td></tr>
+      <tr><td>Unit context</td><td>A unit has no <code>README.md</code>, <code>AGENTS.md</code> or pointer file, or a pointer does not import <code>@AGENTS.md</code></td></tr>
+      <tr><td>One skill copy</td><td><code>.claude/skills</code> and <code>.agents/skills</code> are separate folders, which drift apart</td></tr>
+      <tr><td>Tracked in git</td><td>A file under <code>.agents/</code>, <code>.claude/</code>, <code>.codex/</code> or <code>.githooks/</code> is untracked, so a fresh clone would not have it</td></tr>
+      <tr><td>Portable hooks</td><td>A hook command contains your home folder or the repo's absolute path, or runs a missing script</td></tr>
+      <tr><td>Hooks active</td><td>This clone never ran <code>git config core.hooksPath .githooks</code></td></tr>
+      <tr><td>Learning docs stay local</td><td>A file under <code>learning_docs/</code> is tracked or staged, or the folder is not git-ignored</td></tr>
+      <tr><td>Ledger</td><td>An experiment has no ledger row, or a row has no outcome (new ones say <code>pending: not run yet</code>)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Works in any language</h2>
+  <p>The checks are one POSIX shell script that uses only <code>git</code>, <code>grep</code> and <code>awk</code>, so they run in any repo without adding a toolchain. What changes per language is which folders count as units, set in <code>.agents/agent-kit.conf</code>.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Language</th><th>Units usually are</th><th>Config</th></tr></thead>
+    <tbody>
+      <tr><td>Go</td><td><code>cmd/&lt;app&gt;</code>, <code>internal/&lt;pkg&gt;</code></td><td><code>UNIT_PARENTS="cmd internal"</code></td></tr>
+      <tr><td>Rust</td><td>Cargo workspace members</td><td><code>UNIT_PARENTS="crates"</code></td></tr>
+      <tr><td>C, C++</td><td>CMake subdirectories</td><td><code>UNIT_PARENTS="src libs"</code></td></tr>
+      <tr><td>Java, Kotlin</td><td>Maven / Gradle modules</td><td><code>UNITS="core api web"</code></td></tr>
+      <tr><td>C#, .NET</td><td>One folder per project</td><td><code>UNIT_PARENTS="src"</code></td></tr>
+      <tr><td>Python</td><td>Packages and services</td><td><code>UNIT_PARENTS="services"</code></td></tr>
+      <tr><td>JS, TS</td><td>Workspace packages</td><td><code>UNIT_PARENTS="packages apps"</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>The Stop hook needs <code>python3</code>; without it the hook steps aside and the pre-commit check still runs. On Windows, run the scripts in Git Bash, and turn on <code>git config core.symlinks true</code> for the <code>.claude/skills</code> link.</p>
+</section>
+
+<section>
+  <h2>How each agent picks it up</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Agent</th><th>Global skill from</th><th>Reads maps through</th><th>Stop hook</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Code</td><td><code>~/.claude/skills</code> <span class="pill ok">tested</span></td><td><code>CLAUDE.md</code> → <code>@AGENTS.md</code></td><td><code>.claude/settings.json</code> <span class="pill ok">tested</span></td></tr>
+      <tr><td>Codex</td><td><code>~/.agents/skills</code></td><td><code>AGENTS.md</code></td><td><code>.codex/hooks.json</code> <span class="pill check">verify</span></td></tr>
+      <tr><td>Cursor</td><td><code>~/.agents/skills</code> (also reads <code>~/.claude/skills</code>)</td><td><code>AGENTS.md</code></td><td>Pre-commit only</td></tr>
+      <tr><td>Muse</td><td><code>~/.agents/skills</code> <span class="pill ok">tested</span></td><td><code>AGENTS.md</code></td><td>Pre-commit only</td></tr>
+      <tr><td>Antigravity, Gemini CLI</td><td><code>~/.gemini/antigravity/skills</code>, <code>~/.agents/skills</code></td><td><code>GEMINI.md</code> → <code>@AGENTS.md</code></td><td>Pre-commit only</td></tr>
+    </tbody>
+  </table></div>
+  <p>"Tested" means it was checked on this machine: Muse lists <code>agent-kit</code> as a user skill, and Claude Code loads it. The rest follows each tool's docs.</p>
+</section>
+
+<section>
+  <div class="note"><p><strong>Line limits apply only to <code>AGENTS.md</code> maps</strong> (70 at the top, 40 per unit, set in the config). READMEs, <code>DECISIONS.md</code>, learning docs and the bootstrap prompt have no limit.</p></div>
+</section>
+
+<section>
+  <div class="prompt-head"><h2>The bootstrap prompt</h2>
+    <button class="copy" type="button" data-target="prompt">Copy prompt</button></div>
+  <p>This is <code>BOOTSTRAP.md</code> from the kit. The <code>agent-kit</code> skill runs it for you; paste it only into an agent without skills.</p>
+  <pre class="prompt" id="prompt">__PROMPT__</pre>
+</section>
+
+<footer>agent_dev_kit · see the kit's README.md and CHANGELOG.md</footer>
+</div>
+
+<script>
+document.querySelectorAll("button.copy").forEach(function (button) {
+  button.addEventListener("click", function () {
+    var source = document.getElementById(button.dataset.target);
+    var label = button.textContent;
+    var done = function (text) { button.textContent = text; setTimeout(function () { button.textContent = label; }, 1600); };
+    var selectIt = function () {
+      var range = document.createRange(); range.selectNodeContents(source);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      done("Selected, press Copy");
+    };
+    try {
+      navigator.clipboard.writeText(source.textContent).then(function () { done("Copied"); }, selectIt);
+    } catch (e) { selectIt(); }
+  });
+});
+</script>

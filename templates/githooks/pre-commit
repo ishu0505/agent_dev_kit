@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocks a commit while the agent maps or the agent setup are broken.
+# Active once per clone: git config core.hooksPath .githooks
+exec sh "$(git rev-parse --show-toplevel)/.agents/kit/check.sh" --quiet
