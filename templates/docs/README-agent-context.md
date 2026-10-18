@@ -16,7 +16,7 @@ agents, `DECISIONS.md` for the reason behind each choice, skills in
 | Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |
 | Newer kit version | in the kit folder `git pull`, then ask the agent: `agent-kit upgrade` |
 
-On Windows, run the shell commands in Git Bash. How to call a skill: Claude Code `/docs-sync check`. Codex, Cursor,
+On Windows, run the shell commands in Git Bash. How to call a skill: Claude Code and agy `/docs-sync check`; Codex `$docs-sync check`. Cursor,
 Antigravity and other agents that load `.agents/skills`: name the skill.
 Any agent: "Read `.agents/skills/docs-sync/SKILL.md` and run it in check
 mode."

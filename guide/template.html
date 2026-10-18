@@ -92,7 +92,7 @@ footer { color: var(--muted); font-size: 14px; }
     <li><div><h3>Give every agent the setup skill</h3>
       <div class="cmd"><pre id="global">sh ~/agent_dev_kit/install-global.sh</pre>
         <button class="copy" type="button" data-target="global">Copy</button></div>
-      <p>Links one skill, <code>agent-kit</code>, into <code>~/.claude/skills</code> (Claude Code), <code>~/.agents/skills</code> (Codex, Cursor, Muse, Gemini CLI) and <code>~/.gemini/antigravity/skills</code> (Antigravity). On macOS and Linux they are links, so <code>git pull</code> in the kit updates all agents. On Windows they are copies: run it again after each <code>git pull</code>.</p></div></li>
+      <p>Links one skill, <code>agent-kit</code>, into <code>~/.claude/skills</code> (Claude Code), <code>~/.agents/skills</code> (Codex, Cursor, Muse, Gemini CLI), <code>~/.gemini/config/skills</code> (agy CLI) and <code>~/.gemini/antigravity/skills</code> (Antigravity IDE). On macOS and Linux they are links, so <code>git pull</code> in the kit updates all agents. On Windows they are copies: run it again after each <code>git pull</code>.</p></div></li>
   </ol>
 </section>
 
@@ -114,7 +114,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>
     </tbody>
   </table></div>
-  <p>Claude Code wants a slash: <code>/agent-kit setup</code>, <code>/docs-sync check</code>. Codex, Cursor, Muse and Antigravity take the skill name in plain words. Any agent without skills: <code>Read ~/agent_dev_kit/BOOTSTRAP.md and follow it.</code></p>
+  <p>How to call a skill: Claude Code and agy use a slash (<code>/agent-kit setup</code>). Codex uses a dollar sign (<code>$agent-kit setup</code>); its <code>/</code> menu does not list skills. Cursor and Muse take the name in plain words. <code>/skills</code> lists skills in Claude Code, Codex and agy. Start a new session after installing a skill. Any agent without skills: <code>Read ~/agent_dev_kit/BOOTSTRAP.md and follow it.</code></p>
 </section>
 
 <section>
@@ -260,10 +260,10 @@ footer { color: var(--muted); font-size: 14px; }
     <thead><tr><th>Agent</th><th>Global skill from</th><th>Reads maps through</th><th>Stop hook</th></tr></thead>
     <tbody>
       <tr><td>Claude Code</td><td><code>~/.claude/skills</code> <span class="pill ok">tested</span></td><td><code>CLAUDE.md</code> → <code>@AGENTS.md</code></td><td><code>.claude/settings.json</code> <span class="pill ok">tested</span></td></tr>
-      <tr><td>Codex</td><td><code>~/.agents/skills</code></td><td><code>AGENTS.md</code></td><td><code>.codex/hooks.json</code> <span class="pill check">verify</span></td></tr>
+      <tr><td>Codex</td><td><code>~/.agents/skills</code> <span class="pill ok">tested</span></td><td><code>AGENTS.md</code></td><td><code>.codex/hooks.json</code> <span class="pill check">verify</span></td></tr>
       <tr><td>Cursor</td><td><code>~/.agents/skills</code> (also reads <code>~/.claude/skills</code>)</td><td><code>AGENTS.md</code></td><td>Pre-commit only</td></tr>
       <tr><td>Muse</td><td><code>~/.agents/skills</code> <span class="pill ok">tested</span></td><td><code>AGENTS.md</code></td><td>Pre-commit only</td></tr>
-      <tr><td>Antigravity, Gemini CLI</td><td><code>~/.gemini/antigravity/skills</code>, <code>~/.agents/skills</code></td><td><code>GEMINI.md</code> → <code>@AGENTS.md</code></td><td>Pre-commit only</td></tr>
+      <tr><td>Antigravity, Gemini CLI</td><td><code>~/.gemini/config/skills</code> (agy CLI) <span class="pill ok">tested</span>, <code>~/.gemini/antigravity/skills</code> (IDE)</td><td><code>GEMINI.md</code> → <code>@AGENTS.md</code></td><td>Pre-commit only</td></tr>
     </tbody>
   </table></div>
   <p>"Tested" means it was checked on this machine: Muse lists <code>agent-kit</code> as a user skill, and Claude Code loads it. The rest follows each tool's docs.</p>

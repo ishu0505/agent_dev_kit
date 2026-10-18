@@ -142,7 +142,7 @@ expect_fail "map with Windows line endings: dead path found" "$V" "missing path:
 H="$WORK/home"; mkdir -p "$H"
 HOME="$H" sh "$KIT/install-global.sh" >/dev/null
 [ -f "$H/.claude/skills/agent-kit/SKILL.md" ] && [ -f "$H/.agents/skills/agent-kit/SKILL.md" ] &&
-  [ -f "$H/.gemini/antigravity/skills/agent-kit/SKILL.md" ] && ok "global skill installed for every agent" || bad "global skill installed for every agent"
+  [ -f "$H/.gemini/config/skills/agent-kit/SKILL.md" ] && [ -f "$H/.gemini/antigravity/skills/agent-kit/SKILL.md" ] && ok "global skill installed for every agent" || bad "global skill installed for every agent"
 H2="$WORK/home2"; mkdir -p "$H2"
 HOME="$H2" PATH="$WORK/nolinks:$PATH" sh "$KIT/install-global.sh" >/dev/null
 [ "$(cat "$H2/.agents/skills/agent-kit/kit-path" 2>/dev/null)" = "$KIT" ] && ok "no symlinks: global skill copied with kit-path" || bad "no symlinks: global skill copied with kit-path"

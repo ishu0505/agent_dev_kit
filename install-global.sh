@@ -5,7 +5,8 @@
 #   ~/.claude/skills               Claude Code (CLI, desktop app, IDEs)
 #   ~/.agents/skills               Codex, Cursor, Muse, Gemini CLI and other
 #                                  agents that read the shared skills folder
-#   ~/.gemini/antigravity/skills   Antigravity
+#   ~/.gemini/config/skills        Antigravity CLI (agy) global skills
+#   ~/.gemini/antigravity/skills   Antigravity IDE
 #   extra folders                  AGENT_KIT_SKILL_DIRS="dir1 dir2" sh install-global.sh
 #
 # macOS and Linux get symlinks: `git pull` in the kit updates every agent.
@@ -18,7 +19,7 @@
 set -eu
 KIT=$(cd "$(dirname "$0")" && pwd)
 SKILL="$KIT/global-skills/agent-kit"
-DIRS="$HOME/.claude/skills $HOME/.agents/skills $HOME/.gemini/antigravity/skills ${AGENT_KIT_SKILL_DIRS:-}"
+DIRS="$HOME/.claude/skills $HOME/.agents/skills $HOME/.gemini/config/skills $HOME/.gemini/antigravity/skills ${AGENT_KIT_SKILL_DIRS:-}"
 COPIED=0
 
 for dir in $DIRS; do

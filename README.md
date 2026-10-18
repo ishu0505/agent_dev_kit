@@ -75,7 +75,8 @@ using it: fork it, or clone it and push it to your own GitHub repo.
    ```
 
    This links `global-skills/agent-kit` into `~/.claude/skills`,
-   `~/.agents/skills` and `~/.gemini/antigravity/skills`. On macOS and Linux
+   `~/.agents/skills`, `~/.gemini/config/skills` (agy CLI) and
+   `~/.gemini/antigravity/skills` (Antigravity IDE). On macOS and Linux
    these are links, so a `git pull` in the kit updates every agent. On
    Windows it copies them and says so; run it again after each `git pull`. Another agent folder:
    `AGENT_KIT_SKILL_DIRS="/path/to/skills" sh ~/agent_dev_kit/install-global.sh`.
@@ -93,7 +94,8 @@ using it: fork it, or clone it and push it to your own GitHub repo.
 
 2. Open your agent in that folder and type:
 
-   - Claude Code: `/agent-kit setup`
+   - Claude Code or agy: `/agent-kit setup`
+   - Codex: `$agent-kit setup`
    - Codex, Cursor, Muse, Antigravity: `agent-kit setup`
    - any other agent: `Read ~/agent_dev_kit/BOOTSTRAP.md and follow it.`
 
@@ -176,7 +178,21 @@ mode.
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |
 | Edit a repo skill | edit it in `.agents/skills/` | In copy mode, then run `sh .agents/kit/sync-skills.sh` |
 
-Claude Code wants a slash before a skill name (`/docs-sync check`).
+### How to see and call skills in each agent
+
+Start a new session after installing or changing a skill: agents read
+skills when a session starts.
+
+| Agent | List skills | Call a skill |
+|---|---|---|
+| Claude Code (CLI and app) | type `/` (skills show in the menu) or `/skills` | `/agent-kit setup`, `/docs-sync check` |
+| Codex CLI | `/skills` | type `$` and pick it: `$agent-kit setup`, `$docs-sync check` (skills are not in the `/` menu) |
+| Antigravity CLI (`agy`) | `/skills` inside a session | `/agent-kit setup`, or name it in plain words |
+| Cursor, Muse | the skills panel / `muse skills list` | name it in plain words: `agent-kit setup` |
+
+Every agent also picks a skill by itself when your request matches its
+description ("set up the agent kit in this repo"). If a skill does not show
+up, check the link: `ls -L ~/.claude/skills/agent-kit`.
 
 ### What runs by itself
 
