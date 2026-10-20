@@ -365,6 +365,11 @@ out=$(cd "$V" && sh .agents/kit/check.sh --ci --since main 2>&1) && ok "CI --sin
 git clone -q "$WORK/go" "$WORK/clone" 2>/dev/null
 expect_fail "fresh clone: the plain check asks for the hook" "$WORK/clone" "pre-commit check is not active"
 out=$(cd "$WORK/clone" && sh .agents/kit/check.sh --ci 2>&1) && ok "fresh clone: --ci passes" || bad "fresh clone: --ci passes" "$out"
+R="$WORK/crlf"; mkdir "$R" && git -C "$R" init -q   # copy mode, cloned where git writes CRLF (Windows)
+PATH="$WORK/nolinks:$PATH" sh "$KIT/install.sh" "$R" > /dev/null 2>&1
+printf '# crlf\n' > "$R/AGENTS.md"; echo "@AGENTS.md" > "$R/CLAUDE.md"; git_quiet -C "$R" add -A; git_quiet -C "$R" commit --no-verify -m init
+git -c core.autocrlf=true clone -q "$R" "$WORK/crlf-clone" 2>/dev/null; git -C "$WORK/crlf-clone" config core.autocrlf true
+out=$(cd "$WORK/crlf-clone" && sh .agents/kit/check.sh --ci 2>&1) && ok "copy mode: a CRLF clone keeps the skill copies equal" || bad "copy mode: a CRLF clone keeps the skill copies equal" "$out"
 mkdir "$WORK/ci" && git -C "$WORK/ci" init -q && sh "$KIT/install.sh" --ci "$WORK/ci" > /dev/null 2>&1
 grep -q "check.sh --ci" "$WORK/ci/.github/workflows/agent-kit.yml" 2>/dev/null && ok "--ci adds the GitHub Actions workflow" || bad "--ci adds the GitHub Actions workflow"
 

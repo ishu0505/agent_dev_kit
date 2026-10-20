@@ -51,6 +51,10 @@ Less friction, less drift, people in the loop.
   written for an intern, plus rules for docstrings; every writing skill
   follows it.
 - `check.sh` notes a newer kit version and a non-empty catch-up queue.
+- `.claude/skills/**` keeps LF line endings too, so a Windows clone of a
+  copy-mode repo no longer fails "out of sync". An existing Windows clone:
+  run `rm -rf .claude/skills && git checkout -- .claude/skills` once after
+  the upgrade.
 - When a local share mode would untrack files teammates committed, the
   install warns and needs `--confirm-untrack` to print the command.
 
