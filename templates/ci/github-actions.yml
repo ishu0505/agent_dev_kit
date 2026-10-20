@@ -1,0 +1,26 @@
+# agent-kit: the doc checks in CI, so a skipped pre-commit hook cannot let
+# drift in. On a pull request only problems the branch causes fail; on a
+# push to the default branch everything is checked.
+name: agent-kit
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Agent maps and docs
+        run: |
+          if [ -n "${{ github.base_ref }}" ]; then
+            sh .agents/kit/check.sh --ci --since "origin/${{ github.base_ref }}"
+          else
+            sh .agents/kit/check.sh --ci
+          fi
+      # To also run the ## Run / ## Check commands of the maps listed in
+      # RUN_COMMANDS_MAPS, set up the toolchain first, then add --run-commands.

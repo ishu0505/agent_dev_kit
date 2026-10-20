@@ -1,6 +1,6 @@
 ---
 name: learning-docs
-description: Write or refresh the local learning docs (LEARNING_DIR, default learning_docs/) that teach a person the whole architecture and each unit and flow in ASD-STE100 Simplified Technical English, with real code references, invented examples, Mermaid diagrams and easy/medium/hard quizzes with hidden answers. Whether they are committed follows SHARE in .agents/agent-kit.conf. Use when the user asks for learning docs, an explanation of the system for a newcomer, when a unit is added, or when docs-sync reports a stale learning doc. Scope - all, a unit, a flow, or stale.
+description: Write or refresh the learning docs (LEARNING_DIR, default learning_docs/) that teach a person the whole architecture and each unit and flow in ASD-STE100 Simplified Technical English, written for an intern, with real code references, invented examples, Mermaid diagrams and easy/medium/hard quizzes with hidden answers. Whether they are committed follows SHARE in .agents/agent-kit.conf. Use when the user asks for learning docs, an explanation of the system for a newcomer, when a unit is added, or when wrap-up or docs-sync reports a stale learning doc. Scope - all, a unit, a flow, or stale.
 ---
 
 # Learning docs
@@ -91,26 +91,22 @@ Sections, in this order (leave out one that does not apply):
 The overview uses the same sections at system level: the example follows one
 request through every unit.
 
-## 4. Language: ASD-STE100 Simplified Technical English
+## 4. Language
 
-Follow its writing rules as closely as you can:
-
-- one topic per paragraph; one instruction per sentence;
-- procedural sentences at most 20 words, descriptive at most 25;
-- active voice; simple present, past and future tenses;
-- one word for one meaning, the same way everywhere; no synonyms for variety;
-- explain each technical term in one sentence the first time it appears;
-- no idioms, slang, jokes or unclear pronouns; repeat the noun;
-- keep the articles "the", "a" and "an".
-
-Code names, paths and API fields stay exactly as in the code.
+Follow `.agents/kit/writing-style.md`: ASD-STE100 Simplified Technical
+English, written for an intern on day one. Code names, paths and API fields
+stay exactly as in the code.
 
 ## 5. Staying current
 
 A learning doc is stale when
-`git diff --stat <source_commit> -- <source_paths>` lists changes. With scope
-`stale`, list stale docs, rewrite only the affected sections, update
-`source_commit`, and report what changed.
+`git diff --stat <source_commit> -- <source_paths>` lists changes. The Stop
+hook also lists the docs a session made stale in
+`$(git rev-parse --git-common-dir)/agent-kit/stale-learning`; `wrap-up` asks
+the user to refresh them at the end of the task. With scope `stale`, take
+both lists, rewrite only the affected sections, update `source_commit`,
+remove the refreshed docs from the stale-learning file, and report what
+changed.
 
 ## 6. Check and report
 

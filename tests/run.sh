@@ -63,6 +63,8 @@ printf 'module example.com/shop\n\ngo 1.22\n' > "$R/go.mod"
 printf 'package main\n\nfunc main() {}\n' > "$R/cmd/api/main.go"
 printf 'package store\n' > "$R/internal/store/store.go"
 edit 's/^UNIT_PARENTS=""/UNIT_PARENTS="cmd internal"/' "$R/.agents/agent-kit.conf"
+# Every unit gets a map here, whatever its size (thresholds are tested below).
+edit 's/^MAP_MIN_FILES=.*/MAP_MIN_FILES=""/; s/^MAP_MIN_LINES=.*/MAP_MIN_LINES=""/' "$R/.agents/agent-kit.conf"
 printf '# shop\n\nA shop API.\n\n## Where things are\n\n| Path | What | Read first |\n|---|---|---|\n| `cmd/api/` | HTTP server | `cmd/api/AGENTS.md` |\n| `internal/store/` | Storage | `internal/store/AGENTS.md` |\n| `go.mod` | Module | |\n' > "$R/AGENTS.md"
 echo "@AGENTS.md" > "$R/CLAUDE.md"
 write_map "$R/cmd/api" "The HTTP server."
@@ -200,7 +202,15 @@ git_quiet -C "$R" add -f AGENTS.md
 expect_fail "share none: a force-added map is caught" "$R" "keeps agent files local"
 if git_quiet -C "$R" commit -m leak; then bad "share none: pre-commit blocks the leak"; else ok "share none: pre-commit blocks the leak"; fi
 
+V=$(variant teamswitch); git -C "$V" config user.email me@example.com  # someone else committed the maps
+sh "$KIT/install.sh" --share none "$V" > "$WORK/teamswitch.log" 2>&1
+grep -q "WARNING: other people committed" "$WORK/teamswitch.log" && ! grep -q "run  git rm -r --cached" "$WORK/teamswitch.log" &&
+  ok "switch to none: warns before untracking teammates' files" || bad "switch to none: warns before untracking teammates' files" "$(cat "$WORK/teamswitch.log")"
+sh "$KIT/install.sh" --share none --confirm-untrack "$V" > "$WORK/teamswitch2.log" 2>&1
+grep -q "run  git rm -r --cached" "$WORK/teamswitch2.log" && ok "switch to none: --confirm-untrack prints the command" || bad "switch to none: --confirm-untrack prints the command" "$(cat "$WORK/teamswitch2.log")"
+
 V=$(variant switch)   # the committed Go repo (share agent) moves to share none
+git -C "$V" config user.email test@example.com  # the only author
 sh "$KIT/install.sh" --share none "$V" > "$WORK/switch.log" 2>&1
 grep -q "git rm -r --cached" "$WORK/switch.log" && ok "switch to none: install says how to untrack" || bad "switch to none: install says how to untrack" "$(cat "$WORK/switch.log")"
 expect_fail "switch to none: tracked agent files are caught" "$V" "keeps agent files local"
@@ -221,7 +231,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -271,21 +281,201 @@ if git_quiet -C "$V" commit -m broken; then bad "pre-commit blocks a broken map"
 git -C "$V" checkout -q HEAD -- AGENTS.md
 if git_quiet -C "$V" commit --allow-empty -m fine; then ok "pre-commit allows a clean repo"; else bad "pre-commit allows a clean repo"; fi
 
+# --- Every map, prose paths, env vars, commands ----------------------------
+V=$(variant nested); mkdir -p "$V/cmd/api/handlers"
+printf '# handlers\n\n| Path | What |\n|---|---|\n| `gone.go` | x |\n' > "$V/cmd/api/handlers/AGENTS.md"
+echo "@AGENTS.md" > "$V/cmd/api/handlers/CLAUDE.md"
+expect_fail "a map below a unit is checked too" "$V" "names a missing path: gone.go"
+
+V=$(variant prose); printf '\nThe store lives in `internal/store/config.go`.\n' >> "$V/AGENTS.md"
+expect_fail "a dead path in prose is caught" "$V" "names a missing path: internal/store/config.go"
+edit 's#^The store lives in .*#& <!-- agent-kit: skip -->#' "$V/AGENTS.md"
+printf 'Not paths: `os.path`, `owner/repo`, `HTTP/1.1`, `--flag`, `learning_docs/`. A file named alone: `store.go`.\n' >> "$V/AGENTS.md"
+expect_pass "skip marker and words that are not paths pass" "$V"
+
+V=$(variant spaces); mkdir "$V/my docs"; echo x > "$V/my docs/notes.txt"
+printf '| `my docs/` | Notes |\n' >> "$V/AGENTS.md"; git_quiet -C "$V" add -A
+expect_pass "a mapped path with a space passes" "$V"
+
+V=$(variant envvar); edit 's/^CHECK_ENV=.*/CHECK_ENV="yes"/' "$V/.agents/agent-kit.conf"
+printf '\nSet `SHOP_DB_URL` to the database.\n' >> "$V/AGENTS.md"
+expect_fail "an env var no code uses is caught" "$V" "SHOP_DB_URL"
+printf 'package store\n\nconst env = "SHOP_DB_URL"\n' > "$V/internal/store/store.go"
+expect_pass "an env var the code uses passes" "$V"
+
+V=$(variant commands); edit 's#^RUN_COMMANDS_MAPS=.*#RUN_COMMANDS_MAPS="cmd/api/AGENTS.md"#' "$V/.agents/agent-kit.conf"
+printf '\n## Run\n\n```bash\ntest -f main.go\nfalse\n```\n' >> "$V/cmd/api/AGENTS.md"
+expect_pass "map commands run only with --run-commands" "$V"
+out=$(cd "$V" && sh .agents/kit/check.sh --run-commands 2>&1)
+printf '%s' "$out" | grep -q "## Run / ## Check in cmd/api/AGENTS.md fail" && ok "a failing map command is caught" || bad "a failing map command is caught" "$out"
+edit 's/^false$/true/' "$V/cmd/api/AGENTS.md"
+out=$(cd "$V" && sh .agents/kit/check.sh --run-commands 2>&1) && ok "working map commands pass" || bad "working map commands pass" "$out"
+
+# --- Unit size thresholds ---------------------------------------------------
+new_repo sizes; R="$WORK/sizes"
+mkdir -p "$R/pkgs/small" "$R/pkgs/big"
+echo "package small" > "$R/pkgs/small/a.go"
+for f in a b c; do echo "package big" > "$R/pkgs/big/$f.go"; done
+edit 's/^UNIT_PARENTS=""/UNIT_PARENTS="pkgs"/; s/^MAP_MIN_FILES=.*/MAP_MIN_FILES="3"/' "$R/.agents/agent-kit.conf"
+printf '# sizes\n\n| Path | What | Read first |\n|---|---|---|\n| `pkgs/` | Packages | |\n' > "$R/AGENTS.md"
+echo "@AGENTS.md" > "$R/CLAUDE.md"; git_quiet -C "$R" add -A
+expect_fail "a unit past the threshold needs its map" "$R" "pkgs/big has no README.md"
+out=$(cd "$R" && sh .agents/kit/check.sh 2>&1); printf '%s' "$out" | grep -q "pkgs/small" &&
+  bad "a small unit needs only a row" "$out" || ok "a small unit needs only a row"
+edit 's#^MAP_EXEMPT=.*#MAP_EXEMPT="pkgs/big"#' "$R/.agents/agent-kit.conf"
+expect_pass "MAP_EXEMPT lets a big unit go without a map" "$R"
+edit 's#^MAP_REQUIRED=.*#MAP_REQUIRED="pkgs/small"#' "$R/.agents/agent-kit.conf"
+expect_fail "MAP_REQUIRED asks a small unit for its map" "$R" "pkgs/small has no AGENTS.md"
+edit 's#^MAP_REQUIRED=.*#MAP_REQUIRED=""#' "$R/.agents/agent-kit.conf"
+printf '# sizes\n\nNo rows.\n' > "$R/AGENTS.md"
+expect_fail "a small unit no map names is caught" "$R" "no map names pkgs/small"
+
+# --- Only what this change caused blocks ----------------------------------------
+V=$(variant teammate); printf '| `nope/` | gone | |\n' >> "$V/AGENTS.md"
+git_quiet -C "$V" commit --no-verify -am "a teammate's broken row"
+echo "// more" >> "$V/internal/store/store.go"; git_quiet -C "$V" add -A
+out=$(cd "$V" && sh .agents/kit/check.sh --staged --quiet 2>&1) &&
+  ok "staged: someone else's dead path does not block" || bad "staged: someone else's dead path does not block" "$out"
+printf "See \`alsogone/\`.\\n" >> "$V/cmd/api/AGENTS.md"; git_quiet -C "$V" add -A
+out=$(cd "$V" && sh .agents/kit/check.sh --staged 2>&1)
+[ $? -ne 0 ] && printf '%s' "$out" | grep -q "missing path: alsogone" && ! printf '%s' "$out" | grep -q "FAIL.*nope" &&
+  ok "staged: only the map this commit edits blocks" || bad "staged: only the map this commit edits blocks" "$out"
+git -C "$V" checkout -q HEAD -- cmd/api/AGENTS.md; git_quiet -C "$V" add -A
+git_quiet -C "$V" commit -m "unrelated work" && ok "staged: the unrelated commit goes through" || bad "staged: the unrelated commit goes through"
+expect_fail "full check still reports it" "$V" "names a missing path: nope"
+
+V=$(variant removal); git_quiet -C "$V" rm -q go.mod
+out=$(cd "$V" && sh .agents/kit/check.sh --staged --quiet 2>&1)
+[ $? -ne 0 ] && printf '%s' "$out" | grep -q "missing path: go.mod" && ok "staged: deleting a mapped file blocks" || bad "staged: deleting a mapped file blocks" "$out"
+
+V=$(variant longmap); i=0; while [ $i -lt 41 ]; do echo "line" >> "$V/cmd/api/AGENTS.md"; i=$((i + 1)); done
+git_quiet -C "$V" commit --no-verify -am "long map"
+echo "// more" >> "$V/internal/store/store.go"; git_quiet -C "$V" add -A
+(cd "$V" && sh .agents/kit/check.sh --staged --quiet >/dev/null 2>&1) && ok "staged: a long map elsewhere does not block" || bad "staged: a long map elsewhere does not block"
+echo "line" >> "$V/cmd/api/AGENTS.md"; git_quiet -C "$V" add -A
+out=$(cd "$V" && sh .agents/kit/check.sh --staged --quiet 2>&1)
+[ $? -ne 0 ] && printf '%s' "$out" | grep -q "(max 40)" && ok "staged: editing the long map blocks" || bad "staged: editing the long map blocks" "$out"
+
+V=$(variant branch); git -C "$V" branch -q -M main; printf '| `nope/` | gone | |\n' >> "$V/AGENTS.md"
+git_quiet -C "$V" commit --no-verify -am "broken on main"; git -C "$V" checkout -q -b feature
+echo "// more" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit -am "feature work"
+out=$(cd "$V" && sh .agents/kit/check.sh --ci --since main 2>&1) && ok "CI --since: a branch is judged on its own changes" || bad "CI --since: a branch is judged on its own changes" "$out"
+
+# --- CI and other setups ----------------------------------------------------
+git clone -q "$WORK/go" "$WORK/clone" 2>/dev/null
+expect_fail "fresh clone: the plain check asks for the hook" "$WORK/clone" "pre-commit check is not active"
+out=$(cd "$WORK/clone" && sh .agents/kit/check.sh --ci 2>&1) && ok "fresh clone: --ci passes" || bad "fresh clone: --ci passes" "$out"
+mkdir "$WORK/ci" && git -C "$WORK/ci" init -q && sh "$KIT/install.sh" --ci "$WORK/ci" > /dev/null 2>&1
+grep -q "check.sh --ci" "$WORK/ci/.github/workflows/agent-kit.yml" 2>/dev/null && ok "--ci adds the GitHub Actions workflow" || bad "--ci adds the GitHub Actions workflow"
+
+V=$(variant locals); echo '{}' > "$V/.claude/settings.local.json"
+expect_pass "Claude Code's per-user settings are ignored" "$V"
+
+mkdir "$WORK/ownhooks" && git -C "$WORK/ownhooks" init -q
+printf '#!/bin/sh\nexit 0\n' > "$WORK/ownhooks/.git/hooks/pre-commit"; chmod +x "$WORK/ownhooks/.git/hooks/pre-commit"
+sh "$KIT/install.sh" "$WORK/ownhooks" > "$WORK/ownhooks.log" 2>&1
+[ -z "$(git -C "$WORK/ownhooks" config core.hooksPath)" ] && grep -q "own hooks in .git/hooks" "$WORK/ownhooks.log" &&
+  ok "existing .git/hooks stay active" || bad "existing .git/hooks stay active" "$(cat "$WORK/ownhooks.log")"
+mkdir "$WORK/precommitfw" && git -C "$WORK/precommitfw" init -q && echo "repos: []" > "$WORK/precommitfw/.pre-commit-config.yaml"
+sh "$KIT/install.sh" "$WORK/precommitfw" > "$WORK/precommitfw.log" 2>&1
+[ -z "$(git -C "$WORK/precommitfw" config core.hooksPath)" ] && grep -q "repo: local" "$WORK/precommitfw.log" &&
+  ok "pre-commit framework: snippet printed, hooksPath untouched" || bad "pre-commit framework: snippet printed, hooksPath untouched" "$(cat "$WORK/precommitfw.log")"
+printf '  - repo: local\n    hooks:\n      - id: a\n        entry: sh .agents/kit/check.sh --staged --quiet\n' >> "$WORK/precommitfw/.pre-commit-config.yaml"
+out=$(cd "$WORK/precommitfw" && sh .agents/kit/check.sh 2>&1); printf '%s' "$out" | grep -q "pre-commit check is not active" &&
+  bad "the pre-commit framework counts as an active hook" "$out" || ok "the pre-commit framework counts as an active hook"
+
+FAKEKIT="$WORK/fakekit"; mkdir "$FAKEKIT"; echo "99.0.0" > "$FAKEKIT/VERSION"
+out=$(cd "$WORK/go" && AGENT_KIT_HOME="$FAKEKIT" sh .agents/kit/check.sh 2>&1)
+printf '%s' "$out" | grep -q "99.0.0 is available" && ok "a newer kit is noted" || bad "a newer kit is noted" "$out"
+
+# --- Decisions, one file each -------------------------------------------------
+V=$(variant decisions); mkdir -p "$V/docs/decisions"
+printf -- '---\nid: D-001\nstatus: accepted\ndate: 2026-01-01\nsource_paths: [internal/store/]\n---\n\n# D-001: Use Go\n' > "$V/docs/decisions/D-001-use-go.md"
+cp "$KIT/templates/docs/DECISIONS.md" "$V/DECISIONS.md"
+expect_fail "a decision without an index row is caught" "$V" "D-001 (docs/decisions/D-001-use-go.md) has no row"
+echo '| [D-001](docs/decisions/D-001-use-go.md) | Use Go | accepted | 2026-01-01 |' >> "$V/DECISIONS.md"
+git_quiet -C "$V" add -A
+expect_pass "decision files and their index pass" "$V"
+edit 's/| accepted |/| proposed |/' "$V/DECISIONS.md"
+expect_fail "a status that differs from the file is caught" "$V" 'D-001 is "accepted"'
+
+# --- Helpers: stale docs, map rows --------------------------------------------
+V=$(variant stale); echo "go 1.23" >> "$V/go.mod"; git_quiet -C "$V" commit --no-verify -am "bump go"
+out=$(cd "$V" && sh .agents/kit/stale.sh)
+printf '%s' "$out" | grep -q "^AGENTS.md.*go.mod" && ok "stale.sh: a map whose named file changed" || bad "stale.sh: a map whose named file changed" "$out"
+printf '%s' "$out" | grep -q "^cmd/api/AGENTS.md" && bad "stale.sh: a map whose code did not change stays quiet" "$out" || ok "stale.sh: a map whose code did not change stays quiet"
+out=$(cd "$WORK/go" && sh .agents/kit/map-rows.sh .)
+printf '%s' "$out" | grep -q '| `internal/` |' && ! printf '%s' "$out" | grep -q 'go.mod' &&
+  ok "map-rows.sh suggests only what the map lacks" || bad "map-rows.sh suggests only what the map lacks" "$out"
+
+# --- Code written by hand: the catch-up queue ---------------------------------------
+V=$(variant queue); q() { sh "$V/.agents/kit/queue.sh" count; }
+echo "// by hand" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit -am "hand edit"
+[ "$(cd "$V" && q)" = 1 ] && ok "post-commit queues code committed without its docs" || bad "post-commit queues code committed without its docs" "$(cd "$V" && sh .agents/kit/queue.sh list)"
+echo "// again" >> "$V/internal/store/store.go"; echo "More." >> "$V/internal/store/README.md"
+git_quiet -C "$V" commit -am "edit with docs"
+echo "// trivial" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit -am "typo [no-docs]"
+[ "$(cd "$V" && q)" = 1 ] && ok "commits with docs, or [no-docs], are not queued" || bad "commits with docs, or [no-docs], are not queued"
+out=$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)
+printf '%s' "$out" | grep -q "catch-up" && ok "session start mentions the queue" || bad "session start mentions the queue" "$out"
+(cd "$V" && sh .agents/kit/queue.sh done "$(git rev-parse HEAD~2)")
+[ "$(cd "$V" && q)" = 0 ] && [ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] &&
+  ok "an empty queue: session start says nothing" || bad "an empty queue: session start says nothing"
+
 # --- Stop hook --------------------------------------------------------------
-transcript() {  # transcript <file> <tool name> <file_path>
+transcript() {  # transcript <file> <tool name>
   printf '%s\n' '{"type":"user","message":{"content":"go"}}' \
-    "{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"$2\",\"input\":{\"command\":\"x\",\"file_path\":\"$(native "$3")\"}}]}}" > "$1"
+    "{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"$2\",\"input\":{\"command\":\"x\"}}]}}" > "$1"
 }
-hook() {  # hook <repo> <transcript>: the hook's output
-  echo "{\"transcript_path\":\"$(native "$2")\",\"cwd\":\"$(native "$1/cmd")\"}" | (cd "$1" && sh .agents/kit/stop-hook.sh)
+hook() {  # hook <repo> <transcript> <session> [--baseline]: the hook's output
+  echo "{\"transcript_path\":\"$(native "$2")\",\"cwd\":\"$(native "$1/cmd")\",\"session_id\":\"$3\"}" |
+    (cd "$1" && sh .agents/kit/stop-hook.sh ${4:-})
 }
+transcript "$WORK/bash.jsonl" Bash
+transcript "$WORK/read.jsonl" Read
+
 V=$(variant hookfail); printf '| `nope/` | gone | |\n' >> "$V/AGENTS.md"
-transcript "$WORK/t1.jsonl" Bash "" ; edit 's#"file_path":"[^"]*"#"file_path":""#' "$WORK/t1.jsonl"
-hook "$V" "$WORK/t1.jsonl" | grep -q '"block"' && ok "stop hook blocks after a shell edit that broke a map" || bad "stop hook blocks after a shell edit that broke a map"
-out=$(hook "$WORK/go" "$WORK/t1.jsonl")
+hook "$V" "$WORK/bash.jsonl" s1 | grep -q '"block"' && ok "stop hook blocks after a shell edit that broke a map" || bad "stop hook blocks after a shell edit that broke a map"
+out=$(hook "$WORK/go" "$WORK/bash.jsonl" s1)
 [ -z "$out" ] && ok "stop hook passes a clean repo" || bad "stop hook passes a clean repo" "$out"
-transcript "$WORK/t2.jsonl" Edit "$WORK/go/cmd/api/main.go"
-hook "$WORK/go" "$WORK/t2.jsonl" | grep -q 'Docs step' && ok "stop hook asks for the docs step after a code edit" || bad "stop hook asks for the docs step after a code edit"
+
+V=$(variant teamhook); printf '| `nope/` | gone | |\n' >> "$V/AGENTS.md"
+git_quiet -C "$V" commit --no-verify -am "broken before the session"
+hook "$V" "$WORK/read.jsonl" s2 --baseline
+echo "// x" >> "$V/internal/store/store.go"
+out=$(hook "$V" "$WORK/bash.jsonl" s2)
+[ -z "$out" ] && ok "stop hook ignores problems the turn did not cause" || bad "stop hook ignores problems the turn did not cause" "$out"
+
+V=$(variant remind); hook "$V" "$WORK/read.jsonl" s3 --baseline
+out=$(hook "$V" "$WORK/read.jsonl" s3)
+[ -z "$out" ] && ok "stop hook: nothing changed, nothing said" || bad "stop hook: nothing changed, nothing said" "$out"
+echo "// x" >> "$V/cmd/api/main.go"
+out=$(hook "$V" "$WORK/bash.jsonl" s3)
+[ -z "$out" ] && ok "stop hook: an edit inside a mapped folder needs no reminder" || bad "stop hook: an edit inside a mapped folder needs no reminder" "$out"
+echo "go 1.23" >> "$V/go.mod"
+hook "$V" "$WORK/bash.jsonl" s3 | grep -q 'go.mod. is named in AGENTS.md' && ok "stop hook: a shell edit to a mapped file asks for the docs step" || bad "stop hook: a shell edit to a mapped file asks for the docs step"
+echo "go 1.24" >> "$V/go.mod"
+out=$(hook "$V" "$WORK/bash.jsonl" s3)
+[ -z "$out" ] && ok "stop hook: asks only once per file" || bad "stop hook: asks only once per file" "$out"
+printf 'package api\n' > "$V/cmd/api/routes.go"; echo "More." >> "$V/internal/store/README.md"
+hook "$V" "$WORK/bash.jsonl" s3 | grep -q 'routes.go. was added to .cmd/api/' && ok "stop hook: a new file in a mapped folder asks; an unrelated README does not count" || bad "stop hook: a new file in a mapped folder asks; an unrelated README does not count"
+printf 'package api\n' > "$V/cmd/api/server.go"; echo "Server." >> "$V/cmd/api/README.md"
+out=$(hook "$V" "$WORK/bash.jsonl" s3)
+[ -z "$out" ] && ok "stop hook: the README above the file satisfies it" || bad "stop hook: the README above the file satisfies it" "$out"
+
+mkdir "$V/cmd/api/handlers"; printf 'package handlers\n' > "$V/cmd/api/handlers/a.go"; git_quiet -C "$V" add -A
+git_quiet -C "$V" commit --no-verify -m handlers; hook "$V" "$WORK/read.jsonl" s3 --baseline
+printf 'package handlers\n' > "$V/cmd/api/handlers/b.go"
+out=$(hook "$V" "$WORK/bash.jsonl" s3)
+[ -z "$out" ] && ok "stop hook: a file added deeper in an existing folder needs no reminder" || bad "stop hook: a file added deeper in an existing folder needs no reminder" "$out"
+
+V=$(variant learnhook); mkdir "$V/learning_docs"
+printf -- '---\ntitle: API\nsource_paths: [cmd/api/]\nsource_commit: abc\n---\n# API\n' > "$V/learning_docs/01-api.md"
+hook "$V" "$WORK/read.jsonl" s4 --baseline
+echo "// x" >> "$V/cmd/api/main.go"
+out=$(hook "$V" "$WORK/bash.jsonl" s4)
+[ -z "$out" ] && grep -q "learning_docs/01-api.md" "$V/.git/agent-kit/stale-learning" &&
+  ok "stop hook: stale learning docs are noted, never blocking" || bad "stop hook: stale learning docs are noted, never blocking" "$out"
 
 echo
 echo "$PASSED passed, $FAILED failed"

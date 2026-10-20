@@ -1,8 +1,8 @@
 # agent_dev_kit
 
 A kit that installs agent context into any repo: `AGENTS.md` maps, the
-`DECISIONS.md` lineage, four repo skills, docs checks and local learning
-docs. Humans start at `README.md`.
+`DECISIONS.md` lineage, seven repo skills, docs checks, a catch-up queue
+for code written by hand, and learning docs. Humans start at `README.md`.
 
 ## Map
 
@@ -12,11 +12,12 @@ docs. Humans start at `README.md`.
 | `install.sh` | Copies kit files into a target repo; also the upgrade |
 | `install-global.sh` | Links the `agent-kit` skill into each agent's skill folder |
 | `global-skills/agent-kit/` | The one global skill: setup, upgrade, check |
-| `templates/kit/` | `check.sh`, `inventory.sh` (house cleaning), the Stop hook; copied to `.agents/kit/` |
-| `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs` |
+| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `writing-style.md`; copied to `.agents/kit/` |
+| `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff` |
 | `templates/config/` | `agent-kit.conf`, Claude and Codex hook configs |
-| `templates/docs/` | Map, decision, ledger, plan, learning-doc and README templates |
-| `templates/githooks/` | The pre-commit hook |
+| `templates/docs/` | Map, decision index and file, ledger, plan, learning-doc and README templates |
+| `templates/githooks/` | The pre-commit and post-commit hooks |
+| `templates/ci/` | The GitHub Actions workflow (`install.sh --ci`) |
 | `guide/` | The HTML guide: `template.html` + `build.py` |
 | `tests/run.sh` | End-to-end tests in throwaway repos |
 | `.github/workflows/test.yml` | CI: the tests on macOS, Ubuntu, Fedora and Windows |

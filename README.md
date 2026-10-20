@@ -2,7 +2,10 @@
 
 Give every coding agent a map of your repo, so it does not have to read all
 the code. Keep the reason behind every decision. Keep the docs true without
-remembering to check them. Teach people the system with local learning docs.
+remembering to check them, and without slowing the agent down. Keep people
+in the loop: code written by hand gets explained and documented with their
+approval, and every pull request explains itself with a short quiz. Teach
+people the system with learning docs.
 
 Works with Claude Code, Codex, Cursor, Muse, Antigravity and Gemini CLI, in a
 repo of any language, on macOS, Linux and Windows. The HTML guide is
@@ -12,15 +15,16 @@ repo of any language, on macOS, Linux and Windows. The HTML guide is
 
 | Part | Where | What it does |
 |---|---|---|
-| Maps | `AGENTS.md` in the root, top folders and every unit | Short pages: what is where, rules, how to run. Agents read these first |
+| Maps | `AGENTS.md` in the root, and in each unit past a size threshold | Short pages: what is where, rules, how to run. An agent loads the root map and the maps on the path to the folder it works in, nothing else |
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
-| Lineage | `DECISIONS.md` (+ an optional experiment ledger) | Every decision with why, alternatives, evidence, and what would reverse it |
+| Lineage | `DECISIONS.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Every decision with why, alternatives, evidence, and what would reverse it |
 | Plan | `PLAN.md` (new projects) | The goal, the first milestone, the planned units |
-| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs` |
-| Checks | `.agents/kit/check.sh` | Fails when a map is too long, names a missing path, a unit has no map, agent files are not in git, a hook is not portable, or learning docs are tracked |
-| Automatic runs | `.githooks/pre-commit`, Stop hook | The checks run before every commit and after every agent turn that edits |
-| Config | `.agents/agent-kit.conf` | Which folders are units, line limits, which pointer files |
-| Learning docs | `learning_docs/` | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Local or pushed, by share mode |
+| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff` |
+| Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
+| Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
+| Writing style | `.agents/kit/writing-style.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
+| Config | `.agents/agent-kit.conf` | Which folders are units, map thresholds, line limits, pointer files, interface files |
+| Learning docs | `learning_docs/` | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Refreshed at the end of a task. Local or pushed, by share mode |
 
 ## Share modes: what reaches GitHub
 
@@ -60,10 +64,17 @@ The install rewrites the rules and, when files that are now local are still
 tracked, prints the `git rm -r --cached ...` command that stops tracking
 them (the files stay on disk). Run it, then commit.
 
+When teammates committed those files, the install prints a **WARNING**
+instead: the commit that stops tracking them deletes them for everyone who
+pulls it. Use `--share agent` or `all` if the team should keep them; add
+`--confirm-untrack` only when the team agreed.
+
 ## Words used here
 
 - **Unit**: a folder you work inside as a whole: a service, a package, an
-  app, an experiment. Each unit gets a `README.md` and an `AGENTS.md`.
+  app, an experiment. A unit with at least `MAP_MIN_FILES` code files
+  (default 15) or `MAP_MIN_LINES` code lines (default 1500) gets a
+  `README.md` and an `AGENTS.md`; a smaller one is a row in a map.
 - **Map**: an `AGENTS.md` file. It points to detail; it does not hold it.
 - **Skill**: a `SKILL.md` file of instructions an agent follows when you
   name it (`docs-sync check`).
@@ -180,9 +191,9 @@ unit gets its map, and `check.sh` stays green.
 
 ## Your skills are safe
 
-The kit brings four skills: `lineage`, `scaffold`, `docs-sync`,
-`learning-docs`. A skill with any other name is never touched. For these
-four, `install.sh` records a fingerprint of each one it installs
+The kit brings seven skills: `lineage`, `scaffold`, `docs-sync`,
+`learning-docs`, `wrap-up`, `catch-up`, `explain-diff`. A skill with any
+other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
 | The skill in your repo | What the install does |
@@ -236,7 +247,7 @@ the agent tidies the repo with you. Run it on its own any time:
 ## 4b. Move a repo with a hand-made setup onto the kit
 
 For a repo that already has maps and checks but no `.agents/kit/` (for
-example docu_nom_nom_69, with its pytest docs checks and its own Stop hook):
+example one with its own pytest docs checks and its own Stop hook):
 
 1. Open the agent in the repo and type `agent-kit upgrade`.
 2. It installs the kit next to the old setup, then lists what the kit now
@@ -256,6 +267,9 @@ Everything is in git except one setting. Run once in the clone:
 git config core.hooksPath .githooks
 ```
 
+(If the repo uses pre-commit, lefthook or husky, their own install step
+does it instead.)
+
 Until then, `check.sh` reminds them. On Windows they type it in Git Bash.
 If the repo uses symlink mode and their Windows clone cannot make symlinks,
 `check.sh` says so and gives the two commands that switch the repo to copy
@@ -265,13 +279,19 @@ mode.
 
 | You want to | Type | Notes |
 |---|---|---|
-| Check fast, no AI | `sh .agents/kit/check.sh` | Seconds. Same as the pre-commit check |
-| Know if code and docs agree | `docs-sync check` | Report only. Add a unit path, or `since main` for a branch |
+| Check fast, no AI | `sh .agents/kit/check.sh` | Seconds. The pre-commit runs it with `--staged`, which blocks only what the commit breaks |
+| Finish a task | `wrap-up` | Checks, docs of this branch, asks before refreshing stale learning docs, writes the PR section |
+| Document code you wrote yourself | `catch-up` | Explains each change, asks what it is for, proposes docs and docstrings; applies only what you approve |
+| Understand a branch or PR | `explain-diff` | Background, intuition, code walkthrough, five-question quiz. `--post` puts it in the PR |
+| Know if code and docs agree | `docs-sync check` | Report only. Reads only docs whose anchors changed (`since main` by default) |
+| See what may be stale | `sh .agents/kit/stale.sh` | No AI. Each doc whose code changed since the doc did |
 | Make the docs match the code | `docs-sync fix` | Never changes code. Asks you when a change breaks a decision |
 | Learn the system | `learning-docs` | First time: all, or overview only. Later: `learning-docs stale` |
 | Record a decision or a result | `lineage` | It asks why, what else, evidence, what would reverse it |
 | Add a service, package or experiment | `scaffold` | Creates its README, map and pointer files |
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |
+| See what waits | `agent-kit status` | Checks, the catch-up queue, stale docs |
+| Commit with no docs needed | put `[no-docs]` in the message | The commit stays out of the catch-up queue |
 | Tidy agent and doc files | `agent-kit cleanup` | Inventory, then one question per group; nothing removed without your yes |
 | Edit a repo skill | edit it in `.agents/skills/` | In copy mode, then run `sh .agents/kit/sync-skills.sh` |
 
@@ -293,18 +313,32 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
 
 ### What runs by itself
 
-- **Before every commit**: `.githooks/pre-commit` runs `check.sh`. A
-  failure blocks the commit and prints the fix.
-- **After every agent turn that edits** (Claude Code; Codex if its hooks are
-  on): the Stop hook runs `check.sh`, and asks for the docs step when code
-  changed but no doc did.
-- **Nothing on a timer.** Run `docs-sync check` before merging a branch,
-  after a large refactor, or after pulling other people's work.
+- **Before every commit**: `.githooks/pre-commit` runs `check.sh --staged`.
+  Only problems this commit causes block it (a map it edits, a path it
+  deletes, a unit it adds code to); someone else's broken map does not, so
+  nobody needs `--no-verify`. A failure prints the fix.
+- **After every commit**: `.githooks/post-commit` queues a commit that
+  changed code but not the docs above that code (usually code written by
+  hand). The next agent session says so in one line, and `catch-up` works
+  through the queue with you. It never blocks.
+- **When an agent session starts** (Claude Code): one line about the queue
+  and stale learning docs, only when there is something.
+- **After every agent turn** (Claude Code; Codex if its hooks are on): the
+  Stop hook compares `git status` with the last turn. Nothing changed:
+  nothing runs. Something changed: `check.sh` for those files only, and a
+  docs reminder only when a file a map names changed, a file was added to
+  or removed from a folder a map names, or an interface file changed
+  (`INTERFACE_GLOBS`). It asks once per file, and editing the README or map
+  above the file satisfies it. Learning docs whose code changed are noted
+  for `wrap-up`, never blocking.
+- **In CI** (`install.sh --ci`): `check.sh --ci`, and on a pull request
+  `--since <base>`, so the branch is judged on its own changes.
+- **At the end of a task**: the root map tells the agent to run `wrap-up`.
 
 ## 7. Change the kit itself
 
 1. Edit the templates (`templates/`), skills or scripts.
-2. Run `sh tests/run.sh` (64 tests in throwaway repos; needs sh, git,
+2. Run `sh tests/run.sh` (114 tests in throwaway repos; needs sh, git,
    Python 3). Pushing runs them on macOS, Ubuntu, Fedora and Windows
    (`.github/workflows/test.yml`).
 3. Bump `VERSION`, add a `CHANGELOG.md` entry saying what an upgrading repo
@@ -313,8 +347,15 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
 
 ## Limits
 
-- The Stop hook reads Claude Code's transcript format. Codex's hook input is
-  not verified; Cursor, Muse and Antigravity rely on the pre-commit check.
+- The Stop hook finds changes with git, so it covers shell edits and
+  subagents. The SessionStart hook is set up for Claude Code only; without
+  it, the first stop of a session treats files that were already changed as
+  changed by the agent. Codex's hook input is not verified; Cursor, Muse and
+  Antigravity rely on the pre-commit check and CI.
+- Paths in prose are checked when they look like paths (a `/`, or a known
+  file extension). End a line with `<!-- agent-kit: skip -->` to leave it
+  out. Behaviour (defaults, flows) is checked by `docs-sync`, which is
+  agent work.
 - The Stop hook needs Python 3.9+; without it the hook steps aside and the
   pre-commit check still runs.
 - On Windows, the Stop hook depends on how each agent runs hook commands;

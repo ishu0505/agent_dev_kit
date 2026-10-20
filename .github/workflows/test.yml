@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Shell syntax
-        run: for f in install.sh install-global.sh templates/kit/*.sh templates/githooks/pre-commit tests/run.sh; do sh -n "$f"; done
+        run: for f in install.sh install-global.sh templates/kit/*.sh templates/githooks/* tests/run.sh; do sh -n "$f"; done
       - name: End-to-end tests
         run: sh tests/run.sh
 

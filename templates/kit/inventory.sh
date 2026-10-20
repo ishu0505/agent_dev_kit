@@ -15,7 +15,7 @@ SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 LEARNING_DIR="learning_docs"
 OWN_SKILLS=""
 [ -f .agents/agent-kit.conf ] && . ./.agents/agent-kit.conf
-KIT_SKILLS="lineage scaffold docs-sync learning-docs"
+KIT_SKILLS="lineage scaffold docs-sync learning-docs catch-up wrap-up explain-diff"
 TODAY=$(date +%s)
 SEEN=$(mktemp) || exit 1
 trap 'rm -f "$SEEN"' EXIT

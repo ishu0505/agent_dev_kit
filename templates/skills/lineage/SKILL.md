@@ -5,10 +5,19 @@ description: Record a decision or an experiment result in the repo's lineage (DE
 
 # Lineage
 
-The lineage is `DECISIONS.md` (decisions) and, when the repo has one, the
-experiment ledger named by `LEDGER` in `.agents/agent-kit.conf`. Both are
+The lineage is the decisions and, when the repo has one, the experiment
+ledger named by `LEDGER` in `.agents/agent-kit.conf`. Both are
 append-mostly: history is kept, and a changed mind is a new entry that
 supersedes the old one.
+
+Where decisions live depends on `DECISIONS_DIR` in the same file:
+
+- set (e.g. `docs/decisions`): one file per decision,
+  `<DECISIONS_DIR>/D-NNN-<short-slug>.md`, and one row for it in the index
+  table of `DECISIONS.md`;
+- empty: every decision is an entry in `DECISIONS.md` itself.
+
+Write by `.agents/kit/writing-style.md`.
 
 ## 1. Name the change
 
@@ -33,10 +42,25 @@ explicitly open.
 
 ## 3. Write the decision
 
-Append to `DECISIONS.md` using the template at its top, with the next free
-id and today's date. Record the user's reasoning as they gave it; mark any
-inference of yours as yours. When the entry replaces an earlier one, set that
-entry's status to `superseded by D-NNN` and change nothing else in it.
+Take the next free id (the highest `D-NNN` in use, plus one) and today's
+date. Record the user's reasoning as they gave it; mark any inference of
+yours as yours.
+
+- With `DECISIONS_DIR`: create the file from the kit's decision template
+  (front matter `id`, `status`, `date`, `supersedes`, `source_paths`, then
+  the sections). `source_paths` lists the code the decision governs, so
+  `docs-sync` rereads it only when that code changes. Add the row
+  `| [D-NNN](<path>) | <the choice> | <status> | <date> |` to `DECISIONS.md`.
+- Without it: append the entry to `DECISIONS.md` using the template at its
+  top.
+
+When the decision replaces an earlier one, set the earlier one's status to
+`superseded by D-NNN` (in its file and its index row) and change nothing
+else in it.
+
+**Moving to one file per decision.** When `DECISIONS_DIR` is set but
+`DECISIONS.md` still holds full entries, offer to split them: one file per
+entry, unchanged text, and the index table. Do it only on the user's yes.
 
 ## 4. Update the experiment ledger
 
