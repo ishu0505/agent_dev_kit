@@ -6,7 +6,17 @@ description: Create the agent context for a new unit (service, package, app, lib
 # Scaffold
 
 A unit is a folder listed in `UNITS`, or a child of a folder listed in
-`UNIT_PARENTS`, in `.agents/agent-kit.conf`. Every unit carries:
+`UNIT_PARENTS`, in `.agents/agent-kit.conf`.
+
+**Map or row?** A unit gets its own map only when it is big enough:
+`MAP_MIN_FILES` code files or `MAP_MIN_LINES` code lines, or it is listed in
+`MAP_REQUIRED` (never when it is in `MAP_EXEMPT`). A smaller unit gets one
+row in the nearest map above it (or its parent folder does), so agents can
+find it without loading another file. Tell the user which case applies and
+why; they may override it in the config. When a small unit grows past the
+threshold, `check.sh` asks for its map.
+
+A unit with its own map carries:
 
 - `README.md`: the detail, for humans;
 - `AGENTS.md`: a short map, at most `UNIT_MAP_MAX` lines, pointing into the
@@ -38,14 +48,18 @@ Experiment or benchmark:
 
 ## 2. Write
 
-Create the folder and the files. `AGENTS.md` follows this shape (from
+Create the folder and the files. Write the README by
+`.agents/kit/writing-style.md`. Start the map's rows from
+`sh .agents/kit/map-rows.sh <folder>`, which lists the subfolders and entry
+files from the tree; you write only the "What" column. `AGENTS.md` follows
+this shape (from
 `templates/docs/AGENTS.unit.md` in agent_dev_kit):
 
 ```
 # <name>
 
 <one line: what it does / the question it answers>
-Details: `README.md`. Shared rules: `../AGENTS.md`.
+Details: `README.md`. Shared rules: the maps above this folder.
 
 ## Map
 | Path | What |

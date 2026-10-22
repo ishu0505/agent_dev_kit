@@ -1,14 +1,19 @@
-"""Stop hook: keep the docs step from being skipped.
+"""Stop hook: keep the docs true without slowing the agent down.
 
-Run by `.agents/kit/stop-hook.sh` when an agent ends a turn. It reads the
-session transcript (Claude Code's format; other agents may differ, and then
-it does nothing) and:
+Run by `.agents/kit/stop-hook.sh` when an agent ends a turn, and with
+`--baseline` by `session-start.sh` when a session starts. It finds what the
+turn changed from git (a snapshot of `git status` and HEAD per session), so
+shell edits, subagents and every agent are covered, and:
 
-1. after a turn that edited files or ran shell commands (a `sed` edit leaves
-   no edit call), runs `.agents/kit/check.sh` and blocks the stop with the
-   failures;
-2. when the turn edited code but no Markdown file, blocks once and asks for
-   the docs step, or a one-line "no doc needed".
+1. when nothing changed, does nothing: no check, no message;
+2. runs `.agents/kit/check.sh --changed <files>` and blocks the stop only on
+   problems those files cause;
+3. asks for the docs step once per file, and only when a changed code file
+   is named in a map, is an interface file (INTERFACE_GLOBS), or was added or
+   removed in a folder a map names; an edit to an AGENTS.md or README.md
+   above the file satisfies it;
+4. records learning docs whose `source_paths` changed in
+   `.git/agent-kit/stale-learning` for the wrap-up skill; never blocks for it.
 
 `stop_hook_active` is set on the follow-up stop, so it never loops. Any
 error lets the stop through. Installed by agent_dev_kit; do not edit here.
@@ -16,24 +21,32 @@ error lets the stop through. Installed by agent_dev_kit; do not edit here.
 
 from __future__ import annotations
 
+import fnmatch
 import json
+import posixpath
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
-EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
-CHANGE_TOOLS = EDIT_TOOLS | {"Bash"}
+CHANGE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"}
+SKIP_DIRS = "node_modules .venv venv vendor target build dist out bin obj"
 CHECKS_FAILING = (
-    "The agent-kit checks fail (.agents/kit/check.sh). Fix what they name "
-    "before ending the turn:\n{failures}"
+    "The agent-kit checks fail for files this turn changed (.agents/kit/check.sh). "
+    "Fix what they name before ending the turn:\n{failures}"
 )
 REMINDER = (
-    "Docs step: this turn changed code ({files}) but no Markdown file. If it "
-    "changed a default, env var, path, interface or behaviour, update the "
-    "nearest README / AGENTS.md now; run the lineage skill for a decision or "
-    "experiment result{learning}. If no doc needs to change, say so in one line."
+    "Docs step: this turn changed code that the docs describe:\n{items}\n"
+    "Update the map or README named above in the same change, and run the lineage skill "
+    "for a decision. If no doc needs to change, say so in one line."
 )
+
+
+def git(repo: Path, *args: str) -> str:
+    run = subprocess.run(["git", "-c", "core.quotepath=off", *args], cwd=repo,
+                         capture_output=True, text=True, timeout=30)
+    return run.stdout if run.returncode == 0 else ""
 
 
 def read_config(repo: Path) -> dict[str, str]:
@@ -47,6 +60,50 @@ def read_config(repo: Path) -> dict[str, str]:
     return config
 
 
+def snapshot(repo: Path) -> dict:
+    """HEAD, and the status, size and mtime of every file git status lists."""
+    out = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                         cwd=repo, capture_output=True, timeout=30).stdout.decode("utf-8", "replace")
+    entries = out.split("\0")
+    files: dict[str, str] = {}
+    i = 0
+    while i < len(entries):
+        entry = entries[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        status, path = entry[:2], entry[3:]
+        if status[0] in "RC":
+            i += 1  # the next entry is the old name
+        try:
+            stat = (repo / path).stat()
+            files[path] = f"{status}:{stat.st_size}:{stat.st_mtime_ns}"
+        except OSError:
+            files[path] = f"{status}:gone"
+    return {"head": git(repo, "rev-parse", "-q", "--verify", "HEAD").strip(), "files": files}
+
+
+def changes_since(repo: Path, before: dict, now: dict) -> dict[str, str]:
+    """Path -> A (added), D (removed) or M (changed), between two snapshots."""
+    found: dict[str, str] = {}
+    if before["head"] and now["head"] and before["head"] != now["head"]:
+        for line in git(repo, "diff", "--name-status", before["head"], now["head"]).splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                found[parts[-1]] = parts[0][0] if parts[0][0] in "AD" else "M"
+                if parts[0][0] == "R":
+                    found[parts[1]] = "D"
+                    found[parts[-1]] = "A"
+    for path, sign in now["files"].items():
+        if before["files"].get(path) != sign:
+            status = sign.split(":")[0]
+            found[path] = "D" if sign.endswith(":gone") else "A" if ("?" in status or "A" in status) else "M"
+    for path in before["files"]:
+        if path not in now["files"]:
+            found.setdefault(path, "D" if not (repo / path).exists() else "M")
+    return found
+
+
 def is_user_prompt(entry: dict) -> bool:
     content = (entry.get("message") or {}).get("content")
     if entry.get("type") != "user":
@@ -57,9 +114,13 @@ def is_user_prompt(entry: dict) -> bool:
         isinstance(block, dict) and block.get("type") == "tool_result" for block in content)
 
 
-def tool_calls_this_turn(transcript: Path) -> list[dict]:
+def turn_used_change_tools(transcript: str | None) -> bool:
+    """Only for the first stop of a session with no baseline: did this turn edit?
+    An unreadable transcript (another agent's format) counts as yes."""
+    if not transcript or not Path(transcript).exists():
+        return True
     calls: list[dict] = []
-    for line in transcript.read_text().splitlines():
+    for line in Path(transcript).read_text().splitlines():
         try:
             entry = json.loads(line)
         except json.JSONDecodeError:
@@ -70,23 +131,120 @@ def tool_calls_this_turn(transcript: Path) -> list[dict]:
         if entry.get("type") == "assistant" and isinstance(content, list):
             calls += [block for block in content
                       if isinstance(block, dict) and block.get("type") == "tool_use"]
-    return calls
+    return any(call.get("name") in CHANGE_TOOLS for call in calls)
 
 
-def edited_files(calls: list[dict]) -> list[Path]:
-    paths = [(call.get("input") or {}).get("file_path") or (call.get("input") or {}).get(
-        "notebook_path") for call in calls if call.get("name") in EDIT_TOOLS]
-    return [Path(path) for path in paths if path]
-
-
-def failing_checks(repo: Path) -> str:
-    """Output of check.sh when it fails, else an empty string."""
+def failing_checks(repo: Path, paths: list[str]) -> str:
+    """Output of check.sh for these paths when it fails, else an empty string."""
     try:
-        run = subprocess.run(["sh", ".agents/kit/check.sh", "--quiet"], cwd=repo,
-                             capture_output=True, text=True, timeout=60)
+        run = subprocess.run(["sh", ".agents/kit/check.sh", "--quiet", "--changed", *paths],
+                             cwd=repo, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.TimeoutExpired):
         return ""  # a missing shell or a hung run must not trap the agent
     return run.stdout[:3000] if run.returncode else ""
+
+
+def skipped(path: str, config: dict[str, str]) -> bool:
+    names = set(config.get("SKIP_DIRS", SKIP_DIRS).split()) | {config.get("LEARNING_DIR", "learning_docs")}
+    return any(part in names or part[:1] in (".", "_") for part in path.split("/")[:-1])
+
+
+def is_doc_for(doc: str, path: str) -> bool:
+    """An AGENTS.md or README.md in the path's folder or a folder above it."""
+    if posixpath.basename(doc) not in ("AGENTS.md", "README.md"):
+        return False
+    folder = posixpath.dirname(doc)
+    return not folder or path.startswith(folder + "/")
+
+
+def map_anchors(repo: Path, code: list[str]) -> list[tuple[str, str, str]]:
+    """(map, line, path) for every path named by a map above a changed file."""
+    maps = set()
+    for path in code:
+        folder = posixpath.dirname(path)
+        while True:
+            candidate = posixpath.join(folder, "AGENTS.md") if folder else "AGENTS.md"
+            if (repo / candidate).is_file():
+                maps.add(candidate)
+            if not folder:
+                break
+            folder = posixpath.dirname(folder)
+    if not maps:
+        return []
+    out = subprocess.run(["sh", ".agents/kit/check.sh", "--anchors", *sorted(maps)], cwd=repo,
+                         capture_output=True, text=True, timeout=30).stdout
+    anchors = []
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) == 3:
+            anchors.append((parts[0], parts[1], posixpath.normpath(parts[2])))
+    return anchors
+
+
+def changes_shape(repo: Path, folder: str, path: str, kind: str) -> bool:
+    """A file added to or removed from the folder itself, or a whole subfolder
+    that is new or gone: what a map row for the folder may need to say."""
+    parts = path[len(folder) + 1:].split("/")
+    if len(parts) == 1:
+        return True
+    sub = posixpath.join(folder, parts[0])
+    if kind == "D":
+        return not (repo / sub).exists()
+    return not git(repo, "ls-files", "--", sub).strip()
+
+
+def docs_items(repo: Path, config: dict[str, str], changes: dict[str, str], reminded: set[str]) -> list[str]:
+    code = sorted(path for path in changes
+                  if not path.endswith(".md") and not skipped(path, config) and path not in reminded)
+    docs = [path for path in changes if path.endswith(".md")]
+    code = [path for path in code if not any(is_doc_for(doc, path) for doc in docs)]
+    if not code:
+        return []
+    anchors = map_anchors(repo, code)
+    interface = config.get("INTERFACE_GLOBS", "").split()
+    items = []
+    for path in code:
+        reason = ""
+        for map_path, line, anchor in anchors:
+            if path == anchor or fnmatch.fnmatch(path, anchor):
+                reason = f"`{path}` is named in {map_path} (line {line})"
+                break
+            if changes[path] in "AD" and path.startswith(anchor + "/") and (repo / anchor).is_dir() \
+                    and changes_shape(repo, anchor, path, changes[path]):
+                verb = "added to" if changes[path] == "A" else "removed from"
+                reason = f"`{path}` was {verb} `{anchor}/`, which {map_path} names (line {line})"
+                break
+        if not reason and any(fnmatch.fnmatch(path, glob) or fnmatch.fnmatch(posixpath.basename(path), glob)
+                              for glob in interface):
+            reason = f"`{path}` is an interface file (INTERFACE_GLOBS); check the README that documents it"
+        if reason:
+            items.append((path, reason))
+    reminded.update(path for path, _ in items)
+    return [f"- {reason}" for _, reason in items[:5]] + (
+        [f"- and {len(items) - 5} more"] if len(items) > 5 else [])
+
+
+def front_paths(doc: Path) -> list[str]:
+    text = doc.read_text(errors="replace")
+    match = re.match(r"---\n(.*?)\n---", text.replace("\r\n", "\n"), re.S)
+    found = re.search(r"^source_paths:\s*\[?(.*?)\]?\s*$", match.group(1), re.M) if match else None
+    return [p.strip(" '\"") for p in found.group(1).split(",") if p.strip(" '\"")] if found else []
+
+
+def mark_stale_learning(repo: Path, config: dict[str, str], changes: dict[str, str], state_dir: Path) -> None:
+    folder = repo / config.get("LEARNING_DIR", "learning_docs")
+    if not config.get("LEARNING_DIR", "learning_docs") or not folder.is_dir():
+        return
+    code = [path for path in changes if not path.endswith(".md")]
+    stale_file = state_dir.parent / "stale-learning"
+    known = set(stale_file.read_text().split()) if stale_file.exists() else set()
+    for doc in sorted(folder.rglob("*.md")):
+        name = doc.relative_to(repo).as_posix()
+        sources = [source.rstrip("/") for source in front_paths(doc)]
+        if name not in known and any(path == s or path.startswith(s + "/") for s in sources for path in code):
+            known.add(name)
+    if known:
+        stale_file.write_text("".join(f"{name}\n" for name in sorted(known)))
 
 
 def repo_root(cwd: str) -> Path:
@@ -95,38 +253,50 @@ def repo_root(cwd: str) -> Path:
     return Path(found or cwd).resolve()
 
 
-def main() -> None:
-    event = json.load(sys.stdin)
-    if event.get("stop_hook_active") or not event.get("transcript_path"):
-        return
+def main(argv: list[str]) -> None:
+    raw = sys.stdin.read()
+    event = json.loads(raw) if raw.strip() else {}
     repo = repo_root(event.get("cwd") or ".")
-    config = read_config(repo)
-    calls = tool_calls_this_turn(Path(event["transcript_path"]))
-    if any(call.get("name") in CHANGE_TOOLS for call in calls):
-        failures = failing_checks(repo)
-        if failures:
-            print(json.dumps({"decision": "block", "reason": CHECKS_FAILING.format(failures=failures)}))
-            return
-    skip = set(config.get("SKIP_DIRS", "").split()) | {config.get("LEARNING_DIR", "")}
-    # Resolve symlinks first (/var/x and /private/var/x are the same file);
-    # is_relative_to also copes with Windows drive letters and backslashes.
-    resolved = [path.resolve() for path in edited_files(calls) if path.is_absolute()]
-    files = [path for path in resolved if path.is_relative_to(repo)
-             and not skip & set(path.relative_to(repo).parts)]
-    if any(path.suffix == ".md" for path in files):
+    if not (repo / ".agents" / "kit" / "check.sh").exists():
         return
-    extensions = {"." + ext for ext in config.get("CODE_EXTENSIONS", "").split()}
-    code = sorted({path.relative_to(repo).as_posix() for path in files if path.suffix in extensions})
-    if code:
-        shown = ", ".join(code[:4]) + (" ..." if len(code) > 4 else "")
-        learning = config.get("LEARNING_DIR", "")
-        hint = (f"; if `{learning}/` explains this code, refresh it with the learning-docs skill"
-                if learning and (repo / learning).is_dir() else "")
-        print(json.dumps({"decision": "block", "reason": REMINDER.format(files=shown, learning=hint)}))
+    common = git(repo, "rev-parse", "--git-common-dir").strip()
+    state_dir = (repo / common / "agent-kit" / "state").resolve()
+    state_dir.mkdir(parents=True, exist_ok=True)
+    for old in state_dir.glob("*.json"):  # sessions older than a week
+        if old.stat().st_mtime < time.time() - 7 * 86400:
+            old.unlink()
+    session = re.sub(r"[^A-Za-z0-9_-]", "_", str(event.get("session_id") or "default"))[:80]
+    state_file = state_dir / f"{session}.json"
+    now = snapshot(repo)
+    if "--baseline" in argv:
+        state_file.write_text(json.dumps({"snapshot": now, "reminded": []}))
+        return
+    if event.get("stop_hook_active"):
+        return
+    state = json.loads(state_file.read_text()) if state_file.exists() else None
+    if state is None:
+        if not turn_used_change_tools(event.get("transcript_path")):
+            state_file.write_text(json.dumps({"snapshot": now, "reminded": []}))
+            return
+        state = {"snapshot": {"head": now["head"], "files": {}}, "reminded": []}
+    changes = changes_since(repo, state["snapshot"], now)
+    reminded = set(state.get("reminded", []))
+    if not changes:
+        return
+    failures = failing_checks(repo, sorted(changes))
+    if failures:  # keep the old snapshot, so the next turn checks these files again
+        print(json.dumps({"decision": "block", "reason": CHECKS_FAILING.format(failures=failures)}))
+        return
+    config = read_config(repo)
+    mark_stale_learning(repo, config, changes, state_dir)
+    items = docs_items(repo, config, changes, reminded)
+    state_file.write_text(json.dumps({"snapshot": now, "reminded": sorted(reminded)}))
+    if items:
+        print(json.dumps({"decision": "block", "reason": REMINDER.format(items="\n".join(items))}))
 
 
 if __name__ == "__main__":
     try:
-        main()
+        main(sys.argv[1:])
     except Exception:  # noqa: BLE001 - a broken hook must never block the agent
         pass

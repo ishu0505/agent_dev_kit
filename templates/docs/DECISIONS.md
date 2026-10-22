@@ -1,17 +1,11 @@
 # Decisions
 
-What was decided, why, and on what evidence. Newest at the bottom. Entries
-are never rewritten; a changed mind is a new entry, and the old one's status
-becomes `superseded by D-NNN`. Add entries with the `lineage` skill.
+The index of every decision: what was decided, why, and on what evidence.
+Each decision is one file in `docs/decisions/` (`DECISIONS_DIR` in
+`.agents/agent-kit.conf`), written with the `lineage` skill. A file is never
+rewritten; a changed mind is a new decision, and the old one's status
+becomes `superseded by D-NNN`. `check.sh` keeps this table and the files in
+step.
 
-```
-## D-NNN — <the choice, in one line>
-- Date: YYYY-MM-DD
-- Status: accepted | proposed | superseded by D-NNN
-- Decision: what is now true.
-- Why: the reason, in the user's words.
-- Rejected: what else was considered and why it lost.
-- Evidence: report path and the numbers, or "none".
-- Reverse if: the result that would change this.
-- Open: questions still unanswered.
-```
+| ID | Decision | Status | Date |
+|---|---|---|---|

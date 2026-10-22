@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install or upgrade the agent kit in a git repository.
 #
-# Usage: /path/to/agent_dev_kit/install.sh [--share MODE] [target repo]
+# Usage: /path/to/agent_dev_kit/install.sh [--share MODE] [--ci] [--confirm-untrack] [target repo]
 #
 # Skills: a kit skill is replaced only when the repo never edited it (its
 # fingerprint matches .agents/kit/skills.sum). An edited skill, or one the
@@ -13,6 +13,13 @@
 #   --share all       agent files and learning docs pushed
 #   --share learning  learning docs pushed, agent files local
 #   --share none      nothing pushed; everything stays on this machine
+#   --ci              also add .github/workflows/agent-kit.yml (the checks in CI)
+#   --confirm-untrack print the git rm --cached command even when teammates
+#                     committed the agent files a local mode stops sharing
+#
+# Git hooks: when the repo already uses a hook manager (pre-commit, lefthook,
+# husky) or has hooks in .git/hooks, the install leaves core.hooksPath alone
+# and prints the lines to add there instead.
 #
 # Without --share, an installed repo keeps its mode (SHARE in
 # .agents/agent-kit.conf). Safe to run again: that is how a repo upgrades.
@@ -25,10 +32,14 @@ KIT=$(cd "$(dirname "$0")" && pwd)
 T="$KIT/templates"
 SHARE_ARG=""
 TARGET="."
+WANT_CI=no
+CONFIRM_UNTRACK=no
 while [ $# -gt 0 ]; do
   case "$1" in
     --share) SHARE_ARG=${2:-}; shift 2 ;;
     --share=*) SHARE_ARG=${1#--share=}; shift ;;
+    --ci) WANT_CI=yes; shift ;;
+    --confirm-untrack) CONFIRM_UNTRACK=yes; shift ;;
     *) TARGET=$1; shift ;;
   esac
 done
@@ -93,25 +104,80 @@ echo "agent-kit $NEW_VERSION -> $ROOT (installed before: $OLD_VERSION)"
 
 # Kit-owned: always replaced.
 mkdir -p .agents/kit .agents/skills .githooks
-cp "$T"/kit/*.sh "$T/kit/docs_reminder.py" .agents/kit/
+cp "$T"/kit/*.sh "$T"/kit/*.py "$T"/kit/*.md .agents/kit/
 cp "$KIT/VERSION" .agents/kit/VERSION
 chmod +x .agents/kit/*.sh
-say "updated .agents/kit/ (check.sh, sync-skills.sh, stop hook, VERSION)"
+say "updated .agents/kit/ (checks, hooks, helpers, writing style, VERSION)"
 
-# Pre-commit: ours is replaced; someone else's is left for the agent to merge.
-if [ ! -f .githooks/pre-commit ] || grep -q 'agents/kit/check.sh' .githooks/pre-commit; then
-  cp "$T/githooks/pre-commit" .githooks/pre-commit
-  chmod +x .githooks/pre-commit
-  say "updated .githooks/pre-commit"
-else
-  note ".githooks/pre-commit already exists: add the line  sh \"\$(git rev-parse --show-toplevel)/.agents/kit/check.sh\" --quiet || exit 1"
-fi
+# Git hooks: ours are replaced; someone else's are left for the agent to merge.
+PRE_LINE='sh "$(git rev-parse --show-toplevel)/.agents/kit/check.sh" --staged --quiet || exit 1'
+POST_LINE='sh "$(git rev-parse --show-toplevel)/.agents/kit/queue.sh" add HEAD || true'
+for hook in pre-commit post-commit; do
+  if [ ! -f ".githooks/$hook" ] || grep -q 'agents/kit/' ".githooks/$hook"; then
+    cp "$T/githooks/$hook" ".githooks/$hook"
+    chmod +x ".githooks/$hook"
+    say "updated .githooks/$hook"
+  else
+    line=$PRE_LINE; [ "$hook" = post-commit ] && line=$POST_LINE
+    note ".githooks/$hook already exists: add the line  $line"
+  fi
+done
 hooks_path=$(git config core.hooksPath || true)
+managers=""
+[ -f .pre-commit-config.yaml ] && managers="$managers pre-commit"
+for file in lefthook.yml lefthook.yaml .lefthook.yml; do [ -f "$file" ] && managers="$managers lefthook"; done
+[ -d .husky ] && managers="$managers husky"
+own_hooks=""
 if [ -z "$hooks_path" ]; then
+  for hook in "$(git rev-parse --git-path hooks)"/*; do
+    [ -f "$hook" ] || continue
+    case "$hook" in *.sample) ;; *) own_hooks="$own_hooks $(basename "$hook")" ;; esac
+  done
+fi
+if [ "$hooks_path" = ".githooks" ]; then
+  :
+elif [ -z "$hooks_path" ] && [ -z "$managers$own_hooks" ]; then
   git config core.hooksPath .githooks
   say "set git config core.hooksPath .githooks (this clone)"
-elif [ "$hooks_path" != ".githooks" ]; then
-  note "core.hooksPath is $hooks_path: call .agents/kit/check.sh --quiet from its pre-commit"
+else
+  # Taking over core.hooksPath would silently switch the repo's own hooks off.
+  for manager in $managers; do
+    case "$manager" in
+      pre-commit) note "this repo uses the pre-commit framework, so core.hooksPath stays as it is. Add to .pre-commit-config.yaml:
+    - repo: local
+      hooks:
+        - id: agent-kit-check
+          name: agent-kit check
+          entry: sh .agents/kit/check.sh --staged --quiet
+          language: system
+          pass_filenames: false
+          always_run: true
+        - id: agent-kit-queue
+          name: agent-kit catch-up queue
+          entry: sh .agents/kit/queue.sh add HEAD
+          language: system
+          pass_filenames: false
+          always_run: true
+          stages: [post-commit]
+  then run: pre-commit install --hook-type pre-commit --hook-type post-commit" ;;
+      lefthook) note "this repo uses lefthook, so core.hooksPath stays as it is. Add to lefthook.yml:
+    pre-commit:
+      commands:
+        agent-kit:
+          run: sh .agents/kit/check.sh --staged --quiet
+    post-commit:
+      commands:
+        agent-kit:
+          run: sh .agents/kit/queue.sh add HEAD
+  then run: lefthook install" ;;
+      husky) note "this repo uses husky, so core.hooksPath stays as it is. Add the line  $PRE_LINE  to .husky/pre-commit, and  $POST_LINE  to .husky/post-commit" ;;
+    esac
+  done
+  if [ -n "$hooks_path" ] && [ -z "$managers" ]; then
+    note "core.hooksPath is $hooks_path: add the line  $PRE_LINE  to its pre-commit, and  $POST_LINE  to its post-commit"
+  elif [ -n "$own_hooks" ] && [ -z "$managers" ]; then
+    note "this clone has its own hooks in .git/hooks ($own_hooks ), so core.hooksPath stays as it is (setting it would switch them off). Either add the line  $PRE_LINE  to .git/hooks/pre-commit and  $POST_LINE  to .git/hooks/post-commit, or move those hooks into .githooks/ and run: git config core.hooksPath .githooks"
+  fi
 fi
 
 # Repo-owned: created once, never overwritten.
@@ -122,6 +188,8 @@ create_if_missing "$T/config/codex-hooks.json" .codex/hooks.json || true
 if ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json; then
   grep -q 'agents/kit/stop-hook.sh' .claude/settings.json ||
     note ".claude/settings.json exists: merge the Stop hook from $T/config/claude-settings.json (and remove any older docs hook)"
+  grep -q 'agents/kit/session-start.sh' .claude/settings.json ||
+    note ".claude/settings.json exists: merge the SessionStart hook from $T/config/claude-settings.json"
 fi
 grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
@@ -193,6 +261,7 @@ EXCLUDE=$(git rev-parse --git-path info/exclude)
 ATTRIBUTES=$(git rev-parse --git-path info/attributes)
 LEARNING_DIR=$(conf LEARNING_DIR)
 LEDGER=$(conf LEDGER)
+DECISIONS_DIR=$(conf DECISIONS_DIR)
 remove_legacy_rules
 local_rules=""
 shared_rules=""
@@ -209,10 +278,19 @@ $pointer"; done
 /.githooks/"
   [ -n "$LEDGER" ] && local_rules="$local_rules
 /$LEDGER"
+  [ -n "$DECISIONS_DIR" ] && local_rules="$local_rules
+/${DECISIONS_DIR%/}/"
+fi
+if [ "$SHARE_AGENT" = yes ]; then
+  # Files each person keeps for themselves (Claude Code writes these).
+  shared_rules=".claude/settings.local.json
+.claude/*.local.*
+CLAUDE.local.md"
 fi
 if [ -n "$LEARNING_DIR" ] && [ "$SHARE_LEARNING" = no ]; then
   if [ "$SHARE_AGENT" = yes ]; then
-    shared_rules="/$LEARNING_DIR/"
+    shared_rules="$shared_rules
+/$LEARNING_DIR/"
   else
     local_rules="$local_rules
 /$LEARNING_DIR/"
@@ -235,12 +313,25 @@ say "wrote ignore and line-ending rules for share mode $SHARE"
 agent_paths="AGENTS.md :(glob)**/AGENTS.md DECISIONS.md PLAN.md .agents .claude .codex .githooks"
 for pointer in $(conf POINTER_FILES); do agent_paths="$agent_paths $pointer :(glob)**/$pointer"; done
 [ -n "$LEDGER" ] && agent_paths="$agent_paths $LEDGER"
+[ -n "$DECISIONS_DIR" ] && agent_paths="$agent_paths $DECISIONS_DIR"
 if [ "$SHARE_AGENT" = no ]; then
   set -f  # the pathspecs contain ** for git, not for the shell
   # shellcheck disable=SC2086  # pathspecs, one per word
   tracked=$(git ls-files -- $agent_paths | head -5 | tr '\n' ' ')
+  # shellcheck disable=SC2086
+  others=$(git log --format=%ae -- $agent_paths 2>/dev/null | sort -u | grep -v -x -F "$(git config user.email || echo '<none>')" | head -3 | tr '\n' ' ')
   set +f
-  [ -z "$tracked" ] || note "agent files are tracked but mode $SHARE keeps them local ($tracked...): run  git rm -r --cached -q --ignore-unmatch -- $agent_paths  then commit"
+  if [ -n "$tracked" ] && [ -n "$others" ] && [ "$CONFIRM_UNTRACK" = no ]; then
+    echo
+    echo "WARNING: other people committed these agent files ($others)."
+    echo "  Mode $SHARE stops tracking them. When that commit is pushed, the files are"
+    echo "  DELETED for every teammate who pulls it (they stay on this machine only)."
+    echo "  If the team should keep them, use --share agent or --share all instead."
+    echo "  If the team agreed, run the install again with --confirm-untrack to get the command."
+    note "agent files are tracked and teammates committed them: ask the user before untracking (see the WARNING above)"
+  elif [ -n "$tracked" ]; then
+    note "agent files are tracked but mode $SHARE keeps them local ($tracked...): run  git rm -r --cached -q --ignore-unmatch -- $agent_paths  then commit"
+  fi
 fi
 if [ -n "$LEARNING_DIR" ] && [ "$SHARE_LEARNING" = no ] && [ -n "$(git ls-files -- "$LEARNING_DIR" | head -1)" ]; then
   note "learning docs are tracked but mode $SHARE keeps them local: run  git rm -r --cached -q --ignore-unmatch -- $LEARNING_DIR  then commit"
@@ -249,8 +340,18 @@ fi
 # Executable bit in git, so macOS and Linux clones of a repo set up on
 # Windows still run the hooks. Only when the scripts are shared.
 if [ "$SHARE_AGENT" = yes ]; then
-  git add --chmod=+x .githooks/pre-commit .agents/kit/*.sh 2>/dev/null &&
+  git add --chmod=+x .githooks/pre-commit .githooks/post-commit .agents/kit/*.sh 2>/dev/null &&
     say "staged scripts as executable (git add --chmod=+x)"
+fi
+
+# CI: the same checks on every push and pull request.
+if [ "$WANT_CI" = yes ]; then
+  if [ "$SHARE_AGENT" = yes ]; then
+    create_if_missing "$T/ci/github-actions.yml" .github/workflows/agent-kit.yml ||
+      say "kept .github/workflows/agent-kit.yml"
+  else
+    note "--ci skipped: mode $SHARE keeps the kit local, so CI has no check.sh to run"
+  fi
 fi
 
 if [ -n "$NOTES" ]; then

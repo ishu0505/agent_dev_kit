@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.4.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.5.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -135,7 +135,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Your skills are safe, and the repo gets a clean-up first</h2>
-  <p>The kit brings four skills. A skill with any other name is never touched. For those four it records a fingerprint at install, so it can tell whether you edited one.</p>
+  <p>The kit brings seven skills. A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>The skill in your repo</th><th>What the install does</th></tr></thead>
     <tbody>
@@ -155,13 +155,13 @@ footer { color: var(--muted); font-size: 14px; }
   <div class="table-wrap"><table>
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>
-      <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop hook, <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
-      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
-      <tr><td><code>.githooks/pre-commit</code></td><td>Runs <code>check.sh</code> before every commit</td><td><span class="pill ok">kit</span></td></tr>
-      <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, line limits, pointer files, code extensions, ledger</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root, in top folders and in every unit</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>DECISIONS.md</code>, <code>PLAN.md</code></td><td>Lineage; the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop and SessionStart hooks, <code>queue.sh</code>, <code>stale.sh</code>, <code>map-rows.sh</code>, <code>writing-style.md</code>, <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.githooks/pre-commit</code>, <code>post-commit</code></td><td>Checks what a commit breaks; queues code committed without its docs</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, map thresholds, line limits, pointer files, interface files, ledger, decisions folder</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root and in every unit past the size threshold</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>DECISIONS.md</code>, <code>PLAN.md</code></td><td>The decision index (one file per decision in <code>docs/decisions/</code>); the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex; SessionStart hook for Claude Code</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>learning_docs/</code></td><td>Learning docs; pushed or local by share mode</td><td><span class="pill check">repo</span></td></tr>
     </tbody>
   </table></div>
@@ -170,7 +170,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Learning docs</h2>
-  <p>Local files that teach a person the system: <code>00-overview.md</code> for the whole architecture, one file per service or component in the order data flows, and one file per flow that crosses units, such as an API request, a queue worker job or a retry path. They are written in ASD-STE100 Simplified Technical English. The share mode decides whether they are pushed.</p>
+  <p>Local files that teach a person the system: <code>00-overview.md</code> for the whole architecture, one file per service or component in the order data flows, and one file per flow that crosses units, such as an API request, a queue worker job or a retry path. They are written in ASD-STE100 Simplified Technical English, for an intern on day one. The share mode decides whether they are pushed.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Section</th><th>What it holds</th></tr></thead>
     <tbody>
@@ -197,7 +197,7 @@ footer { color: var(--muted); font-size: 14px; }
 2. The completion log is written before the reply is sent (`process_message()`).
 3. The error is logged and suppressed, so the message can arrive again later.
 &lt;/details&gt;</pre></div>
-  <p>Each file records the commit and the code paths it was written from. When <code>git diff</code> shows those paths changed, the <code>learning-docs</code> skill rewrites the stale parts. The docs step after each change asks for that refresh.</p>
+  <p>Each file records the commit and the code paths it was written from. When <code>git diff</code> shows those paths changed, the <code>learning-docs</code> skill rewrites the stale parts. The Stop hook notes which ones a task made stale, and <code>wrap-up</code> asks you once, at the end of the task, whether to refresh them.</p>
   <div class="note"><p><strong>Local or pushed, you choose.</strong> In share mode <code>agent</code> or <code>none</code> they are ignored, and the check blocks any commit that stages one. In <code>all</code> or <code>learning</code> they are committed like code.</p></div>
 </section>
 
@@ -207,29 +207,31 @@ footer { color: var(--muted); font-size: 14px; }
   <div class="table-wrap"><table>
     <thead><tr><th>Layer</th><th>Finds</th><th>Runs</th></tr></thead>
     <tbody>
-      <tr><td>Checks</td><td>Long maps, dead paths, missing files, untracked agent files, local hook paths, tracked learning docs</td><td>Every commit and every editing turn</td></tr>
-      <tr><td><code>docs-sync</code></td><td>A README with an old default, a map naming a removed command, a broken invariant, a learning doc that describes a removed step</td><td>On request: before a merge, after a refactor, after pulling others' changes</td></tr>
+      <tr><td>Checks</td><td>Long maps, dead paths in tables and prose, missing maps for big units, decision index out of step, untracked agent files, local hook paths, tracked learning docs</td><td>Every commit (only what it breaks), every turn that changed files, CI</td></tr>
+      <tr><td><code>docs-sync</code></td><td>A README with an old default, a map naming a removed command, a broken invariant, a learning doc that describes a removed step</td><td>At the end of a task (<code>wrap-up</code>), or on request</td></tr>
     </tbody>
   </table></div>
   <ol class="steps">
     <li><div><h3>Run the checks</h3><p>Their failures go into the report.</p></div></li>
-    <li><div><h3>Find candidates with git only</h3><p>Docs whose folder has code changes newer than the doc's last commit, learning docs whose <code>source_paths</code> changed since their <code>source_commit</code>, and decisions or invariants that name code.</p></div></li>
+    <li><div><h3>Find candidates with git only</h3><p><code>stale.sh</code> lists docs whose anchors changed: the paths a map names, a README's <code>source_paths</code> line, a learning doc's or a decision's <code>source_paths</code>. Only those are read.</p></div></li>
     <li><div><h3>Read and compare</h3><p>Each claim against the code diff: paths, commands, env vars, defaults, interfaces, flow steps, invariants. A claim it cannot confirm is marked unverified, not wrong.</p></div></li>
     <li><div><h3>Report</h3><p>One table: doc, claim, what the code does, <code>file:line</code> evidence, proposed fix. <code>check</code> stops here.</p></div></li>
     <li><div><h3>Fix (<code>fix</code> mode)</h3><p>Docs follow the code; code is never changed to match a doc. When a change breaks a decision or invariant, it asks whether the change was intended (new decision) or a bug. Then it reruns the checks.</p></div></li>
   </ol>
-  <p>Scope it with a unit path or <code>since main</code> to read only what a branch changed.</p>
+  <p>By default it reads what the branch changed (<code>since main</code>); give a unit path, or <code>all</code>.</p>
 </section>
 
 <section>
   <h2>What runs on its own</h2>
-  <p>There is no periodic command to remember. The checks run at the two moments a gap can enter the repo. Only the deeper <code>docs-sync</code> reading is on request.</p>
+  <p>There is no periodic command to remember, and nothing blocks you for someone else's mistake. You stay in the loop: the agent asks before larger doc changes, and every pull request explains itself.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>When</th><th>What runs</th><th>Who it covers</th></tr></thead>
     <tbody>
-      <tr><td>Every commit</td><td><code>.githooks/pre-commit</code> runs both tests and blocks the commit on a failure</td><td><span class="pill ok">every agent</span> <span class="pill ok">humans</span></td></tr>
-      <tr><td>End of an agent turn</td><td>Stop hook: after a turn that edited files or ran a shell command, runs both tests and sends the failures back to the agent. If code changed but no doc did, it asks for the docs step once</td><td><span class="pill ok">Claude Code</span> <span class="pill check">Codex: verify</span></td></tr>
-      <tr><td>Test suite</td><td>Both tests are ordinary tests, so the normal check command and CI run them too</td><td><span class="pill ok">everyone</span></td></tr>
+      <tr><td>Every commit</td><td><code>check.sh --staged</code>: blocks only what the commit breaks (a map it edits, a path it deletes, a unit it adds code to)</td><td><span class="pill ok">every agent</span> <span class="pill ok">humans</span></td></tr>
+      <tr><td>After a commit</td><td>Code committed without the docs above it goes into the catch-up queue; <code>catch-up</code> explains it and proposes docs and docstrings for you to approve</td><td><span class="pill ok">humans</span></td></tr>
+      <tr><td>End of an agent turn</td><td>Stop hook: compares <code>git status</code> with the last turn. Nothing changed, nothing runs. Otherwise it checks those files, and asks for the docs step once per file a map names or an interface file</td><td><span class="pill ok">Claude Code</span> <span class="pill check">Codex: verify</span></td></tr>
+      <tr><td>End of a task</td><td><code>wrap-up</code>: checks, docs of the branch, stale learning docs (asks first), the <code>explain-diff</code> section with a quiz for the pull request</td><td><span class="pill ok">every agent</span></td></tr>
+      <tr><td>CI</td><td><code>check.sh --ci</code> (pull requests: <code>--since</code> the base), from <code>install.sh --ci</code></td><td><span class="pill ok">everyone</span></td></tr>
     </tbody>
   </table></div>
 </section>
@@ -313,15 +315,21 @@ footer { color: var(--muted); font-size: 14px; }
 the folder that contains this file. The kit gives the repo:
 
 1. **Maps**: short `AGENTS.md` files so any agent works here without reading
-   all the code. `CLAUDE.md` / `GEMINI.md` only import them.
-2. **Lineage**: `DECISIONS.md`, the reason behind every choice; an optional
-   experiment ledger.
+   all the code: one at the root, and one per unit big enough to need it.
+   `CLAUDE.md` / `GEMINI.md` only import them.
+2. **Lineage**: `DECISIONS.md`, the index of every decision and its reason
+   (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
-   `learning-docs`.
-4. **Checks**: `.agents/kit/check.sh`, run on every commit and after every
-   editing turn, so the docs stay true.
-5. **Learning docs**: `learning_docs/` that teach people the system.
-6. **A share mode** (`SHARE`): which of these reach the remote repo.
+   `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`.
+4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
+   commit breaks blocks), after every agent turn that changed files, and in
+   CI, so the docs stay true.
+5. **Humans in the loop**: code written by hand is queued for `catch-up`
+   (explain it, propose docs and docstrings, apply what the user approves);
+   every pull request gets an `explain-diff` section with a quiz.
+6. **Learning docs**: `learning_docs/` that teach people the system,
+   refreshed at the end of a task.
+7. **A share mode** (`SHARE`): which of these reach the remote repo.
 
 The scripts and skills are ready-made in `KIT/templates/`; copy them, do not
 rewrite them. Your work is the repo-specific part: the config, the maps,
@@ -426,11 +434,19 @@ Every case:
 2. Which agents will work here (sets `POINTER_FILES`: `CLAUDE.md`, plus
    `GEMINI.md` for Gemini CLI / Antigravity).
 3. Which folders are units (`UNITS`) and which folders hold units
-   (`UNIT_PARENTS`).
+   (`UNIT_PARENTS`). A unit gets its own map only past a size threshold
+   (`MAP_MIN_FILES`, default 15 code files; `MAP_MIN_LINES`, default 1500
+   lines); smaller units are a row in a map. Propose the thresholds from
+   the unit sizes you found, and any unit that must always (`MAP_REQUIRED`)
+   or never (`MAP_EXEMPT`) have its own map.
 4. Code conventions to enforce.
 5. **Invariants**: rules a change must never break.
-6. The **check** command a change must pass.
-7. Decisions already made, and where their reasons are written.
+6. The **check** command a change must pass, and whether CI should run the
+   kit&#x27;s checks too (`install.sh --ci` adds a GitHub Actions workflow; for
+   another CI, run `sh .agents/kit/check.sh --ci` there).
+7. Decisions already made, and where their reasons are written. New
+   decisions go one per file in `DECISIONS_DIR` (default `docs/decisions`),
+   indexed by `DECISIONS.md`; existing ADRs can stay where they are.
 8. Experiments or benchmarks that decide what ships, and where (`LEDGER`).
 9. Learning docs: who reads them, which flows matter most (API requests,
    queue / worker jobs, pipelines, CLI), which units first.
@@ -447,7 +463,10 @@ Every case:
     committed, so not even an ignore rule shows up in the remote. Local
     files exist only on this machine: a fresh clone or another computer
     does not get them.
-12. Operating systems the team uses. Windows without symlink support means
+12. How the repo runs git hooks today (pre-commit, lefthook, husky, hooks in
+    `.git/hooks`, or none). The install never switches existing hooks off;
+    it prints the lines to add to the existing manager.
+13. Operating systems the team uses. Windows without symlink support means
     `SKILLS_LINK=&quot;copy&quot;`; the install also switches to it by itself when a
     symlink cannot be made.
 
@@ -460,15 +479,20 @@ the root `AGENTS.md`. Wait for my approval.
 
 1. **Install** (all cases; this is also the upgrade):
    `sh KIT/install.sh --share &lt;mode&gt; .` (on Windows, run every kit command
-   in Git Bash). In case C, leave out `--share` to keep the repo&#x27;s mode;
-   pass it only when I ask to change the mode.
-   It copies `.agents/kit/`, the four skills, `.githooks/pre-commit`,
+   in Git Bash). Add `--ci` when I want the checks in GitHub Actions. In
+   case C, leave out `--share` to keep the repo&#x27;s mode; pass it only when I
+   ask to change the mode. If it prints a WARNING that teammates committed
+   the agent files a local mode stops sharing, stop and ask me; pass
+   `--confirm-untrack` only after I say the team agreed.
+   It copies `.agents/kit/`, the kit skills, `.githooks/pre-commit` and
+   `post-commit`,
    creates `.agents/agent-kit.conf`, `.claude/settings.json`,
    `.codex/hooks.json`, `.claude/skills` (a link, or a copy where symlinks
    fail), writes the ignore and LF rules for the share mode (shared rules in
    `.gitignore` / `.gitattributes`, local ones in `.git/info/`), sets
-   `core.hooksPath`, and, when agent files are shared, stages the scripts
-   as executable. It never overwrites repo-owned files. Kit skills are
+   `core.hooksPath` when no other hook setup exists (else it prints the
+   lines to add), and, when agent files are shared, stages the scripts as
+   executable. It never overwrites repo-owned files. Kit skills are
    replaced only if the repo never edited them (fingerprints in
    `.agents/kit/skills.sum`); skills in `OWN_SKILLS` are never touched. Do
    everything it prints under &quot;For the agent&quot;. For each skill it kept
@@ -484,24 +508,33 @@ the root `AGENTS.md`. Wait for my approval.
    (`KIT/templates/docs/AGENTS.unit.md`, at most `UNIT_MAP_MAX` lines). One
    pointer file per `POINTER_FILES` entry beside every map, containing only
    `@AGENTS.md`. Map only paths that exist.
-4. **Lineage**: `DECISIONS.md` from `KIT/templates/docs/DECISIONS.md`,
-   seeded with the decisions from the interview (write &quot;not recorded&quot; for a
-   reason nobody wrote down). If `LEDGER` is set:
+4. **Lineage**: `DECISIONS.md` from `KIT/templates/docs/DECISIONS.md` (the
+   index), and one file per decision from `KIT/templates/docs/decision.md`
+   in `DECISIONS_DIR`, seeded with the decisions from the interview (write
+   &quot;not recorded&quot; for a reason nobody wrote down). With `DECISIONS_DIR`
+   empty, keep every entry in `DECISIONS.md`. In case C with full entries
+   in `DECISIONS.md`, offer the split (the `lineage` skill says how). If `LEDGER` is set:
    `KIT/templates/docs/EXPERIMENTS.md`, one row per experiment.
 5. **Case B**: `PLAN.md` from `KIT/templates/docs/PLAN.md`. Map only
    folders that exist; each unit gets its map when its folder is created.
-6. **Command card**: `KIT/templates/docs/README-agent-context.md`. With
+6. **Command card**: `KIT/templates/docs/README-agent-context.md`; replace
+   `&lt;kit url&gt;` with the kit&#x27;s remote (`git -C KIT remote get-url origin`,
+   as an https link). With
    `SHARE` `agent` or `all`, add it as a section of the root `README.md`.
    With `learning` or `none`, write it to `.agents/README.md` instead and
    leave the committed README untouched.
-7. **Agent configs**: if more agents than Claude Code and Codex are used,
+7. **Agent configs**: `.claude/settings.json` needs both the SessionStart and
+   the Stop hook (the install says what to merge into an existing file). If
+   more agents than Claude Code and Codex are used,
    tell me where each loads hooks and skills (check its docs) and add what
    is needed. Other agents rely on the pre-commit check.
 8. **Commit-ready**: `git add` only what the share mode pushes. Never
    `git add -f` an ignored file. Do not commit unless I ask.
 
-Rules for what you write: plain short sentences; only paths that exist;
-only commands you ran or found; never invent a decision&#x27;s reason.
+Rules for what you write: follow `KIT/templates/kit/writing-style.md`
+(ASD-STE100, written for an intern); only paths that exist; only commands
+you ran or found; never invent a decision&#x27;s reason. Maps name paths in
+backticks, and `check.sh` checks every one that looks like a path.
 
 ## Phase 5 — Verify and report
 
@@ -512,6 +545,9 @@ only commands you ran or found; never invent a decision&#x27;s reason.
 - Ask me whether to write the learning docs now (all, overview only, or
   later), and if yes run the `learning-docs` skill.
 - Run `docs-sync check` once and show its report.
+- Show me how the work flows from now on, in four lines: maps load only for
+  the folder an agent works in; `wrap-up` ends every task; `catch-up` handles
+  code written by hand; `explain-diff` goes into each pull request.
 - Report: files created, config values, decisions recorded, open questions,
   and the agents whose hooks you could not verify.</pre>
 </section>

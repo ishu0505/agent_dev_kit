@@ -15,15 +15,21 @@ You are installing **agent_dev_kit** into this repository. `KIT` below means
 the folder that contains this file. The kit gives the repo:
 
 1. **Maps**: short `AGENTS.md` files so any agent works here without reading
-   all the code. `CLAUDE.md` / `GEMINI.md` only import them.
-2. **Lineage**: `DECISIONS.md`, the reason behind every choice; an optional
-   experiment ledger.
+   all the code: one at the root, and one per unit big enough to need it.
+   `CLAUDE.md` / `GEMINI.md` only import them.
+2. **Lineage**: `DECISIONS.md`, the index of every decision and its reason
+   (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
-   `learning-docs`.
-4. **Checks**: `.agents/kit/check.sh`, run on every commit and after every
-   editing turn, so the docs stay true.
-5. **Learning docs**: `learning_docs/` that teach people the system.
-6. **A share mode** (`SHARE`): which of these reach the remote repo.
+   `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`.
+4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
+   commit breaks blocks), after every agent turn that changed files, and in
+   CI, so the docs stay true.
+5. **Humans in the loop**: code written by hand is queued for `catch-up`
+   (explain it, propose docs and docstrings, apply what the user approves);
+   every pull request gets an `explain-diff` section with a quiz.
+6. **Learning docs**: `learning_docs/` that teach people the system,
+   refreshed at the end of a task.
+7. **A share mode** (`SHARE`): which of these reach the remote repo.
 
 The scripts and skills are ready-made in `KIT/templates/`; copy them, do not
 rewrite them. Your work is the repo-specific part: the config, the maps,
@@ -128,11 +134,19 @@ Every case:
 2. Which agents will work here (sets `POINTER_FILES`: `CLAUDE.md`, plus
    `GEMINI.md` for Gemini CLI / Antigravity).
 3. Which folders are units (`UNITS`) and which folders hold units
-   (`UNIT_PARENTS`).
+   (`UNIT_PARENTS`). A unit gets its own map only past a size threshold
+   (`MAP_MIN_FILES`, default 15 code files; `MAP_MIN_LINES`, default 1500
+   lines); smaller units are a row in a map. Propose the thresholds from
+   the unit sizes you found, and any unit that must always (`MAP_REQUIRED`)
+   or never (`MAP_EXEMPT`) have its own map.
 4. Code conventions to enforce.
 5. **Invariants**: rules a change must never break.
-6. The **check** command a change must pass.
-7. Decisions already made, and where their reasons are written.
+6. The **check** command a change must pass, and whether CI should run the
+   kit's checks too (`install.sh --ci` adds a GitHub Actions workflow; for
+   another CI, run `sh .agents/kit/check.sh --ci` there).
+7. Decisions already made, and where their reasons are written. New
+   decisions go one per file in `DECISIONS_DIR` (default `docs/decisions`),
+   indexed by `DECISIONS.md`; existing ADRs can stay where they are.
 8. Experiments or benchmarks that decide what ships, and where (`LEDGER`).
 9. Learning docs: who reads them, which flows matter most (API requests,
    queue / worker jobs, pipelines, CLI), which units first.
@@ -149,7 +163,10 @@ Every case:
     committed, so not even an ignore rule shows up in the remote. Local
     files exist only on this machine: a fresh clone or another computer
     does not get them.
-12. Operating systems the team uses. Windows without symlink support means
+12. How the repo runs git hooks today (pre-commit, lefthook, husky, hooks in
+    `.git/hooks`, or none). The install never switches existing hooks off;
+    it prints the lines to add to the existing manager.
+13. Operating systems the team uses. Windows without symlink support means
     `SKILLS_LINK="copy"`; the install also switches to it by itself when a
     symlink cannot be made.
 
@@ -162,15 +179,20 @@ the root `AGENTS.md`. Wait for my approval.
 
 1. **Install** (all cases; this is also the upgrade):
    `sh KIT/install.sh --share <mode> .` (on Windows, run every kit command
-   in Git Bash). In case C, leave out `--share` to keep the repo's mode;
-   pass it only when I ask to change the mode.
-   It copies `.agents/kit/`, the four skills, `.githooks/pre-commit`,
+   in Git Bash). Add `--ci` when I want the checks in GitHub Actions. In
+   case C, leave out `--share` to keep the repo's mode; pass it only when I
+   ask to change the mode. If it prints a WARNING that teammates committed
+   the agent files a local mode stops sharing, stop and ask me; pass
+   `--confirm-untrack` only after I say the team agreed.
+   It copies `.agents/kit/`, the kit skills, `.githooks/pre-commit` and
+   `post-commit`,
    creates `.agents/agent-kit.conf`, `.claude/settings.json`,
    `.codex/hooks.json`, `.claude/skills` (a link, or a copy where symlinks
    fail), writes the ignore and LF rules for the share mode (shared rules in
    `.gitignore` / `.gitattributes`, local ones in `.git/info/`), sets
-   `core.hooksPath`, and, when agent files are shared, stages the scripts
-   as executable. It never overwrites repo-owned files. Kit skills are
+   `core.hooksPath` when no other hook setup exists (else it prints the
+   lines to add), and, when agent files are shared, stages the scripts as
+   executable. It never overwrites repo-owned files. Kit skills are
    replaced only if the repo never edited them (fingerprints in
    `.agents/kit/skills.sum`); skills in `OWN_SKILLS` are never touched. Do
    everything it prints under "For the agent". For each skill it kept
@@ -186,24 +208,33 @@ the root `AGENTS.md`. Wait for my approval.
    (`KIT/templates/docs/AGENTS.unit.md`, at most `UNIT_MAP_MAX` lines). One
    pointer file per `POINTER_FILES` entry beside every map, containing only
    `@AGENTS.md`. Map only paths that exist.
-4. **Lineage**: `DECISIONS.md` from `KIT/templates/docs/DECISIONS.md`,
-   seeded with the decisions from the interview (write "not recorded" for a
-   reason nobody wrote down). If `LEDGER` is set:
+4. **Lineage**: `DECISIONS.md` from `KIT/templates/docs/DECISIONS.md` (the
+   index), and one file per decision from `KIT/templates/docs/decision.md`
+   in `DECISIONS_DIR`, seeded with the decisions from the interview (write
+   "not recorded" for a reason nobody wrote down). With `DECISIONS_DIR`
+   empty, keep every entry in `DECISIONS.md`. In case C with full entries
+   in `DECISIONS.md`, offer the split (the `lineage` skill says how). If `LEDGER` is set:
    `KIT/templates/docs/EXPERIMENTS.md`, one row per experiment.
 5. **Case B**: `PLAN.md` from `KIT/templates/docs/PLAN.md`. Map only
    folders that exist; each unit gets its map when its folder is created.
-6. **Command card**: `KIT/templates/docs/README-agent-context.md`. With
+6. **Command card**: `KIT/templates/docs/README-agent-context.md`; replace
+   `<kit url>` with the kit's remote (`git -C KIT remote get-url origin`,
+   as an https link). With
    `SHARE` `agent` or `all`, add it as a section of the root `README.md`.
    With `learning` or `none`, write it to `.agents/README.md` instead and
    leave the committed README untouched.
-7. **Agent configs**: if more agents than Claude Code and Codex are used,
+7. **Agent configs**: `.claude/settings.json` needs both the SessionStart and
+   the Stop hook (the install says what to merge into an existing file). If
+   more agents than Claude Code and Codex are used,
    tell me where each loads hooks and skills (check its docs) and add what
    is needed. Other agents rely on the pre-commit check.
 8. **Commit-ready**: `git add` only what the share mode pushes. Never
    `git add -f` an ignored file. Do not commit unless I ask.
 
-Rules for what you write: plain short sentences; only paths that exist;
-only commands you ran or found; never invent a decision's reason.
+Rules for what you write: follow `KIT/templates/kit/writing-style.md`
+(ASD-STE100, written for an intern); only paths that exist; only commands
+you ran or found; never invent a decision's reason. Maps name paths in
+backticks, and `check.sh` checks every one that looks like a path.
 
 ## Phase 5 — Verify and report
 
@@ -214,5 +245,8 @@ only commands you ran or found; never invent a decision's reason.
 - Ask me whether to write the learning docs now (all, overview only, or
   later), and if yes run the `learning-docs` skill.
 - Run `docs-sync check` once and show its report.
+- Show me how the work flows from now on, in four lines: maps load only for
+  the folder an agent works in; `wrap-up` ends every task; `catch-up` handles
+  code written by hand; `explain-diff` goes into each pull request.
 - Report: files created, config values, decisions recorded, open questions,
   and the agents whose hooks you could not verify.

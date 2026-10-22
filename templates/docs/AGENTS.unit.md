@@ -1,7 +1,7 @@
 # <name>
 
 <One line: what it does / the question it answers.>
-Details: `README.md`. Shared rules: `../AGENTS.md`.
+Details: `README.md`. Shared rules: the maps above this folder.
 
 ## Map
 

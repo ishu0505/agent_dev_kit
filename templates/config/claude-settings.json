@@ -1,5 +1,15 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'sh \"$(git rev-parse --show-toplevel)/.agents/kit/session-start.sh\"'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

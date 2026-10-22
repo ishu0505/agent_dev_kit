@@ -1,6 +1,6 @@
 ---
 name: agent-kit
-description: Set up, upgrade, clean up or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version. Arguments - setup (default), upgrade, cleanup, check.
+description: Set up, upgrade, clean up or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version, or see what waits (stale docs, code written without its docs). Arguments - setup (default), upgrade, cleanup, check, status.
 ---
 
 # agent-kit
@@ -31,6 +31,11 @@ Then:
   If `.agents/kit/` does not exist, say the kit is not installed here and
   offer `setup`. For a deeper check, run the repo's `docs-sync` skill in
   check mode.
+- **status**: read only. Show, in one short list: the result of
+  `sh .agents/kit/check.sh`; commits waiting for docs
+  (`sh .agents/kit/queue.sh list`, offer `catch-up`); stale learning docs
+  (`$(git rev-parse --git-common-dir)/agent-kit/stale-learning`); and docs
+  whose code changed (`sh .agents/kit/stale.sh`). Change nothing.
 
 All kit commands are POSIX `sh`. On Windows run them in Git Bash
 (`sh`, `git` and the other tools come with Git for Windows). Never run
