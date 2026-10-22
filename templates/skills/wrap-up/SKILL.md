@@ -19,8 +19,9 @@ them unless the user asks.
 
 Find the base: the branch the work will merge into (`main` by default).
 Run the `docs-sync` skill in check mode with scope `since <base>`. When it
-finds drift caused by this task, propose the fixes and apply the ones the
-user approves (`docs-sync fix`).
+finds drift caused by this task in kit docs, propose the fixes and apply the
+ones the user approves (`docs-sync fix`). Show its "Your docs" table as it
+is: those files belong to the people, so they fix them.
 
 ## 3. Learning docs
 

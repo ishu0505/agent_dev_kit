@@ -36,9 +36,9 @@ new_repo() {  # new_repo <name>: an empty git repo with the kit installed
   sh "$KIT/install.sh" "$WORK/$1" > "$WORK/$1.install.log" 2>&1
 }
 
-write_map() {  # write_map <folder> <one-line purpose>: AGENTS.md + README + CLAUDE.md
-  printf '# %s\n\n%s\n\n## Further reading\n\n- `README.md` — details\n' "$(basename "$1")" "$2" > "$1/AGENTS.md"
-  printf '# %s\n\n%s\n' "$(basename "$1")" "$2" > "$1/README.md"
+write_map() {  # write_map <folder> <one-line purpose>: AGENTS.md + README.agentk.md + CLAUDE.md
+  printf '# %s\n\n%s\n\n## Further reading\n\n- `README.agentk.md` — details\n' "$(basename "$1")" "$2" > "$1/AGENTS.md"
+  printf '# %s\n\n%s\n' "$(basename "$1")" "$2" > "$1/README.agentk.md"
   echo "@AGENTS.md" > "$1/CLAUDE.md"
 }
 
@@ -49,9 +49,9 @@ expect_fail "empty repo: install alone asks for the root map" "$R" "AGENTS.md is
 # A link on macOS and Linux; a copy where symlinks fail (Windows).
 grep -qE "linked .claude/skills|copied .agents/skills -> .claude/skills" "$WORK/empty.install.log" &&
   ok "install creates .claude/skills" || bad "install creates .claude/skills" "$(cat "$WORK/empty.install.log")"
-printf '# empty\n\nA new project.\n\n| Path | What | Read first |\n|---|---|---|\n| `DECISIONS.md` | Lineage | |\n' > "$R/AGENTS.md"
+printf '# empty\n\nA new project.\n\n| Path | What | Read first |\n|---|---|---|\n| `DECISIONS.agentk.md` | Lineage | |\n' > "$R/AGENTS.md"
 echo "@AGENTS.md" > "$R/CLAUDE.md"
-cp "$KIT/templates/docs/DECISIONS.md" "$R/DECISIONS.md"
+cp "$KIT/templates/docs/DECISIONS.md" "$R/DECISIONS.agentk.md"
 git_quiet -C "$R" add -A
 expect_pass "empty repo: root map + decisions pass" "$R"
 
@@ -91,7 +91,7 @@ V=$(variant pointer); rm "$V/cmd/api/CLAUDE.md"
 expect_fail "map without its CLAUDE.md pointer" "$V" "cmd/api/CLAUDE.md does not import"
 
 V=$(variant newunit); mkdir "$V/internal/cache"; echo "package cache" > "$V/internal/cache/cache.go"
-expect_fail "new unit folder is noticed" "$V" "internal/cache has no README.md"
+expect_fail "new unit folder is noticed" "$V" "internal/cache has no README.agentk.md"
 
 V=$(variant skillfile); mkdir -p "$V/.agents/skills/extra"; echo "x" > "$V/.agents/skills/extra/SKILL.md"
 expect_fail "untracked skill" "$V" "not in git"
@@ -171,8 +171,9 @@ mode_repo() {  # mode_repo <mode>: a new repo in that share mode, maps written, 
   mkdir "$R" && git -C "$R" init -q
   sh "$KIT/install.sh" --share "$1" "$R" > "$WORK/mode-$1.log" 2>&1
   printf '# m\n\nA repo.\n' > "$R/AGENTS.md"; echo "@AGENTS.md" > "$R/CLAUDE.md"
-  cp "$KIT/templates/docs/DECISIONS.md" "$R/DECISIONS.md"
-  mkdir -p "$R/learning_docs"; echo "# Overview" > "$R/learning_docs/00-overview.md"
+  cp "$KIT/templates/docs/DECISIONS.md" "$R/DECISIONS.agentk.md"
+  mkdir -p "$R/learning_docs" "$R/svc"; echo "# Overview" > "$R/learning_docs/00-overview.agentk.md"
+  echo "# Svc" > "$R/svc/README.agentk.md"; echo "# Ours" > "$R/README.md"
   echo "package main" > "$R/main.go"
   git_quiet -C "$R" add -A
 }
@@ -181,23 +182,23 @@ has() { staged "$1" | grep -qx "$2"; }               # has <repo> <path>
 
 mode_repo agent; R="$WORK/mode-agent"
 expect_pass "share agent: checks pass" "$R"
-has "$R" AGENTS.md && has "$R" .agents/kit/check.sh && ! has "$R" learning_docs/00-overview.md &&
+has "$R" AGENTS.md && has "$R" .agents/kit/check.sh && ! has "$R" learning_docs/00-overview.agentk.md &&
   ok "share agent: agent files staged, learning docs not" || bad "share agent: agent files staged, learning docs not" "$(staged "$R")"
 
 mode_repo all; R="$WORK/mode-all"
 expect_pass "share all: checks pass" "$R"
-has "$R" AGENTS.md && has "$R" learning_docs/00-overview.md &&
+has "$R" AGENTS.md && has "$R" learning_docs/00-overview.agentk.md &&
   ok "share all: agent files and learning docs staged" || bad "share all: agent files and learning docs staged" "$(staged "$R")"
 
 mode_repo learning; R="$WORK/mode-learning"
 expect_pass "share learning: checks pass" "$R"
-has "$R" learning_docs/00-overview.md && has "$R" main.go && [ -z "$(staged "$R" | grep -E '^(AGENTS|CLAUDE|DECISIONS)\.md$|^\.(agents|claude|codex|githooks)/|^\.git(ignore|attributes)$')" ] &&
+has "$R" learning_docs/00-overview.agentk.md && has "$R" main.go && has "$R" README.md && [ -z "$(staged "$R" | grep -E '\.agentk\.md$' | grep -v '^learning_docs/')" ] && [ -z "$(staged "$R" | grep -E '^(AGENTS|CLAUDE|DECISIONS)\.md$|^\.(agents|claude|codex|githooks)/|^\.git(ignore|attributes)$')" ] &&
   ok "share learning: learning docs staged, no agent file or kit rule" || bad "share learning: learning docs staged, no agent file or kit rule" "$(staged "$R")"
 git_quiet -C "$R" commit -m first && ok "share learning: pre-commit runs from local files" || bad "share learning: pre-commit runs from local files"
 
 mode_repo none; R="$WORK/mode-none"
 expect_pass "share none: checks pass" "$R"
-[ "$(staged "$R")" = "main.go" ] && ok "share none: only code is staged" || bad "share none: only code is staged" "$(staged "$R")"
+[ "$(staged "$R" | tr '\n' ' ')" = "README.md main.go " ] && ok "share none: only code and your README are staged" || bad "share none: only code and your README are staged" "$(staged "$R")"
 git_quiet -C "$R" add -f AGENTS.md
 expect_fail "share none: a force-added map is caught" "$R" "keeps agent files local"
 if git_quiet -C "$R" commit -m leak; then bad "share none: pre-commit blocks the leak"; else ok "share none: pre-commit blocks the leak"; fi
@@ -214,7 +215,7 @@ git -C "$V" config user.email test@example.com  # the only author
 sh "$KIT/install.sh" --share none "$V" > "$WORK/switch.log" 2>&1
 grep -q "git rm -r --cached" "$WORK/switch.log" && ok "switch to none: install says how to untrack" || bad "switch to none: install says how to untrack" "$(cat "$WORK/switch.log")"
 expect_fail "switch to none: tracked agent files are caught" "$V" "keeps agent files local"
-(cd "$V" && set -f && git rm -r --cached -q --ignore-unmatch -- AGENTS.md ':(glob)**/AGENTS.md' CLAUDE.md ':(glob)**/CLAUDE.md' DECISIONS.md PLAN.md .agents .claude .codex .githooks .gitattributes 2>/dev/null; true)
+(cd "$V" && set -f && git rm -r --cached -q --ignore-unmatch -- AGENTS.md ':(glob)**/AGENTS.md' CLAUDE.md ':(glob)**/CLAUDE.md' DECISIONS.agentk.md PLAN.agentk.md ':(glob)**/*.agentk.md' .agents .claude .codex .githooks .gitattributes 2>/dev/null; true)
 expect_pass "switch to none: passes once untracked" "$V"
 
 # --- Skills the repo edited or owns are never lost ---------------------------
@@ -256,13 +257,15 @@ grep -q "Our lineage." "$WORK/ownskill/.agents/skills/lineage/SKILL.md" && grep 
 # --- House-cleaning inventory -------------------------------------------------
 R="$WORK/ownskill"
 printf '# Notes\n' > "$R/NOTES.md"; printf 'rule\n' > "$R/.cursorrules"; printf '# x\n' > "$R/AGENTS.md"
+mkdir -p "$R/svc"; printf '# svc\n' > "$R/svc/README.agentk.md"
 edit 's/^OWN_SKILLS=.*/OWN_SKILLS="lineage"/' "$R/.agents/agent-kit.conf"
 before=$(git -C "$R" status --porcelain | cksum)
 out=$(sh "$KIT/templates/kit/inventory.sh" "$R")
 after=$(git -C "$R" status --porcelain | cksum)
-printf '%s' "$out" | grep -q "^Maps and pointer files" && printf '%s' "$out" | grep -q "^Rules for other agents" &&
+printf '%s' "$out" | grep -q "^Kit docs: maps, pointer files and \*.agentk.md" && printf '%s' "$out" | grep -q "^Rules for other agents" &&
   printf '%s' "$out" | grep -q "lineage .*repo-owned (OWN_SKILLS)" && printf '%s' "$out" | grep -q "docs-sync .*same name as a kit skill" &&
-  printf '%s' "$out" | grep -q "NOTES.md  \[untracked" && ok "inventory groups maps, rules, skills and stray docs" || bad "inventory groups maps, rules, skills and stray docs" "$out"
+  printf '%s' "$out" | grep -q "NOTES.md  \[untracked" &&
+  [ "$(printf '%s\n' "$out" | awk '/^Kit docs/ { g = 1 } /^Other Markdown/ { g = 2 } /svc\/README.agentk.md/ { print g }')" = 1 ] && ok "inventory groups maps, rules, skills and stray docs" || bad "inventory groups maps, rules, skills and stray docs" "$out"
 [ "$before" = "$after" ] && ok "inventory changes nothing" || bad "inventory changes nothing"
 
 # --- Upgrade keeps repo-owned files ----------------------------------------
@@ -319,7 +322,10 @@ for f in a b c; do echo "package big" > "$R/pkgs/big/$f.go"; done
 edit 's/^UNIT_PARENTS=""/UNIT_PARENTS="pkgs"/; s/^MAP_MIN_FILES=.*/MAP_MIN_FILES="3"/' "$R/.agents/agent-kit.conf"
 printf '# sizes\n\n| Path | What | Read first |\n|---|---|---|\n| `pkgs/` | Packages | |\n' > "$R/AGENTS.md"
 echo "@AGENTS.md" > "$R/CLAUDE.md"; git_quiet -C "$R" add -A
-expect_fail "a unit past the threshold needs its map" "$R" "pkgs/big has no README.md"
+expect_fail "a unit past the threshold needs its map" "$R" "pkgs/big has no README.agentk.md"
+echo "# Big, by people" > "$R/pkgs/big/README.md"
+expect_fail "the people's README.md does not stand in for the kit's detail doc" "$R" "pkgs/big has no README.agentk.md"
+rm "$R/pkgs/big/README.md"
 out=$(cd "$R" && sh .agents/kit/check.sh 2>&1); printf '%s' "$out" | grep -q "pkgs/small" &&
   bad "a small unit needs only a row" "$out" || ok "a small unit needs only a row"
 edit 's#^MAP_EXEMPT=.*#MAP_EXEMPT="pkgs/big"#' "$R/.agents/agent-kit.conf"
@@ -395,14 +401,52 @@ printf '%s' "$out" | grep -q "99.0.0 is available" && ok "a newer kit is noted" 
 
 # --- Decisions, one file each -------------------------------------------------
 V=$(variant decisions); mkdir -p "$V/docs/decisions"
-printf -- '---\nid: D-001\nstatus: accepted\ndate: 2026-01-01\nsource_paths: [internal/store/]\n---\n\n# D-001: Use Go\n' > "$V/docs/decisions/D-001-use-go.md"
-cp "$KIT/templates/docs/DECISIONS.md" "$V/DECISIONS.md"
-expect_fail "a decision without an index row is caught" "$V" "D-001 (docs/decisions/D-001-use-go.md) has no row"
-echo '| [D-001](docs/decisions/D-001-use-go.md) | Use Go | accepted | 2026-01-01 |' >> "$V/DECISIONS.md"
+printf -- '---\nid: D-001\nstatus: accepted\ndate: 2026-01-01\nsource_paths: [internal/store/]\n---\n\n# D-001: Use Go\n' > "$V/docs/decisions/D-001-use-go.agentk.md"
+cp "$KIT/templates/docs/DECISIONS.md" "$V/DECISIONS.agentk.md"
+expect_fail "a decision without an index row is caught" "$V" "D-001 (docs/decisions/D-001-use-go.agentk.md) has no row in DECISIONS.agentk.md"
+echo '| [D-001](docs/decisions/D-001-use-go.agentk.md) | Use Go | accepted | 2026-01-01 |' >> "$V/DECISIONS.agentk.md"
 git_quiet -C "$V" add -A
 expect_pass "decision files and their index pass" "$V"
-edit 's/| accepted |/| proposed |/' "$V/DECISIONS.md"
+edit 's/| accepted |/| proposed |/' "$V/DECISIONS.agentk.md"
 expect_fail "a status that differs from the file is caught" "$V" 'D-001 is "accepted"'
+
+# --- Kit docs end in .agentk.md; your Markdown stays yours ------------------
+V=$(variant oldnames)   # a kit 0.5 config: no DOC_SUFFIX, plain names
+edit '/^DOC_SUFFIX=/d' "$V/.agents/agent-kit.conf"
+for u in cmd/api internal/store; do
+  git -C "$V" mv -f "$u/README.agentk.md" "$u/README.md"; edit 's/README\.agentk\.md/README.md/' "$V/$u/AGENTS.md"
+done
+printf -- '---\nid: D-001\nstatus: accepted\ndate: 2026-01-01\n---\n# D-001\n' > "$V/docs-d.tmp"
+mkdir -p "$V/docs/decisions"; mv "$V/docs-d.tmp" "$V/docs/decisions/D-001-x.md"
+cp "$KIT/templates/docs/DECISIONS.md" "$V/DECISIONS.md"; echo '| [D-001](docs/decisions/D-001-x.md) | X | accepted | 2026-01-01 |' >> "$V/DECISIONS.md"
+git_quiet -C "$V" add -A
+expect_pass "without DOC_SUFFIX the kit 0.5 names still pass" "$V"
+
+V=$(variant fixednames); git -C "$V" mv cmd/api/CLAUDE.md cmd/api/CLAUDE.agentk.md
+expect_fail "a pointer file with the suffix is caught" "$V" "cmd/api/CLAUDE.agentk.md must keep its exact name"
+
+mkdir "$WORK/ownreadme" && git -C "$WORK/ownreadme" init -q
+mkdir -p "$WORK/ownreadme/svc"; echo "# Ours" > "$WORK/ownreadme/README.md"; echo "# Svc, ours" > "$WORK/ownreadme/svc/README.md"
+echo "# Guide" > "$WORK/ownreadme/CONTRIBUTING.md"
+before=$(cd "$WORK/ownreadme" && cat README.md svc/README.md CONTRIBUTING.md | cksum)
+sh "$KIT/install.sh" "$WORK/ownreadme" > /dev/null 2>&1; sh "$KIT/install.sh" --share none "$WORK/ownreadme" > /dev/null 2>&1
+sh "$KIT/install.sh" --share agent "$WORK/ownreadme" > /dev/null 2>&1
+after=$(cd "$WORK/ownreadme" && cat README.md svc/README.md CONTRIBUTING.md | cksum)
+[ "$before" = "$after" ] && ok "install and upgrades never touch your Markdown files" || bad "install and upgrades never touch your Markdown files"
+
+V=$(variant oldstyle); echo "x" > "$V/.agents/kit/writing-style.md"; sh "$KIT/install.sh" "$V" > /dev/null 2>&1
+[ ! -e "$V/.agents/kit/writing-style.md" ] && [ -f "$V/.agents/kit/writing-style.agentk.md" ] &&
+  ok "upgrade replaces writing-style.md with writing-style.agentk.md" || bad "upgrade replaces writing-style.md with writing-style.agentk.md"
+
+V=$(variant yourreadme); echo "// x" >> "$V/internal/store/store.go"; echo "# Store, ours" > "$V/internal/store/README.md"
+git_quiet -C "$V" add -A; git_quiet -C "$V" commit -m "code and our README"
+[ "$(cd "$V" && sh .agents/kit/queue.sh count)" = 0 ] && ok "queue: updating your own README counts as docs" || bad "queue: updating your own README counts as docs"
+echo "// y" >> "$V/internal/store/store.go"; echo "More." >> "$V/internal/store/README.md"
+echo "x" >> "$V/internal/store/README.agentk.md"; git_quiet -C "$V" commit --no-verify -am "more"
+echo "// z" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit --no-verify -am "code only"
+out=$(cd "$V" && sh .agents/kit/stale.sh)
+printf '%s' "$out" | grep -q "^internal/store/README.agentk.md	.*	kit$" && printf '%s' "$out" | grep -q "^internal/store/README.md	.*	yours$" &&
+  ok "stale.sh labels kit docs and your docs" || bad "stale.sh labels kit docs and your docs" "$out"
 
 # --- Helpers: stale docs, map rows --------------------------------------------
 V=$(variant stale); echo "go 1.23" >> "$V/go.mod"; git_quiet -C "$V" commit --no-verify -am "bump go"
@@ -417,7 +461,7 @@ printf '%s' "$out" | grep -q '| `internal/` |' && ! printf '%s' "$out" | grep -q
 V=$(variant queue); q() { sh "$V/.agents/kit/queue.sh" count; }
 echo "// by hand" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit -am "hand edit"
 [ "$(cd "$V" && q)" = 1 ] && ok "post-commit queues code committed without its docs" || bad "post-commit queues code committed without its docs" "$(cd "$V" && sh .agents/kit/queue.sh list)"
-echo "// again" >> "$V/internal/store/store.go"; echo "More." >> "$V/internal/store/README.md"
+echo "// again" >> "$V/internal/store/store.go"; echo "More." >> "$V/internal/store/README.agentk.md"
 git_quiet -C "$V" commit -am "edit with docs"
 echo "// trivial" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit -am "typo [no-docs]"
 [ "$(cd "$V" && q)" = 1 ] && ok "commits with docs, or [no-docs], are not queued" || bad "commits with docs, or [no-docs], are not queued"
@@ -462,9 +506,9 @@ hook "$V" "$WORK/bash.jsonl" s3 | grep -q 'go.mod. is named in AGENTS.md' && ok 
 echo "go 1.24" >> "$V/go.mod"
 out=$(hook "$V" "$WORK/bash.jsonl" s3)
 [ -z "$out" ] && ok "stop hook: asks only once per file" || bad "stop hook: asks only once per file" "$out"
-printf 'package api\n' > "$V/cmd/api/routes.go"; echo "More." >> "$V/internal/store/README.md"
+printf 'package api\n' > "$V/cmd/api/routes.go"; echo "More." >> "$V/internal/store/README.agentk.md"
 hook "$V" "$WORK/bash.jsonl" s3 | grep -q 'routes.go. was added to .cmd/api/' && ok "stop hook: a new file in a mapped folder asks; an unrelated README does not count" || bad "stop hook: a new file in a mapped folder asks; an unrelated README does not count"
-printf 'package api\n' > "$V/cmd/api/server.go"; echo "Server." >> "$V/cmd/api/README.md"
+printf 'package api\n' > "$V/cmd/api/server.go"; echo "Server." >> "$V/cmd/api/README.agentk.md"
 out=$(hook "$V" "$WORK/bash.jsonl" s3)
 [ -z "$out" ] && ok "stop hook: the README above the file satisfies it" || bad "stop hook: the README above the file satisfies it" "$out"
 

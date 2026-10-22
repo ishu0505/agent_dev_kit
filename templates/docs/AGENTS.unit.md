@@ -1,7 +1,7 @@
 # <name>
 
 <One line: what it does / the question it answers.>
-Details: `README.md`. Shared rules: the maps above this folder.
+Details: `README.agentk.md`. Shared rules: the maps above this folder.
 
 ## Map
 
@@ -21,4 +21,5 @@ Details: `README.md`. Shared rules: the maps above this folder.
 
 ## Further reading
 
-- `README.md` — <what is in it>
+- `README.agentk.md` — <what is in it>
+- `README.md` — <the people's own README, if there is one; read only>

@@ -105,6 +105,7 @@ echo "agent-kit $NEW_VERSION -> $ROOT (installed before: $OLD_VERSION)"
 # Kit-owned: always replaced.
 mkdir -p .agents/kit .agents/skills .githooks
 cp "$T"/kit/*.sh "$T"/kit/*.py "$T"/kit/*.md .agents/kit/
+rm -f .agents/kit/writing-style.md  # renamed to writing-style.agentk.md in 0.6
 cp "$KIT/VERSION" .agents/kit/VERSION
 chmod +x .agents/kit/*.sh
 say "updated .agents/kit/ (checks, hooks, helpers, writing style, VERSION)"
@@ -262,6 +263,8 @@ ATTRIBUTES=$(git rev-parse --git-path info/attributes)
 LEARNING_DIR=$(conf LEARNING_DIR)
 LEDGER=$(conf LEDGER)
 DECISIONS_DIR=$(conf DECISIONS_DIR)
+DOC_SUFFIX=$(conf DOC_SUFFIX)
+KIT_MD=${DOC_SUFFIX:-.md}  # kit docs: README.agentk.md, DECISIONS.agentk.md (empty: kit 0.5 names)
 remove_legacy_rules
 local_rules=""
 shared_rules=""
@@ -270,8 +273,8 @@ if [ "$SHARE_AGENT" = no ]; then
   for pointer in $(conf POINTER_FILES); do local_rules="$local_rules
 $pointer"; done
   local_rules="$local_rules
-/DECISIONS.md
-/PLAN.md
+/DECISIONS$KIT_MD
+/PLAN$KIT_MD
 /.agents/
 /.claude/
 /.codex/
@@ -280,6 +283,13 @@ $pointer"; done
 /$LEDGER"
   [ -n "$DECISIONS_DIR" ] && local_rules="$local_rules
 /${DECISIONS_DIR%/}/"
+  if [ -n "$DOC_SUFFIX" ]; then  # every doc the kit writes, wherever it is
+    local_rules="$local_rules
+*$DOC_SUFFIX"
+    # Share mode learning still pushes the learning docs.
+    [ "$SHARE_LEARNING" = yes ] && [ -n "$LEARNING_DIR" ] && local_rules="$local_rules
+!/$LEARNING_DIR/**"
+  fi
 fi
 if [ "$SHARE_AGENT" = yes ]; then
   # Files each person keeps for themselves (Claude Code writes these).
@@ -310,10 +320,12 @@ say "wrote ignore and line-ending rules for share mode $SHARE"
 
 # Files git already tracks are not affected by ignore rules: stop tracking
 # whatever this mode keeps local (the files stay on disk).
-agent_paths="AGENTS.md :(glob)**/AGENTS.md DECISIONS.md PLAN.md .agents .claude .codex .githooks"
+agent_paths="AGENTS.md :(glob)**/AGENTS.md DECISIONS$KIT_MD PLAN$KIT_MD .agents .claude .codex .githooks"
 for pointer in $(conf POINTER_FILES); do agent_paths="$agent_paths $pointer :(glob)**/$pointer"; done
 [ -n "$LEDGER" ] && agent_paths="$agent_paths $LEDGER"
 [ -n "$DECISIONS_DIR" ] && agent_paths="$agent_paths $DECISIONS_DIR"
+[ -n "$DOC_SUFFIX" ] && agent_paths="$agent_paths :(glob)**/*$DOC_SUFFIX"
+[ -n "$DOC_SUFFIX" ] && [ "$SHARE_LEARNING" = yes ] && [ -n "$LEARNING_DIR" ] && agent_paths="$agent_paths :(exclude)$LEARNING_DIR"
 if [ "$SHARE_AGENT" = no ]; then
   set -f  # the pathspecs contain ** for git, not for the shell
   # shellcheck disable=SC2086  # pathspecs, one per word

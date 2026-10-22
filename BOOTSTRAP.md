@@ -17,8 +17,8 @@ the folder that contains this file. The kit gives the repo:
 1. **Maps**: short `AGENTS.md` files so any agent works here without reading
    all the code: one at the root, and one per unit big enough to need it.
    `CLAUDE.md` / `GEMINI.md` only import them.
-2. **Lineage**: `DECISIONS.md`, the index of every decision and its reason
-   (one file per decision); an optional experiment ledger.
+2. **Lineage**: `DECISIONS.agentk.md`, the index of every decision and its
+   reason (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
@@ -30,6 +30,14 @@ the folder that contains this file. The kit gives the repo:
 6. **Learning docs**: `learning_docs/` that teach people the system,
    refreshed at the end of a task.
 7. **A share mode** (`SHARE`): which of these reach the remote repo.
+
+**Names.** Every Markdown file the kit writes ends in `DOC_SUFFIX`
+(`.agentk.md`): `README.agentk.md`, `DECISIONS.agentk.md`,
+`KIT.agentk.md`. `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `SKILL.md` keep
+their exact names, because agents load them only by those names. **Never
+edit, rename or delete a Markdown file the kit did not write** (`README.md`,
+`docs/*.md` and the rest): read it, and report drift in it. Below, a name
+like `DECISIONS.agentk.md` means `DECISIONS<DOC_SUFFIX>`.
 
 The scripts and skills are ready-made in `KIT/templates/`; copy them, do not
 rewrite them. Your work is the repo-specific part: the config, the maps,
@@ -54,6 +62,17 @@ Look at the repo, then tell me which case you see and wait for my OK:
   and `.codex/hooks.json`) and ask about removing each one. Fill
   `.agents/agent-kit.conf` from the old setup (unit folders, ledger path,
   line limits).
+- **Case C from kit 0.5 or older** (`DOC_SUFFIX` is missing from
+  `.agents/agent-kit.conf`): the kit's files still have plain names. List
+  them: `DECISIONS.md`, the decision files, `PLAN.md`, the ledger, the
+  learning docs, and each unit `README.md` that looks like the kit's
+  (the `scaffold` shape: a short detail page the map points to). Ask me
+  about each unit `README.md`: the kit's, or ours? Then offer, with
+  choices: rename the kit's files to `.agentk.md` now (recommended), or
+  keep the plain names. On "rename": `git mv` each file, fix the paths in
+  the maps and `LEDGER`, then add `DOC_SUFFIX=".agentk.md"` to the config.
+  On "keep": add `DOC_SUFFIX=""`. If the root `README.md` holds the kit's
+  "## Agent context" section, offer to move it into `KIT.agentk.md`.
 
 Cases A and C go through **phase 1b, house cleaning**, after exploring and
 before anything is installed. Case B has nothing to clean.
@@ -93,87 +112,136 @@ unclear points.
 2. **Propose.** For each file, propose one action with a one-line reason:
    - **keep** as it is;
    - **merge** its content into a kit file (old rules into `AGENTS.md`, old
-     decisions into `DECISIONS.md`, other agents' rule files into the maps
-     so every agent reads the same rules), then remove it;
+     decisions into `DECISIONS.agentk.md`, other agents' rule files into
+     the maps so every agent reads the same rules), then remove it. Offer
+     this only for agent files (old `CLAUDE.md` text, `.cursorrules`, old
+     decision notes), never for a `README.md` or other docs people wrote;
    - **own**: a skill the repo keeps as its own, added to `OWN_SKILLS` in
      `.agents/agent-kit.conf`. Propose this for every repo skill that has a
      kit skill's name but different content;
    - **remove**: stale, duplicate, or replaced by the kit;
    - **leave alone**: not about agents or docs (data, generated output,
-     reports). Say so once for a whole folder instead of file by file.
+     reports), and every Markdown file people wrote (`README.md`,
+     `docs/*.md`). Say so once for a whole folder instead of file by file.
 3. **Ask one group at a time.** Show the group as a table (path, action,
-   reason) and wait for my answer before the next group. I may change any
+   reason) and wait for my answer before the next group. Give choices:
+   "do all as proposed (recommended)", "change some (name them)", "skip
+   this group", "something else: type it". I may change any
    action. Never touch an existing skill without my yes.
 4. **Apply** only what I approved. Remove tracked files with `git rm`
    (recoverable from history), untracked ones with `rm` after I confirm
    that path. Write merged content in the target file before removing the
    source. Do not commit.
-5. **Record** the cleanup as one `DECISIONS.md` entry (with the `lineage`
+5. **Record** the cleanup as one decision (with the `lineage`
    skill after phase 4): what was kept, merged, owned and removed, and why.
 
 Run this phase again whenever I ask for `agent-kit cleanup`.
 
 ## Phase 2 — Interview
 
-Ask **one question at a time**. Propose an answer from what you found; I
-confirm or correct it. Record "not decided yet" as open.
+**How to ask.** Follow "How to ask the user a question" in
+`KIT/templates/kit/writing-style.agentk.md`:
+
+- one question at a time, in plain words, with no setting names;
+- every question has choices: your proposed answer first, marked
+  "(recommended)", with the reason you found in this repo; then one or two
+  real alternatives; then "Not decided yet" where it fits; and last,
+  always, "Something else: type your own answer";
+- use your agent's question tool when it has one (Claude Code:
+  AskUserQuestion); otherwise print the choices as a numbered list and
+  accept a number or my own words.
+
+**Fast path.** The first question also offers "Use your proposed answer
+for every question; show me only the summary". If I pick it, go straight
+to phase 3; I can still change any row there.
+
+Record "not decided yet" as an open question. The setting each answer
+fills is in brackets below; show it to me only in phase 3.
 
 New project only (case B), first:
 
-- the goal in one paragraph: who uses it, the problem, what "working" means;
-- the first milestone, and what is out of scope;
-- language, framework and storage (if undecided, propose options with one
-  reason each; the choice becomes a decision);
-- the planned units and how they talk (HTTP, queue, events, files, calls);
-- hard constraints: budget, latency, privacy, platforms, licences.
+- **The goal.** Who uses it, what problem it solves, and what "working"
+  means for the first version. Offer two or three short drafts from what I
+  said, plus "type your own".
+- **The first milestone**, and what is out of scope for it.
+- **Language, framework and storage.** If I have not chosen, offer options
+  with one reason each. The choice becomes a decision.
+- **The planned parts** (services, apps, packages) and how they talk to
+  each other: HTTP calls, a queue, events, files, function calls.
+- **Hard limits**: budget, speed, privacy, platforms, licences.
 
 Every case:
 
-1. What the repo is for, in one line, and the **priorities in order** when
-   they conflict.
-2. Which agents will work here (sets `POINTER_FILES`: `CLAUDE.md`, plus
-   `GEMINI.md` for Gemini CLI / Antigravity).
-3. Which folders are units (`UNITS`) and which folders hold units
-   (`UNIT_PARENTS`). A unit gets its own map only past a size threshold
-   (`MAP_MIN_FILES`, default 15 code files; `MAP_MIN_LINES`, default 1500
-   lines); smaller units are a row in a map. Propose the thresholds from
-   the unit sizes you found, and any unit that must always (`MAP_REQUIRED`)
-   or never (`MAP_EXEMPT`) have its own map.
-4. Code conventions to enforce.
-5. **Invariants**: rules a change must never break.
-6. The **check** command a change must pass, and whether CI should run the
-   kit's checks too (`install.sh --ci` adds a GitHub Actions workflow; for
-   another CI, run `sh .agents/kit/check.sh --ci` there).
-7. Decisions already made, and where their reasons are written. New
-   decisions go one per file in `DECISIONS_DIR` (default `docs/decisions`),
-   indexed by `DECISIONS.md`; existing ADRs can stay where they are.
-8. Experiments or benchmarks that decide what ships, and where (`LEDGER`).
-9. Learning docs: who reads them, which flows matter most (API requests,
-   queue / worker jobs, pipelines, CLI), which units first.
-10. Folders agents must never edit (generated, vendored, data).
-11. **Share mode**: what may reach the remote repo. Explain the four
-    choices and recommend one:
-    - `agent` (default): agent files pushed, learning docs local;
-    - `all`: agent files and learning docs pushed;
-    - `learning`: learning docs pushed, agent files local;
-    - `none`: nothing pushed, everything stays on this machine.
-    "Agent files" are every `AGENTS.md` and pointer file, `DECISIONS.md`,
-    `PLAN.md`, the ledger, `.agents/`, `.claude/`, `.codex/`, `.githooks/`.
-    Local files are ignored through `.git/info/exclude`, which is never
-    committed, so not even an ignore rule shows up in the remote. Local
-    files exist only on this machine: a fresh clone or another computer
-    does not get them.
-12. How the repo runs git hooks today (pre-commit, lefthook, husky, hooks in
-    `.git/hooks`, or none). The install never switches existing hooks off;
-    it prints the lines to add to the existing manager.
-13. Operating systems the team uses. Windows without symlink support means
-    `SKILLS_LINK="copy"`; the install also switches to it by itself when a
-    symlink cannot be made.
+1. **What the repo is for**, in one line, and **what matters most** when
+   two goals conflict. Example: "1. correct results, 2. low cost, 3. speed".
+2. **Which coding agents you use.** Choices: Claude Code only; Claude Code
+   and Codex; also Gemini CLI or Antigravity; type your own. (Sets
+   `POINTER_FILES`: `CLAUDE.md`, plus `GEMINI.md` for Gemini.)
+3. **Which folders are separate parts**, like a service, an app or a
+   package. Show what you found with sizes. Explain: "A big part (15 or more
+   code files) gets its own short guide for agents. A small part gets one
+   line in the main guide." Choices: your list (recommended), a wider or
+   narrower list, "the whole repo is one part", type your own. (Sets
+   `UNITS`, `UNIT_PARENTS`, and `MAP_MIN_FILES` / `MAP_MIN_LINES` /
+   `MAP_REQUIRED` / `MAP_EXEMPT` when I want a part treated differently.)
+4. **Code style rules** the agents must follow. Offer the ones you found
+   (linters, formatters, naming).
+5. **Rules a change must never break.** Example: "only `billing/` may call
+   the payment provider". Offer the ones you found.
+6. **The command that proves a change works** (tests, lint), and **whether
+   CI should also run the kit's checks**. Choices: yes, add a GitHub Actions
+   file (recommended when the repo uses GitHub); no; I use another CI (then
+   tell me to run `sh .agents/kit/check.sh --ci` there).
+7. **Decisions already made** and where their reasons are written. Each new
+   decision becomes one file in `docs/decisions/`, listed in
+   `DECISIONS.agentk.md`. Old decision records (ADRs) can stay where they
+   are. (Sets `DECISIONS_DIR`.)
+8. **Experiments or benchmarks** that decide what ships, and their folder.
+   Choices include "none". (Sets `LEDGER`.)
+9. **Learning docs** (lessons for people, with quizzes): who reads them,
+   which flows matter most, which parts first. Choices include "later".
+10. **Folders agents must never edit**: generated code, vendored code, data.
+11. **What may go to GitHub.** Show this table and recommend one:
+
+    | Choice | Agent files (maps, kit docs, settings) | Learning docs |
+    |---|---|---|
+    | 1. `agent` (usual) | go to GitHub | stay on this computer |
+    | 2. `all` | go to GitHub | go to GitHub |
+    | 3. `learning` | stay on this computer | go to GitHub |
+    | 4. `none` | stay on this computer | stay on this computer |
+
+    Say that "stay on this computer" files are hidden from git in a way
+    that never reaches GitHub, and that a fresh clone or another computer
+    does not get them. (Sets `SHARE`.)
+12. **Your Markdown files.** Explain: "Every Markdown file the kit writes
+    ends in `.agentk.md` (`README.agentk.md`, `DECISIONS.agentk.md`). The
+    kit never edits your other Markdown files, such as `README.md`; it reads
+    them and tells you when one no longer matches the code. `AGENTS.md` and
+    `CLAUDE.md` keep their names, because agents need them." Choices: OK,
+    use `.agentk.md` (recommended); use another ending (type it); use plain
+    names like kit 0.5 (the kit may then write `README.md` files in
+    parts that have none). (Sets `DOC_SUFFIX`.)
+13. **How the repo runs git hooks today**: none, pre-commit, lefthook,
+    husky, or scripts in `.git/hooks`. The install never switches existing
+    hooks off; it prints the lines to add.
+14. **Operating systems the team uses.** Windows without symlink support
+    gets a copy of the skills folder; the install picks that by itself when
+    it has to. (Sets `SKILLS_LINK`.)
 
 ## Phase 3 — Propose
 
-Show the file list with one line each, the config values, and a draft of
-the root `AGENTS.md`. Wait for my approval.
+Show three things and wait for my approval:
+
+1. The files you will create, one line each. Every new Markdown file ends
+   in `DOC_SUFFIX` except `AGENTS.md` and the pointer files. Say "none of
+   your existing files change" when that is true; else list each one.
+2. The settings as a table in plain words:
+
+   | Setting | Your answer | What it means |
+   |---|---|---|
+   | `UNIT_PARENTS` | `services` | each folder in `services/` is a part |
+
+3. A draft of the root `AGENTS.md`.
 
 ## Phase 4 — Build
 
@@ -203,26 +271,28 @@ the root `AGENTS.md`. Wait for my approval.
    each update once: the next upgrade keeps the merged skill.
 2. **Config**: fill `.agents/agent-kit.conf` from the interview.
 3. **Maps**: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`
-   (at most `TOP_MAP_MAX` lines), then one map per first-level folder that
+   (at most `TOP_MAP_MAX` lines; its rows for `DECISIONS.agentk.md` and
+   `KIT.agentk.md` use the real names), then one map per first-level folder that
    needs one, then each unit with the `scaffold` skill
    (`KIT/templates/docs/AGENTS.unit.md`, at most `UNIT_MAP_MAX` lines). One
    pointer file per `POINTER_FILES` entry beside every map, containing only
    `@AGENTS.md`. Map only paths that exist.
-4. **Lineage**: `DECISIONS.md` from `KIT/templates/docs/DECISIONS.md` (the
+4. **Lineage**: `DECISIONS.agentk.md` from `KIT/templates/docs/DECISIONS.md` (the
    index), and one file per decision from `KIT/templates/docs/decision.md`
    in `DECISIONS_DIR`, seeded with the decisions from the interview (write
    "not recorded" for a reason nobody wrote down). With `DECISIONS_DIR`
-   empty, keep every entry in `DECISIONS.md`. In case C with full entries
-   in `DECISIONS.md`, offer the split (the `lineage` skill says how). If `LEDGER` is set:
-   `KIT/templates/docs/EXPERIMENTS.md`, one row per experiment.
-5. **Case B**: `PLAN.md` from `KIT/templates/docs/PLAN.md`. Map only
+   empty, keep every entry in `DECISIONS.agentk.md`. In case C with full
+   entries in the index, offer the split (the `lineage` skill says how).
+   Decision files are named `D-NNN-<short-name>.agentk.md`. If `LEDGER` is
+   set: `KIT/templates/docs/EXPERIMENTS.md`, one row per experiment, saved
+   at the `LEDGER` path (for example `experiments/EXPERIMENTS.agentk.md`).
+5. **Case B**: `PLAN.agentk.md` from `KIT/templates/docs/PLAN.md`. Map only
    folders that exist; each unit gets its map when its folder is created.
-6. **Command card**: `KIT/templates/docs/README-agent-context.md`; replace
-   `<kit url>` with the kit's remote (`git -C KIT remote get-url origin`,
-   as an https link). With
-   `SHARE` `agent` or `all`, add it as a section of the root `README.md`.
-   With `learning` or `none`, write it to `.agents/README.md` instead and
-   leave the committed README untouched.
+6. **Command card**: `KIT/templates/docs/KIT.md`, saved as
+   `KIT.agentk.md` at the root (`.agents/KIT.agentk.md` with `SHARE`
+   `learning` or `none`). Replace `<kit url>` with the kit's remote
+   (`git -C KIT remote get-url origin`, as an https link). Never add it to
+   the root `README.md`.
 7. **Agent configs**: `.claude/settings.json` needs both the SessionStart and
    the Stop hook (the install says what to merge into an existing file). If
    more agents than Claude Code and Codex are used,
@@ -231,7 +301,7 @@ the root `AGENTS.md`. Wait for my approval.
 8. **Commit-ready**: `git add` only what the share mode pushes. Never
    `git add -f` an ignored file. Do not commit unless I ask.
 
-Rules for what you write: follow `KIT/templates/kit/writing-style.md`
+Rules for what you write: follow `KIT/templates/kit/writing-style.agentk.md`
 (ASD-STE100, written for an intern); only paths that exist; only commands
 you ran or found; never invent a decision's reason. Maps name paths in
 backticks, and `check.sh` checks every one that looks like a path.

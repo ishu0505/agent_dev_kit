@@ -3,6 +3,52 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.6.0 — 2026-10-22
+
+Plain-language setup, and the kit never edits your Markdown files.
+
+- **Every Markdown file the kit writes ends in `.agentk.md`** (new setting
+  `DOC_SUFFIX`):
+  - a unit's detail doc is `README.agentk.md`;
+  - the decision index is `DECISIONS.agentk.md`, with
+    `docs/decisions/D-NNN-*.agentk.md` for each decision;
+  - `PLAN.agentk.md`, the ledger, the learning docs;
+  - the command card `KIT.agentk.md`, which replaces the section the kit
+    added to the root `README.md`;
+  - the kit's writing style `.agents/kit/writing-style.agentk.md`.
+
+  `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `SKILL.md` keep their exact
+  names; `check.sh` fails if one carries the suffix.
+- **Your Markdown files stay yours.** `README.md`, `docs/*.md` and every
+  other file without the suffix are read, never edited.
+  - `docs-sync` reports drift in them in a separate "Your docs" table,
+    with a sentence to paste in.
+  - `stale.sh` labels each doc `kit` or `yours`.
+  - Updating your own `README.md` still counts as documenting a commit.
+- **Local share modes hide every `*.agentk.md`**, so kit detail docs no
+  longer reach the remote in modes `learning` and `none`. Learning docs
+  are still pushed in mode `learning`.
+- **Setup in plain words, with choices.**
+  - Each question explains itself and shows choices: the agent's proposed
+    answer first, real alternatives, and "type your own" last.
+  - Claude Code shows a choice box; other agents print a numbered list.
+  - The first question offers "use your proposed answers for everything".
+  - The settings are shown as a table in plain words before anything is
+    written.
+  - `agent-kit.conf` is rewritten in two parts: the basics, then
+    fine-tuning, each setting with an example. The key names are
+    unchanged.
+- The "How to ask the user a question" and "Which files you may edit"
+  rules live in the writing style; every skill follows them.
+
+Upgrade: run `agent-kit upgrade`. Nothing is required: without
+`DOC_SUFFIX` in `.agents/agent-kit.conf`, the old names (`README.md` in a
+unit, `DECISIONS.md`) keep working. The agent offers to rename the kit's
+files to `*.agentk.md` with `git mv`. It asks you which unit `README.md`
+files the kit wrote. If the root `README.md` has the kit's "Agent context"
+section, it offers to move that section to `KIT.agentk.md`. The install
+replaces `.agents/kit/writing-style.md` with `writing-style.agentk.md`.
+
 ## 0.5.0 — 2026-10-20
 
 Less friction, less drift, people in the loop.

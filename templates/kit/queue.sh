@@ -9,13 +9,16 @@
 #        sh .agents/kit/queue.sh count
 #
 # A commit needs docs when it changes a code file (CODE_EXTENSIONS) and none
-# of that file's covering docs: the nearest AGENTS.md or README.md above it.
+# of that file's covering docs: the nearest AGENTS.md, kit detail doc
+# (README.agentk.md) or the people's README.md above it.
 # A commit message with "[no-docs]" is never queued.
 cd "$(git rev-parse --show-toplevel)" || exit 1
 CODE_EXTENSIONS="py js ts tsx jsx go rs c cc cpp h hpp java kt cs rb php swift sql sh"
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 LEARNING_DIR="learning_docs"
+DOC_SUFFIX=""
 [ -f .agents/agent-kit.conf ] && . ./.agents/agent-kit.conf
+UNIT_DOC="README${DOC_SUFFIX:-.md}"
 DIR="$(git rev-parse --git-common-dir)/agent-kit"
 PENDING="$DIR/pending"
 
@@ -30,11 +33,11 @@ is_code() {  # is_code <path>: a code file outside skipped folders
   case " $CODE_EXTENSIONS " in *" $ext "*) return 0 ;; esac
   return 1
 }
-covering_docs() {  # covering_docs <path>: the nearest folder above it with AGENTS.md or README.md
+covering_docs() {  # covering_docs <path>: the docs in the nearest folder above it that has any
   dir=$(dirname "$1")
   while :; do
     found=""
-    for doc in AGENTS.md README.md; do
+    for doc in AGENTS.md "$UNIT_DOC" README.md; do
       if [ "$dir" = . ]; then [ -f "$doc" ] && found="$found $doc"
       else [ -f "$dir/$doc" ] && found="$found $dir/$doc"; fi
     done

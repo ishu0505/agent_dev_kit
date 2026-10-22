@@ -23,16 +23,17 @@ name, or `stale` (only docs whose code changed; see "Staying current").
 ## 1. Plan the files
 
 Read the root `AGENTS.md`, every unit map, and the code entry points. Then
-propose the file list and wait for the user's OK:
+propose the file list and wait for the user's OK. Every file name ends in
+`DOC_SUFFIX` from the config (`.agentk.md`; plain `.md` when it is empty):
 
-- `README.md` — reading order, one line per file.
-- `00-overview.md` — the whole system: what it does, the units, how they
+- `00-start-here.agentk.md` — reading order, one line per file.
+- `00-overview.agentk.md` — the whole system: what it does, the units, how they
   talk, one end-to-end diagram, where to start reading the code.
 - One file per unit (service, package, component), in the order data flows
-  through them: `01-api.md`, `02-worker.md`, ...
+  through them: `01-api.agentk.md`, `02-worker.agentk.md`, ...
 - One file per important flow that crosses units: API request, queue or
   worker job, event stream, data pipeline, CLI command, retry and failure
-  paths: `05-upload-to-result-flow.md`, ...
+  paths: `05-upload-to-result-flow.agentk.md`, ...
 
 ## 2. Read before you write
 
@@ -93,7 +94,7 @@ request through every unit.
 
 ## 4. Language
 
-Follow `.agents/kit/writing-style.md`: ASD-STE100 Simplified Technical
+Follow `.agents/kit/writing-style.agentk.md`: ASD-STE100 Simplified Technical
 English, written for an intern on day one. Code names, paths and API fields
 stay exactly as in the code.
 

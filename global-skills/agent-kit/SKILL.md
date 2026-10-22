@@ -39,5 +39,9 @@ Then:
 
 All kit commands are POSIX `sh`. On Windows run them in Git Bash
 (`sh`, `git` and the other tools come with Git for Windows). Never run
-`install.sh` outside a git repository, and never commit unless the user
-asks.
+`install.sh` outside a git repository, never commit unless the user asks,
+and never edit a Markdown file the kit did not write (the kit's files end
+in `.agentk.md`, plus `AGENTS.md` and its pointer files). When you ask the
+user something, give choices with your proposed answer first and "something
+else: type your own" last (the kit's `templates/kit/writing-style.agentk.md`
+says how).

@@ -3,7 +3,9 @@
 # last updated. Read only; docs-sync, wrap-up and catch-up start from it.
 #
 # Usage: sh .agents/kit/stale.sh [since <ref>]
-# Prints one line per doc: <doc> TAB <what changed>.
+# Prints one line per doc: <doc> TAB <what changed> TAB <kit|yours>.
+# "kit" docs (maps, pointers, files ending in DOC_SUFFIX) the agent may fix;
+# "yours" docs (every other README) it only reports to the people here.
 #
 # Anchors are the code a doc describes:
 #   AGENTS.md      the paths it names; a named folder counts only when a file
@@ -17,7 +19,10 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 LEARNING_DIR="learning_docs"
 DECISIONS_DIR=""
+DOC_SUFFIX=""
+POINTER_FILES="CLAUDE.md"
 [ -f .agents/agent-kit.conf ] && . ./.agents/agent-kit.conf
+KIT_MD=${DOC_SUFFIX:-.md}
 TAB=$(printf '\t')
 SINCE=""
 if [ "${1:-}" = since ]; then
@@ -36,12 +41,21 @@ changes() {  # changes <base> <all|structure> <path>...: changed non-Markdown pa
     git -c core.quotepath=off ls-files --others --exclude-standard -- "$@" | sed "s/^/A$TAB/"
   } | awk -F "$TAB" -v kind="$kind" '(kind == "all" || $1 ~ /^[ADR]/) && $NF !~ /\.md$/ { print $NF }' | LC_ALL=C sort -u
 }
+owner() {  # owner <doc>: kit (the kit wrote it) or yours
+  base=${1##*/}
+  case " AGENTS.md $POINTER_FILES " in *" $base "*) echo kit; return ;; esac
+  if [ -n "$DOC_SUFFIX" ]; then
+    case "$base" in *"$DOC_SUFFIX") echo kit ;; *) echo yours ;; esac
+  else
+    echo kit  # kit 0.5 and older: unit READMEs were the kit's own
+  fi
+}
 say() {  # say <doc> <changed paths>
   [ -n "$2" ] || return 0
   count=$(printf '%s\n' "$2" | wc -l | tr -d ' ')
   shown=$(printf '%s\n' "$2" | head -3 | tr '\n' ' ')
   [ "$count" -gt 3 ] && shown="$shown(+$((count - 3)) more)"
-  printf '%s\t%s changed: %s\n' "$1" "$count" "$shown"
+  printf '%s\t%s changed: %s\t%s\n' "$1" "$count" "$shown" "$(owner "$1")"
 }
 front_paths() {  # front_paths <doc> <key>: the list in "key: [a, b]" of the front matter
   awk -v key="$2" 'NR == 1 && $0 != "---" { exit } NR > 1 && $0 == "---" { exit }
@@ -66,8 +80,10 @@ for map in $(find_docs AGENTS.md); do
   say "$map" "$( { changes "$base" all $files; changes "$base" structure $folders; } | LC_ALL=C sort -u)"
 done
 
-# READMEs.
-for readme in $(find_docs README.md); do
+# READMEs: the kit's own (README.agentk.md) and the people's (README.md).
+readmes=$(find_docs README.md)
+[ -n "$DOC_SUFFIX" ] && readmes="$readmes $(find_docs "README$DOC_SUFFIX")"
+for readme in $readmes; do
   base=$(base_of "$readme"); [ -n "$base" ] || continue
   folder=$(dirname "$readme")
   anchors=$(sed -n 's/.*<!-- agent-kit: source_paths \(.*\) -->.*/\1/p' "$readme")
