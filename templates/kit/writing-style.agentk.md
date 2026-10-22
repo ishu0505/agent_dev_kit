@@ -21,6 +21,14 @@ Installed by agent_dev_kit; do not edit here.
   sources. Never edit, rename or delete them. When one no longer matches
   the code, report it: the file, the line, what the code does now, and a
   sentence the people can paste in.
+- **In a team repo** (`MAPS="beside"` in the config), `AGENTS.md`,
+  `CLAUDE.md`, `GEMINI.md` and `.claude/CLAUDE.md` are the team's too: read
+  and follow them, never edit them. Your map is `AGENTS.agentk.md`. The
+  local files that connect it to each agent (`CLAUDE.local.md`,
+  `AGENTS.override.md`) are written only by `.agents/kit/wire.sh`; never
+  edit them by hand, and never commit any kit file. The team's rules come
+  first: when your map disagrees with them, follow the team and tell the
+  user.
 - With `DOC_SUFFIX` empty (a repo set up before kit 0.6), the kit's files
   have plain names (`README.md` in a unit, `DECISIONS.md`). Edit only the
   ones the kit wrote, and ask when you are not sure.

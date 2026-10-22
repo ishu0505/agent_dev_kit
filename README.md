@@ -38,6 +38,31 @@ names keep no suffix, because agents load them only by these exact names:
 | Config | `.agents/agent-kit.conf` | Which folders are units, map thresholds, line limits, pointer files, interface files |
 | Learning docs | `learning_docs/` | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Refreshed at the end of a task. Local or pushed, by share mode |
 
+## A team repo that already has AGENTS.md or CLAUDE.md
+
+The setup's first question is always **"personal or team repo?"**. It
+guesses from git (who committed, whether there is a remote) and shows every
+agent file already here: what it says, who wrote it, and whether it is on
+the remote. Your own old file may be replaced (a copy is kept). A team's
+file is never touched: the kit works **beside** it (`MAPS="beside"`), and
+nothing of yours is ever pushed.
+
+Your map is `AGENTS.agentk.md`. Agents only load fixed file names, so
+`wire.sh` connects your map to each agent with local files that git
+ignores and the check never lets you commit:
+
+| Agent | How it loads your map, and the team's files | Limit |
+|---|---|---|
+| Claude Code | `CLAUDE.local.md` in each folder: `@AGENTS.agentk.md`, and `@AGENTS.md` where the team has no `CLAUDE.md` there. Claude adds it to the team's `CLAUDE.md` | A team-committed `CLAUDE.local.md` cannot be used |
+| Codex | `AGENTS.override.md` in each folder: the team's `AGENTS.md`, then your map. Codex reads it instead of `AGENTS.md` | It is a copy: refreshed after `git pull` / checkout, at session start and on each agent turn; `check.sh` fails while it is stale |
+| Gemini CLI, Antigravity | `AGENTS.agentk.md` added to `context.fileName` in your `~/.gemini/settings.json` (asked first) | A team `.gemini/settings.json` that sets the list wins; then a note in `~/.gemini/GEMINI.md` asks Gemini to read your map |
+| Cursor | `.cursor/rules/agent-kit.mdc` | |
+
+The team's rules always come first; your map only adds. `wire.sh --plan`
+shows each agent's state, `agent-kit wire` applies it, `agent-kit unwire`
+removes it. In a team repo with its own git hooks the kit adds none, so run
+`sh .agents/kit/check.sh` before you push.
+
 ## Share modes: what reaches GitHub
 
 You pick one when you set a repo up. The agent asks.

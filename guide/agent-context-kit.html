@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.6.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.7.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -152,6 +152,7 @@ footer { color: var(--muted); font-size: 14px; }
 <section>
   <h2>What lands in a repo</h2>
   <p>The scripts and skills are copied from the kit, ready-made and tested. The agent writes only what is specific to the repo. Every Markdown file it writes ends in <code>.agentk.md</code>, so you can see what came from the kit; <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>GEMINI.md</code> and <code>SKILL.md</code> keep their exact names, because agents load them only by those names. The kit never edits your own Markdown files, such as <code>README.md</code>: it reads them and reports drift.</p>
+  <p><strong>A team repo</strong> that already has its own <code>AGENTS.md</code> or <code>CLAUDE.md</code>: the setup asks "personal or team repo?" first. In a team repo the kit works beside the team's files and never edits them; your map is <code>AGENTS.agentk.md</code>, connected to each agent by local files that are never committed (<code>CLAUDE.local.md</code> for Claude Code, <code>AGENTS.override.md</code> for Codex, your <code>~/.gemini/settings.json</code> for Gemini). Nothing of yours reaches the team's remote.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>
@@ -345,9 +346,34 @@ rewrite them. Your work is the repo-specific part: the config, the maps,
 the decisions and the plan. Work in the phases below, do not skip ahead, and
 write nothing before phase 3 is approved (phase 4 starts with the install).
 
-## Phase 0 — Which case
+## Phase 0 — Personal or team repo, then which case
 
-Look at the repo, then tell me which case you see and wait for my OK:
+**The first question, always** (setup and upgrade alike, before anything
+else). Run `sh KIT/templates/kit/agent-files.sh .` (read only). It prints a
+guess for the repo (authors, remote, my share of the commits) and every
+agent file already here (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ...) with
+who wrote it and whether it is on the remote. Then ask, with choices:
+
+```
+Is this your personal repo or a team repo?
+  1. Team repo: other people push here (recommended: &lt;the reason from git&gt;)
+  2. Personal repo: only I work here
+  3. Something else: type your own answer
+```
+
+On upgrade, show the stored answer instead: &quot;This repo is set as a team
+repo (`REPO_KIND` in the config). Still right?&quot; with yes / it changed /
+type. The answer goes into `REPO_KIND`.
+
+- **Team repo**: by default the kit works **beside** the team
+  (`MAPS=&quot;beside&quot;`, `SHARE=&quot;none&quot;`): my map is `AGENTS.agentk.md`, the
+  team&#x27;s `AGENTS.md` / `CLAUDE.md` / settings are never edited, and nothing
+  of mine is ever pushed. Agents load the team&#x27;s files and mine together
+  through local files (`.agents/kit/wire.sh`). Offer the other choice only
+  as &quot;the team agreed to share the kit&quot; (`MAPS=&quot;own&quot;`, a shared mode).
+- **Personal repo**: the kit owns `AGENTS.md` (`MAPS=&quot;own&quot;`), as below.
+
+Then look at the repo, tell me which case you see and wait for my OK:
 
 - **A. Existing project, no kit** (`mode: existing`): it has code and no
   `.agents/kit/`.
@@ -363,6 +389,13 @@ Look at the repo, then tell me which case you see and wait for my OK:
   and `.codex/hooks.json`) and ask about removing each one. Fill
   `.agents/agent-kit.conf` from the old setup (unit folders, ledger path,
   line limits).
+- **Case C, a team repo the kit took over** (`MAPS` is not `beside`, but I
+  now answer &quot;team repo&quot; and the team wants its files back): move my rules
+  from the kit&#x27;s `AGENTS.md` into `AGENTS.agentk.md`, show me the team&#x27;s
+  last version of each file the kit changed (`git log` / `git show`), and
+  offer to restore it with `git checkout &lt;commit&gt; -- &lt;file&gt;`. Then run
+  `install.sh --maps beside` and commit only the restored team files, after
+  my yes.
 - **Case C from kit 0.5 or older** (`DOC_SUFFIX` is missing from
   `.agents/agent-kit.conf`): the kit&#x27;s files still have plain names. List
   them: `DECISIONS.md`, the decision files, `PLAN.md`, the ledger, the
@@ -375,8 +408,9 @@ Look at the repo, then tell me which case you see and wait for my OK:
   On &quot;keep&quot;: add `DOC_SUFFIX=&quot;&quot;`. If the root `README.md` holds the kit&#x27;s
   &quot;## Agent context&quot; section, offer to move it into `KIT.agentk.md`.
 
-Cases A and C go through **phase 1b, house cleaning**, after exploring and
-before anything is installed. Case B has nothing to clean.
+Cases A and C go through **phase 1a** and **phase 1b, house cleaning**,
+after exploring and before anything is installed. Case B has nothing to
+clean.
 
 ## Phase 1 — Explore (read only; case B skips to phase 2)
 
@@ -400,6 +434,27 @@ before anything is installed. Case B has nothing to clean.
 
 Report in under 30 lines: units, commands, conventions, existing docs,
 unclear points.
+
+## Phase 1a — Agent files already here (cases A and C)
+
+For each agent file `agent-files.sh` listed, show me, in three lines: what
+it contains (from its headings and text), who wrote it, and whether it is
+on the remote. Then ask, one file at a time, with choices:
+
+- **Mine** (the guess says YOURS or PROBABLY YOURS, and I confirm):
+  1. Replace it with the kit&#x27;s map; keep a copy in
+     `.git/agent-kit/backup/&lt;path&gt;` (recommended when it was never pushed);
+  2. Merge its rules into the kit&#x27;s map;
+  3. Keep it and work beside it;
+  4. Something else: type it.
+- **The team&#x27;s** (TEAM FILE):
+  1. Keep it untouched; my setup stays on this computer only (recommended);
+  2. Merge it into the kit&#x27;s map (only if the team agreed; the kit then
+     owns and pushes `AGENTS.md`);
+  3. Something else: type it.
+
+Keeping any team file means `MAPS=&quot;beside&quot;` and `SHARE=&quot;none&quot;` for the whole
+repo. House cleaning then marks the team&#x27;s agent files &quot;leave alone&quot;.
 
 ## Phase 1b — House cleaning (cases A and C; nothing is changed without my yes)
 
@@ -476,8 +531,9 @@ Every case:
 1. **What the repo is for**, in one line, and **what matters most** when
    two goals conflict. Example: &quot;1. correct results, 2. low cost, 3. speed&quot;.
 2. **Which coding agents you use.** Choices: Claude Code only; Claude Code
-   and Codex; also Gemini CLI or Antigravity; type your own. (Sets
-   `POINTER_FILES`: `CLAUDE.md`, plus `GEMINI.md` for Gemini.)
+   and Codex; also Gemini CLI or Antigravity; also Cursor; type your own.
+   (Sets `AGENTS_USED`, so the kit connects each one; and `POINTER_FILES`:
+   `CLAUDE.md`, plus `GEMINI.md` for Gemini, when the kit owns the maps.)
 3. **Which folders are separate parts**, like a service, an app or a
    package. Show what you found with sizes. Explain: &quot;A big part (15 or more
    code files) gets its own short guide for agents. A small part gets one
@@ -550,7 +606,12 @@ Show three things and wait for my approval:
    `sh KIT/install.sh --share &lt;mode&gt; .` (on Windows, run every kit command
    in Git Bash). Add `--ci` when I want the checks in GitHub Actions. In
    case C, leave out `--share` to keep the repo&#x27;s mode; pass it only when I
-   ask to change the mode. If it prints a WARNING that teammates committed
+   ask to change the mode. In a team repo kept beside the team, use
+   `sh KIT/install.sh --maps beside .` instead: it forces `--share none`,
+   writes no `.gitignore`, `.gitattributes`, `.claude/settings.json` or
+   other team file, puts the Claude Code hooks in
+   `.claude/settings.local.json`, adds kit skills beside any team skills,
+   and adds git hooks only when the team has none. If it prints a WARNING that teammates committed
    the agent files a local mode stops sharing, stop and ask me; pass
    `--confirm-untrack` only after I say the team agreed.
    It copies `.agents/kit/`, the kit skills, `.githooks/pre-commit` and
@@ -571,7 +632,10 @@ Show three things and wait for my approval:
    repo&#x27;s additions; `KIT/CHANGELOG.md` says what changed)? The kit offers
    each update once: the next upgrade keeps the merged skill.
 2. **Config**: fill `.agents/agent-kit.conf` from the interview.
-3. **Maps**: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`
+3. **Maps**. In a team repo (`MAPS=&quot;beside&quot;`): the root `AGENTS.agentk.md`
+   from `KIT/templates/docs/AGENTS.beside.md`, unit maps `AGENTS.agentk.md`
+   from `AGENTS.unit.md`, no pointer files, and nothing the team&#x27;s files
+   already say. Otherwise: the root `AGENTS.md` from `KIT/templates/docs/AGENTS.root.md`
    (at most `TOP_MAP_MAX` lines; its rows for `DECISIONS.agentk.md` and
    `KIT.agentk.md` use the real names), then one map per first-level folder that
    needs one, then each unit with the `scaffold` skill
@@ -591,15 +655,40 @@ Show three things and wait for my approval:
    folders that exist; each unit gets its map when its folder is created.
 6. **Command card**: `KIT/templates/docs/KIT.md`, saved as
    `KIT.agentk.md` at the root (`.agents/KIT.agentk.md` with `SHARE`
-   `learning` or `none`). Replace `&lt;kit url&gt;` with the kit&#x27;s remote
+   `learning` or `none`, and in a team repo). Replace `&lt;kit url&gt;` with the kit&#x27;s remote
    (`git -C KIT remote get-url origin`, as an https link). Never add it to
    the root `README.md`.
-7. **Agent configs**: `.claude/settings.json` needs both the SessionStart and
+7. **Wiring** (team repo, `MAPS=&quot;beside&quot;`). Run `sh .agents/kit/wire.sh --plan`
+   and show me its list: for each folder and agent, what it will write and
+   why, plus any limit. Apply it after one question (apply all, recommended
+   / pick / skip / type). The cases it handles by itself:
+   - Claude Code: a local `CLAUDE.local.md` per folder imports my
+     `AGENTS.agentk.md`, and also the team&#x27;s `AGENTS.md` where the folder has
+     no `CLAUDE.md` (a `CLAUDE.local.md` stops Claude reading `AGENTS.md` by
+     itself). My own lines in an existing `CLAUDE.local.md` stay.
+   - Codex: a local `AGENTS.override.md` per folder holds the team&#x27;s
+     `AGENTS.md` first, then my map (Codex reads it instead of
+     `AGENTS.md`). It refreshes after `git pull` and checkout (git hooks,
+     when the kit may add them), at session start, on the Stop hook, and
+     `check.sh` fails while it is stale.
+   - Cursor: a local `.cursor/rules/agent-kit.mdc`.
+   - A file git tracks (the team&#x27;s `CLAUDE.local.md` or
+     `AGENTS.override.md`) is never written: say that the agent cannot load
+     my map in that folder.
+   - Gemini / Antigravity: when `wire.sh` says `todo`, ask, then add
+     `AGENTS.agentk.md` to `context.fileName` in my `~/.gemini/settings.json`
+     (create the file, or append to the list, keeping my existing names).
+     When it says `limit` (the team&#x27;s `.gemini/settings.json` sets the list),
+     say that Gemini cannot load my map here, and offer a note in
+     `~/.gemini/GEMINI.md`: &quot;In a repo with AGENTS.agentk.md files, read
+     them after the team&#x27;s AGENTS.md.&quot;
+8. **Agent configs**: `.claude/settings.json` needs both the SessionStart and
    the Stop hook (the install says what to merge into an existing file). If
    more agents than Claude Code and Codex are used,
    tell me where each loads hooks and skills (check its docs) and add what
    is needed. Other agents rely on the pre-commit check.
-8. **Commit-ready**: `git add` only what the share mode pushes. Never
+9. **Commit-ready**: `git add` only what the share mode pushes. In a team
+   repo, that is nothing of the kit&#x27;s: `git status` must show no kit file. Never
    `git add -f` an ignored file. Do not commit unless I ask.
 
 Rules for what you write: follow `KIT/templates/kit/writing-style.agentk.md`
@@ -619,6 +708,9 @@ backticks, and `check.sh` checks every one that looks like a path.
 - Show me how the work flows from now on, in four lines: maps load only for
   the folder an agent works in; `wrap-up` ends every task; `catch-up` handles
   code written by hand; `explain-diff` goes into each pull request.
+- In a team repo, show the per-agent report from
+  `sh .agents/kit/wire.sh --plan`: each agent, whether it loads my map and
+  the team&#x27;s files, and any limit (with the fallback applied).
 - Report: files created, config values, decisions recorded, open questions,
   and the agents whose hooks you could not verify.</pre>
 </section>

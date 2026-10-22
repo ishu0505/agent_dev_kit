@@ -57,6 +57,11 @@ List every claim that is now false:
 
 A claim you cannot confirm or refute is "unverified", not "wrong".
 
+**In a team repo** (`MAPS="beside"`), also compare each of your maps
+(`AGENTS.agentk.md`) with the team's `AGENTS.md` / `CLAUDE.md` in the same
+folder and above it. List every place where yours contradicts theirs or
+repeats them. The team wins: the fix is always in your map.
+
 ## 4. Report
 
 Two tables, each grouped by unit:
@@ -64,6 +69,11 @@ Two tables, each grouped by unit:
 **Kit docs** (`fix` mode changes these):
 
 | Doc | Claim | What the code does | Evidence | Proposed fix |
+|---|---|---|---|---|
+
+**Conflicts with the team's rules** (team repo only; fix your map):
+
+| Your map | Your line | Team file | Their line | Fix in your map |
 |---|---|---|---|---|
 
 **Your docs: report only** (the people fix these themselves):

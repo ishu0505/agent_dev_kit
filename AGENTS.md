@@ -14,11 +14,11 @@ at `README.md`.
 | `install.sh` | Copies kit files into a target repo; also the upgrade |
 | `install-global.sh` | Links the `agent-kit` skill into each agent's skill folder |
 | `global-skills/agent-kit/` | The one global skill: setup, upgrade, check |
-| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `writing-style.agentk.md`; copied to `.agents/kit/` |
+| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `agent-files.sh` (who owns each agent file), `wire.sh` (team repos: local wiring of the kit's maps), `writing-style.agentk.md`; copied to `.agents/kit/` |
 | `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff` |
 | `templates/config/` | `agent-kit.conf`, Claude and Codex hook configs |
-| `templates/docs/` | Map, decision index and file, ledger, plan, learning-doc and command-card (`KIT.md`) templates |
-| `templates/githooks/` | The pre-commit and post-commit hooks |
+| `templates/docs/` | Map (`AGENTS.root.md`, `AGENTS.beside.md` for team repos, `AGENTS.unit.md`), decision index and file, ledger, plan, learning-doc and command-card (`KIT.md`) templates |
+| `templates/githooks/` | The pre-commit and post-commit hooks; post-merge and post-checkout (team repos) |
 | `templates/ci/` | The GitHub Actions workflow (`install.sh --ci`) |
 | `guide/` | The HTML guide: `template.html` + `build.py` |
 | `tests/run.sh` | End-to-end tests in throwaway repos |
@@ -32,6 +32,11 @@ at `README.md`.
 - **Kit docs end in `DOC_SUFFIX` (`.agentk.md`)** in a target repo; only
   `AGENTS.md`, pointer files and `SKILL.md` keep their exact names. Skills
   and scripts must never write to the repo's own Markdown files.
+- **Team repos (`MAPS="beside"`)**: the kit never edits or untracks a team
+  file (`AGENTS.md`, `CLAUDE.md`, `.gitignore`, `.claude/settings.json`,
+  hooks), and nothing it makes may be committed. Every new path the kit
+  writes there must be in the beside exclude list in `install.sh` and in
+  `kit_local_paths` in `check.sh`.
 - **Kit-owned files** (`templates/kit/`, `templates/skills/`,
   `templates/githooks/`) are overwritten on upgrade; never put repo content
   in them. Repo-owned templates are created once and never overwritten.

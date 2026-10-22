@@ -19,6 +19,7 @@ LEARNING_DIR="learning_docs"
 DOC_SUFFIX=""
 [ -f .agents/agent-kit.conf ] && . ./.agents/agent-kit.conf
 UNIT_DOC="README${DOC_SUFFIX:-.md}"
+if [ "${MAPS:-own}" = beside ]; then MAP_FILE="AGENTS${DOC_SUFFIX:-.agentk.md}"; else MAP_FILE="AGENTS.md"; fi
 DIR="$(git rev-parse --git-common-dir)/agent-kit"
 PENDING="$DIR/pending"
 
@@ -37,7 +38,7 @@ covering_docs() {  # covering_docs <path>: the docs in the nearest folder above 
   dir=$(dirname "$1")
   while :; do
     found=""
-    for doc in AGENTS.md "$UNIT_DOC" README.md; do
+    for doc in AGENTS.md "$MAP_FILE" "$UNIT_DOC" README.md; do
       if [ "$dir" = . ]; then [ -f "$doc" ] && found="$found $doc"
       else [ -f "$dir/$doc" ] && found="$found $dir/$doc"; fi
     done

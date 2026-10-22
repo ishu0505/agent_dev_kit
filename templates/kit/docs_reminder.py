@@ -13,7 +13,10 @@ shell edits, subagents and every agent are covered, and:
    removed in a folder a map names; an edit to an AGENTS.md, the kit's
    detail doc (README.agentk.md) or a README.md above the file satisfies it;
 4. records learning docs whose `source_paths` changed in
-   `.git/agent-kit/stale-learning` for the wrap-up skill; never blocks for it.
+   `.git/agent-kit/stale-learning` for the wrap-up skill; never blocks for it;
+5. with MAPS="beside" (a team repo): refreshes the local wiring when a map
+   changed (`.agents/kit/wire.sh`), and asks once when the turn edited one
+   of the team's own agent files (AGENTS.md, CLAUDE.md, GEMINI.md).
 
 `stop_hook_active` is set on the follow-up stop, so it never loops. Any
 error lets the stop through. Installed by agent_dev_kit; do not edit here.
@@ -36,6 +39,11 @@ CHECKS_FAILING = (
     "The agent-kit checks fail for files this turn changed (.agents/kit/check.sh). "
     "Fix what they name before ending the turn:\n{failures}"
 )
+TEAM_FILE = (
+    "These files belong to the team (this repo works beside them): {files}. Put your change in "
+    "{map_file} instead, unless the user asked you to edit the team's file. If they did, say so in one line."
+)
+TEAM_NAMES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
 REMINDER = (
     "Docs step: this turn changed code that the docs describe:\n{items}\n"
     "Update the map or {unit_doc} named above in the same change (never a Markdown file the "
@@ -155,21 +163,28 @@ def unit_doc(config: dict[str, str]) -> str:
     return "README" + (config.get("DOC_SUFFIX") or ".md")
 
 
+def map_file(config: dict[str, str]) -> str:
+    """The kit's map: AGENTS.md, or AGENTS.agentk.md beside a team's own files."""
+    if config.get("MAPS") == "beside":
+        return "AGENTS" + (config.get("DOC_SUFFIX") or ".agentk.md")
+    return "AGENTS.md"
+
+
 def is_doc_for(doc: str, path: str, config: dict[str, str]) -> bool:
     """A map, kit detail doc or README.md in the path's folder or a folder above it."""
-    if posixpath.basename(doc) not in ("AGENTS.md", "README.md", unit_doc(config)):
+    if posixpath.basename(doc) not in ("AGENTS.md", "README.md", unit_doc(config), map_file(config)):
         return False
     folder = posixpath.dirname(doc)
     return not folder or path.startswith(folder + "/")
 
 
-def map_anchors(repo: Path, code: list[str]) -> list[tuple[str, str, str]]:
+def map_anchors(repo: Path, code: list[str], name: str = "AGENTS.md") -> list[tuple[str, str, str]]:
     """(map, line, path) for every path named by a map above a changed file."""
     maps = set()
     for path in code:
         folder = posixpath.dirname(path)
         while True:
-            candidate = posixpath.join(folder, "AGENTS.md") if folder else "AGENTS.md"
+            candidate = posixpath.join(folder, name) if folder else name
             if (repo / candidate).is_file():
                 maps.add(candidate)
             if not folder:
@@ -206,7 +221,7 @@ def docs_items(repo: Path, config: dict[str, str], changes: dict[str, str], remi
     code = [path for path in code if not any(is_doc_for(doc, path, config) for doc in docs)]
     if not code:
         return []
-    anchors = map_anchors(repo, code)
+    anchors = map_anchors(repo, code, map_file(config))
     interface = config.get("INTERFACE_GLOBS", "").split()
     items = []
     for path in code:
@@ -289,12 +304,29 @@ def main(argv: list[str]) -> None:
     reminded = set(state.get("reminded", []))
     if not changes:
         return
+    config = read_config(repo)
+    beside = config.get("MAPS") == "beside"
+    if beside and any(posixpath.basename(path) in TEAM_NAMES + (map_file(config),) for path in changes):
+        try:  # a map changed: refresh the local files that connect it to each agent
+            subprocess.run(["sh", ".agents/kit/wire.sh", "--quiet"], cwd=repo,
+                           capture_output=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
     failures = failing_checks(repo, sorted(changes))
     if failures:  # keep the old snapshot, so the next turn checks these files again
         print(json.dumps({"decision": "block", "reason": CHECKS_FAILING.format(failures=failures)}))
         return
-    config = read_config(repo)
     mark_stale_learning(repo, config, changes, state_dir)
+    if beside:
+        team = sorted(path for path in changes if posixpath.basename(path) in TEAM_NAMES
+                      and f"team:{path}" not in reminded
+                      and git(repo, "ls-files", "--", path).strip())
+        if team:
+            reminded.update(f"team:{path}" for path in team)
+            state_file.write_text(json.dumps({"snapshot": now, "reminded": sorted(reminded)}))
+            print(json.dumps({"decision": "block", "reason": TEAM_FILE.format(
+                files=", ".join(f"`{path}`" for path in team), map_file=map_file(config))}))
+            return
     items = docs_items(repo, config, changes, reminded)
     state_file.write_text(json.dumps({"snapshot": now, "reminded": sorted(reminded)}))
     if items:

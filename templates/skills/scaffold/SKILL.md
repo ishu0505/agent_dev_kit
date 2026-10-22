@@ -28,6 +28,12 @@ A unit with its own map carries:
 If the new folder is not covered by `UNITS` or `UNIT_PARENTS`, ask the user
 whether it is a unit, and add it to the config if so.
 
+**In a team repo** (`MAPS="beside"`): the unit's map is `AGENTS.agentk.md`,
+there are no pointer files, and a team `AGENTS.md` or `CLAUDE.md` in the
+folder is read first and never edited. Write only what the team's file does
+not say. Then run `sh .agents/kit/wire.sh`, which connects the new map to
+each agent with local files.
+
 **The unit's own `README.md` stays theirs.** If the folder already has a
 `README.md` (or any Markdown file without the suffix), read it: it answers
 many of the questions below. Link to it from the map and the detail doc.
