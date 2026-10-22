@@ -545,11 +545,11 @@ out=$(sh "$KIT/templates/kit/agent-files.sh" "$B")
 printf '%s' "$out" | grep -q "TEAM REPO" && printf '%s' "$out" | grep -q "TEAM FILE: other people wrote it and it is on the remote" &&
   ok "agent-files: a team repo and its team files are recognised" || bad "agent-files: a team repo and its team files are recognised" "$out"
 echo "# mine" > "$B/GEMINI.md"
-sh "$KIT/templates/kit/agent-files.sh" "$B" | grep -q "YOURS: it exists only on this computer" &&
+out=$(sh "$KIT/templates/kit/agent-files.sh" "$B"); printf '%s' "$out" | grep -q "YOURS: it exists only on this computer" &&
   ok "agent-files: an untracked file is yours" || bad "agent-files: an untracked file is yours"
 rm "$B/GEMINI.md"
 V=$(variant personal); git -C "$V" config user.email test@example.com
-sh "$KIT/templates/kit/agent-files.sh" "$V" | grep -q "PERSONAL REPO" && ok "agent-files: a one-author repo is personal" || bad "agent-files: a one-author repo is personal"
+out=$(sh "$KIT/templates/kit/agent-files.sh" "$V"); printf '%s' "$out" | grep -q "PERSONAL REPO" && ok "agent-files: a one-author repo is personal" || bad "agent-files: a one-author repo is personal"
 
 sh "$KIT/install.sh" --maps beside "$B" > "$WORK/beside.log" 2>&1
 [ "$before" = "$(team_sum)" ] && [ -z "$(git -C "$B" status --porcelain)" ] &&
@@ -601,7 +601,7 @@ printf '%s' "$out" | grep -q "skip .*svc/lib/AGENTS.override.md" && [ "$(cat "$B
 expect_pass "beside: a team's tracked override is not a leak" "$B"
 git -C "$B" reset -q --hard HEAD~1; rm -rf "$B/svc/lib"; (cd "$B" && sh .agents/kit/wire.sh --quiet)
 
-NL="$TR/nolinks"; git clone -q "$TR/remote.git" "$NL" 2>/dev/null; rm -rf "$NL/.claude"; git -C "$NL" commit -qam "no skills" --no-verify >/dev/null 2>&1
+NL="$TR/nolinks"; git clone -q "$TR/remote.git" "$NL" 2>/dev/null; rm -rf "$NL/.claude"; git_quiet -C "$NL" commit --no-verify -qam "no skills"
 PATH="$WORK/nolinks:$PATH" sh "$KIT/install.sh" --maps beside "$NL" > /dev/null 2>&1
 [ -f "$NL/.claude/skills/lineage/.agent-kit" ] && [ -z "$(git -C "$NL" status --porcelain)" ] &&
   ok "beside without symlinks: marked skill copies, nothing to commit" || bad "beside without symlinks: marked skill copies, nothing to commit" "$(git -C "$NL" status --porcelain)"
