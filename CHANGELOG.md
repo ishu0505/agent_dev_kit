@@ -3,6 +3,50 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.7.0 — 2026-10-22
+
+Team repos: work beside the team's own AGENTS.md / CLAUDE.md, on this
+computer only.
+
+- **The first question in setup and upgrade: personal or team repo?** New
+  `agent-files.sh` (read only) guesses from git (authors, remote, your
+  share) and lists every agent file already here with its content, author
+  and whether it is on the remote. New settings `REPO_KIND` and
+  `AGENTS_USED`.
+- **New `MAPS="beside"`** (team repos). The team's `AGENTS.md`, `CLAUDE.md`,
+  `GEMINI.md`, settings, `.gitignore` and hooks are never edited. Your map
+  is `AGENTS.agentk.md` (root and units). `SHARE` is always `none`:
+  nothing of yours reaches the team's remote, and `check.sh` blocks a
+  commit of any kit file, even with `git add -f`.
+- **New `wire.sh`** connects your maps to each agent with local files that
+  are never committed, and keeps the team's rules first:
+  - Claude Code: `CLAUDE.local.md` per folder imports `@AGENTS.agentk.md`,
+    and `@AGENTS.md` where the folder has no `CLAUDE.md` (a
+    `CLAUDE.local.md` stops Claude reading `AGENTS.md` by itself).
+  - Codex: `AGENTS.override.md` per folder holds the team's `AGENTS.md`,
+    then your map (Codex reads it instead of `AGENTS.md`). It refreshes
+    after a pull or checkout (new `post-merge` / `post-checkout` hooks), at
+    session start and on the Stop hook; `check.sh` fails while it is stale.
+  - Cursor: `.cursor/rules/agent-kit.mdc`.
+  - Gemini / Antigravity: reported; the agent adds your map to
+    `context.fileName` in `~/.gemini/settings.json` with your yes, or
+    offers a note when the team's settings win.
+  - `--plan` shows what it would do per agent, `--check` fails when stale,
+    `--remove` undoes it. Files git tracks are never written.
+- `install.sh --maps beside`: precise local ignore rules (never whole
+  folders), Claude Code hooks in `.claude/settings.local.json`, kit skills
+  beside the team's skills, git hooks only when the team has none.
+- The Stop hook asks once when the agent edits a team agent file, and
+  refreshes the wiring when a map changes. `docs-sync` lists conflicts
+  between your map and the team's rules; `stale.sh` flags your map when the
+  team's file in the same folder changed.
+
+Upgrade: run `agent-kit upgrade`. It asks the new first question. For a
+personal repo nothing changes. For a team repo whose `AGENTS.md` /
+`CLAUDE.md` the kit took over in an older version, answer "team repo"; the
+agent moves your rules into `AGENTS.agentk.md`, offers to restore the
+team's files from git, and runs `install.sh --maps beside`.
+
 ## 0.6.0 — 2026-10-22
 
 Plain-language setup, and the kit never edits your Markdown files.

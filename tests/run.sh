@@ -526,6 +526,107 @@ out=$(hook "$V" "$WORK/bash.jsonl" s4)
 [ -z "$out" ] && grep -q "learning_docs/01-api.md" "$V/.git/agent-kit/stale-learning" &&
   ok "stop hook: stale learning docs are noted, never blocking" || bad "stop hook: stale learning docs are noted, never blocking" "$out"
 
+# --- Team repos: work beside the team's AGENTS.md / CLAUDE.md, locally -------
+TR="$WORK/teamrepo"; mkdir -p "$TR"; git init -q --bare "$TR/remote.git"
+git -C "$TR/remote.git" symbolic-ref HEAD refs/heads/main
+M="$TR/mate"; git clone -q "$TR/remote.git" "$M" 2>/dev/null
+mkdir -p "$M/svc/api" "$M/.claude/skills/deploy"; echo 'x = 1' > "$M/svc/api/app.py"
+printf '# Team rules\n\nUse make.\n' > "$M/AGENTS.md"; printf '# Claude, team\n' > "$M/CLAUDE.md"
+printf '# API, team\n' > "$M/svc/api/AGENTS.md"; printf -- '---\nname: deploy\n---\nDeploy.\n' > "$M/.claude/skills/deploy/SKILL.md"
+printf 'node_modules/\n' > "$M/.gitignore"
+mate() { git -c user.name=mate -c user.email=mate@team.com -C "$M" "$@" >/dev/null 2>&1; }
+mate add -A; mate commit -m team; mate push origin HEAD:refs/heads/main
+B="$TR/me"; git clone -q "$TR/remote.git" "$B" 2>/dev/null
+git -C "$B" config user.email me@me.com; git -C "$B" config user.name me
+team_sum() { (cd "$B" && cat AGENTS.md CLAUDE.md svc/api/AGENTS.md .gitignore .claude/skills/deploy/SKILL.md | cksum); }
+before=$(team_sum)
+
+out=$(sh "$KIT/templates/kit/agent-files.sh" "$B")
+printf '%s' "$out" | grep -q "TEAM REPO" && printf '%s' "$out" | grep -q "TEAM FILE: other people wrote it and it is on the remote" &&
+  ok "agent-files: a team repo and its team files are recognised" || bad "agent-files: a team repo and its team files are recognised" "$out"
+echo "# mine" > "$B/GEMINI.md"
+sh "$KIT/templates/kit/agent-files.sh" "$B" | grep -q "YOURS: it exists only on this computer" &&
+  ok "agent-files: an untracked file is yours" || bad "agent-files: an untracked file is yours"
+rm "$B/GEMINI.md"
+V=$(variant personal); git -C "$V" config user.email test@example.com
+sh "$KIT/templates/kit/agent-files.sh" "$V" | grep -q "PERSONAL REPO" && ok "agent-files: a one-author repo is personal" || bad "agent-files: a one-author repo is personal"
+
+sh "$KIT/install.sh" --maps beside "$B" > "$WORK/beside.log" 2>&1
+[ "$before" = "$(team_sum)" ] && [ -z "$(git -C "$B" status --porcelain)" ] &&
+  ok "beside: install leaves team files untouched and git status clean" || bad "beside: install leaves team files untouched and git status clean" "$(git -C "$B" status --porcelain; cat "$WORK/beside.log")"
+grep -q '^MAPS="beside"' "$B/.agents/agent-kit.conf" && grep -q '^SHARE="none"' "$B/.agents/agent-kit.conf" &&
+  ok "beside: forces SHARE=none" || bad "beside: forces SHARE=none"
+[ -f "$B/.claude/skills/deploy/SKILL.md" ] && [ -f "$B/.claude/skills/lineage/.agent-kit" ] && [ -f "$B/.claude/settings.local.json" ] && [ ! -e "$B/.claude/settings.json" ] &&
+  ok "beside: kit skills sit beside the team's; hooks go in settings.local.json" || bad "beside: kit skills sit beside the team's; hooks go in settings.local.json"
+
+echo "My own note." > "$B/CLAUDE.local.md"
+printf '# me\n\n| Path | What | Read first |\n|---|---|---|\n| `svc/api/` | API | `svc/api/AGENTS.agentk.md` |\n' > "$B/AGENTS.agentk.md"
+printf '# api, mine\n\n| Path | What |\n|---|---|\n| `app.py` | entry |\n' > "$B/svc/api/AGENTS.agentk.md"
+expect_fail "beside: missing wiring is caught" "$B" "local wiring of your maps is stale or missing"
+(cd "$B" && sh .agents/kit/wire.sh >/dev/null)
+expect_pass "beside: wired maps pass" "$B"
+grep -q '^@AGENTS.md$' "$B/svc/api/CLAUDE.local.md" && grep -q '^@AGENTS.agentk.md$' "$B/svc/api/CLAUDE.local.md" &&
+  ! grep -q '^@AGENTS.md$' "$B/CLAUDE.local.md" && grep -q '^My own note.$' "$B/CLAUDE.local.md" &&
+  ok "beside: CLAUDE.local.md imports the team AGENTS.md only where no CLAUDE.md, and keeps your lines" || bad "beside: CLAUDE.local.md imports the team AGENTS.md only where no CLAUDE.md, and keeps your lines" "$(cat "$B/CLAUDE.local.md" "$B/svc/api/CLAUDE.local.md")"
+t=$(grep -n 'API, team' "$B/svc/api/AGENTS.override.md" | cut -d: -f1); m=$(grep -n 'api, mine' "$B/svc/api/AGENTS.override.md" | cut -d: -f1)
+[ -n "$t" ] && [ -n "$m" ] && [ "$t" -lt "$m" ] && ok "beside: the Codex override has the team's rules first" || bad "beside: the Codex override has the team's rules first" "$(cat "$B/svc/api/AGENTS.override.md")"
+[ -z "$(git -C "$B" add -A --dry-run)" ] && ok "beside: git add -A stages nothing of yours" || bad "beside: git add -A stages nothing of yours" "$(git -C "$B" add -A --dry-run)"
+
+printf '\nAlways run tests.\n' >> "$M/svc/api/AGENTS.md"; mate commit -am rule; mate push origin HEAD:refs/heads/main
+git -C "$B" pull -q 2>/dev/null
+grep -q 'Always run tests' "$B/svc/api/AGENTS.override.md" && ok "beside: git pull refreshes the Codex override" || bad "beside: git pull refreshes the Codex override"
+echo "Local edit." >> "$B/svc/api/AGENTS.md"
+expect_fail "beside: a stale override is caught" "$B" "local wiring of your maps is stale"
+git -C "$B" checkout -q -- svc/api/AGENTS.md; (cd "$B" && sh .agents/kit/wire.sh --quiet)
+expect_pass "beside: rewired after the team file changes" "$B"
+
+printf '| `gone.py` | x |\n' >> "$B/svc/api/AGENTS.agentk.md"; (cd "$B" && sh .agents/kit/wire.sh --quiet)
+expect_fail "beside: your unit map is checked like any map" "$B" "names a missing path: gone.py"
+edit '/gone.py/d' "$B/svc/api/AGENTS.agentk.md"; (cd "$B" && sh .agents/kit/wire.sh --quiet)
+
+git -C "$B" add -f AGENTS.agentk.md
+expect_fail "beside: a force-added map is caught" "$B" "would reach the team's repo"
+if git -C "$B" commit -qm leak >/dev/null 2>&1; then bad "beside: the commit of your map is blocked"; else ok "beside: the commit of your map is blocked"; fi
+git -C "$B" rm -q --cached AGENTS.agentk.md
+
+edit 's/^SHARE=.*/SHARE="agent"/' "$B/.agents/agent-kit.conf"
+expect_fail "beside: a shared mode is refused" "$B" "MAPS=beside keeps your setup on this computer"
+edit 's/^SHARE=.*/SHARE="none"/' "$B/.agents/agent-kit.conf"
+
+mkdir -p "$B/svc/lib"; printf '# lib, mine\n' > "$B/svc/lib/AGENTS.agentk.md"; echo "team override" > "$B/svc/lib/AGENTS.override.md"
+git -C "$B" add -f svc/lib/AGENTS.override.md; git -C "$B" commit -q --no-verify -m "team override" >/dev/null 2>&1
+out=$(cd "$B" && sh .agents/kit/wire.sh --plan); (cd "$B" && sh .agents/kit/wire.sh --quiet)
+printf '%s' "$out" | grep -q "skip .*svc/lib/AGENTS.override.md" && [ "$(cat "$B/svc/lib/AGENTS.override.md")" = "team override" ] &&
+  ok "beside: a tracked AGENTS.override.md is never written" || bad "beside: a tracked AGENTS.override.md is never written" "$out"
+expect_pass "beside: a team's tracked override is not a leak" "$B"
+git -C "$B" reset -q --hard HEAD~1; rm -rf "$B/svc/lib"; (cd "$B" && sh .agents/kit/wire.sh --quiet)
+
+NL="$TR/nolinks"; git clone -q "$TR/remote.git" "$NL" 2>/dev/null; rm -rf "$NL/.claude"; git -C "$NL" commit -qam "no skills" --no-verify >/dev/null 2>&1
+PATH="$WORK/nolinks:$PATH" sh "$KIT/install.sh" --maps beside "$NL" > /dev/null 2>&1
+[ -f "$NL/.claude/skills/lineage/.agent-kit" ] && [ -z "$(git -C "$NL" status --porcelain)" ] &&
+  ok "beside without symlinks: marked skill copies, nothing to commit" || bad "beside without symlinks: marked skill copies, nothing to commit" "$(git -C "$NL" status --porcelain)"
+
+edit 's/^AGENTS_USED=.*/AGENTS_USED="claude codex gemini"/' "$B/.agents/agent-kit.conf"; mkdir -p "$WORK/ghome"
+HOME="$WORK/ghome" sh -c "cd '$B' && sh .agents/kit/wire.sh --plan" | grep -q "gemini  todo" && ok "beside: Gemini setting is offered" || bad "beside: Gemini setting is offered"
+mkdir -p "$B/.gemini"; echo '{"context": {"fileName": ["AGENTS.md"]}}' > "$B/.gemini/settings.json"; git -C "$B" add -f .gemini/settings.json
+HOME="$WORK/ghome" sh -c "cd '$B' && sh .agents/kit/wire.sh --plan" | grep -q "gemini  limit" && ok "beside: a team Gemini setting is reported as a limit" || bad "beside: a team Gemini setting is reported as a limit"
+git -C "$B" rm -q --cached .gemini/settings.json; rm -rf "$B/.gemini"
+edit 's/^AGENTS_USED=.*/AGENTS_USED="claude codex"/' "$B/.agents/agent-kit.conf"
+
+mkdir -p "$B/cmd"; hook "$B" "$WORK/read.jsonl" t1 --baseline
+echo "edit" >> "$B/AGENTS.md"
+hook "$B" "$WORK/bash.jsonl" t1 | grep -q 'belong to the team' && ok "beside: the Stop hook asks once when the team's AGENTS.md is edited" || bad "beside: the Stop hook asks once when the team's AGENTS.md is edited"
+git -C "$B" checkout -q -- AGENTS.md
+
+out=$(cd "$B" && sh .agents/kit/stale.sh since HEAD~1)
+printf '%s' "$out" | grep -q "^svc/api/AGENTS.agentk.md	.*svc/api/AGENTS.md (team rules)" &&
+  ok "beside: stale.sh flags your map when the team's file there changed" || bad "beside: stale.sh flags your map when the team's file there changed" "$out"
+
+(cd "$B" && sh .agents/kit/wire.sh --remove >/dev/null)
+[ ! -e "$B/svc/api/CLAUDE.local.md" ] && [ ! -e "$B/svc/api/AGENTS.override.md" ] && [ "$(cat "$B/CLAUDE.local.md")" = "My own note." ] &&
+  [ -f "$B/svc/api/AGENTS.agentk.md" ] && [ "$before" != "" ] &&
+  ok "beside: --remove deletes only what the kit made" || bad "beside: --remove deletes only what the kit made"
+
 echo
 echo "$PASSED passed, $FAILED failed"
 [ "$FAILED" -eq 0 ]

@@ -152,6 +152,7 @@ footer { color: var(--muted); font-size: 14px; }
 <section>
   <h2>What lands in a repo</h2>
   <p>The scripts and skills are copied from the kit, ready-made and tested. The agent writes only what is specific to the repo. Every Markdown file it writes ends in <code>.agentk.md</code>, so you can see what came from the kit; <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>GEMINI.md</code> and <code>SKILL.md</code> keep their exact names, because agents load them only by those names. The kit never edits your own Markdown files, such as <code>README.md</code>: it reads them and reports drift.</p>
+  <p><strong>A team repo</strong> that already has its own <code>AGENTS.md</code> or <code>CLAUDE.md</code>: the setup asks "personal or team repo?" first. In a team repo the kit works beside the team's files and never edits them; your map is <code>AGENTS.agentk.md</code>, connected to each agent by local files that are never committed (<code>CLAUDE.local.md</code> for Claude Code, <code>AGENTS.override.md</code> for Codex, your <code>~/.gemini/settings.json</code> for Gemini). Nothing of yours reaches the team's remote.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>

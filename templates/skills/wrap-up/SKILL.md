@@ -12,6 +12,8 @@ user asks.
 ## 1. Checks
 
 Run `sh .agents/kit/check.sh`. Fix what fails, and report what you fixed.
+In a team repo (`MAPS="beside"`), a stale-wiring failure is fixed with
+`sh .agents/kit/wire.sh`; never stage or commit a kit file there.
 Problems marked `WARN` are not part of this task: list them, do not fix
 them unless the user asks.
 

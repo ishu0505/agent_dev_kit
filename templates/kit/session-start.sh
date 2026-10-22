@@ -7,6 +7,8 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$ROOT" || exit 0
 input=$(cat)
 printf '%s' "$input" | sh .agents/kit/stop-hook.sh --baseline >/dev/null 2>&1
+# Beside mode (a team repo): refresh the local wiring of your maps first.
+grep -qs '^MAPS="beside"' .agents/agent-kit.conf && sh .agents/kit/wire.sh --quiet >/dev/null 2>&1
 pending=$(sh .agents/kit/queue.sh count 2>/dev/null)
 [ "${pending:-0}" -gt 0 ] 2>/dev/null &&
   echo "agent-kit: $pending commit(s) changed code without its docs. Tell the user once, and run the catch-up skill if they agree."

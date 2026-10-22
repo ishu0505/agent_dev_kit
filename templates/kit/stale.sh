@@ -23,6 +23,7 @@ DOC_SUFFIX=""
 POINTER_FILES="CLAUDE.md"
 [ -f .agents/agent-kit.conf ] && . ./.agents/agent-kit.conf
 KIT_MD=${DOC_SUFFIX:-.md}
+if [ "${MAPS:-own}" = beside ]; then MAP_FILE="AGENTS${DOC_SUFFIX:-.agentk.md}"; else MAP_FILE="AGENTS.md"; fi
 TAB=$(printf '\t')
 SINCE=""
 if [ "${1:-}" = since ]; then
@@ -43,6 +44,9 @@ changes() {  # changes <base> <all|structure> <path>...: changed non-Markdown pa
 }
 owner() {  # owner <doc>: kit (the kit wrote it) or yours
   base=${1##*/}
+  if [ "${MAPS:-own}" = beside ]; then  # the team's agent files are theirs
+    case "$base" in AGENTS.md|CLAUDE.md|GEMINI.md) echo yours; return ;; esac
+  fi
   case " AGENTS.md $POINTER_FILES " in *" $base "*) echo kit; return ;; esac
   if [ -n "$DOC_SUFFIX" ]; then
     case "$base" in *"$DOC_SUFFIX") echo kit ;; *) echo yours ;; esac
@@ -69,7 +73,7 @@ find_docs() {  # find_docs <name pattern>: matching files outside skipped folder
 }
 
 # Maps.
-for map in $(find_docs AGENTS.md); do
+for map in $(find_docs "$MAP_FILE"); do
   base=$(base_of "$map"); [ -n "$base" ] || continue
   anchors=$(sh .agents/kit/check.sh --anchors "$map" | cut -f3 | LC_ALL=C sort -u)
   files=""; folders=""
@@ -77,7 +81,16 @@ for map in $(find_docs AGENTS.md); do
     if [ -d "$path" ]; then folders="$folders $path"; else files="$files $path"; fi
   done
   # shellcheck disable=SC2086  # path lists
-  say "$map" "$( { changes "$base" all $files; changes "$base" structure $folders; } | LC_ALL=C sort -u)"
+  team=""
+  if [ "${MAPS:-own}" = beside ]; then  # the team's rules in this folder changed: align with them
+    folder=$(dirname "$map")
+    for doc in AGENTS.md CLAUDE.md GEMINI.md; do
+      [ "$folder" = . ] && path=$doc || path="$folder/$doc"
+      [ -f "$path" ] && git -c core.quotepath=off diff --name-only "$base" -- "$path" | grep -q . && team="$team
+$path (team rules)"
+    done
+  fi
+  say "$map" "$( { changes "$base" all $files; changes "$base" structure $folders; printf '%s\n' "$team" | sed '/^$/d'; } | LC_ALL=C sort -u)"
 done
 
 # READMEs: the kit's own (README.agentk.md) and the people's (README.md).

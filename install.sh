@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install or upgrade the agent kit in a git repository.
 #
-# Usage: /path/to/agent_dev_kit/install.sh [--share MODE] [--ci] [--confirm-untrack] [target repo]
+# Usage: /path/to/agent_dev_kit/install.sh [--maps own|beside] [--share MODE] [--ci] [--confirm-untrack] [target repo]
 #
 # Skills: a kit skill is replaced only when the repo never edited it (its
 # fingerprint matches .agents/kit/skills.sum). An edited skill, or one the
@@ -9,6 +9,11 @@
 # .git/agent-kit/incoming/<skill>/ for the agent to merge. Skills listed in
 # OWN_SKILLS (.agents/agent-kit.conf) are never touched.
 #
+#   --maps own        the kit owns AGENTS.md and the pointer files (default)
+#   --maps beside     a team repo with its own AGENTS.md / CLAUDE.md: the kit's
+#                     maps are AGENTS.agentk.md, wired to each agent by local
+#                     files (wire.sh); nothing of yours is pushed and no team
+#                     file is touched. Forces --share none.
 #   --share agent     agent files pushed, learning docs local (default)
 #   --share all       agent files and learning docs pushed
 #   --share learning  learning docs pushed, agent files local
@@ -31,6 +36,7 @@ set -eu
 KIT=$(cd "$(dirname "$0")" && pwd)
 T="$KIT/templates"
 SHARE_ARG=""
+MAPS_ARG=""
 TARGET="."
 WANT_CI=no
 CONFIRM_UNTRACK=no
@@ -38,6 +44,8 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --share) SHARE_ARG=${2:-}; shift 2 ;;
     --share=*) SHARE_ARG=${1#--share=}; shift ;;
+    --maps) MAPS_ARG=${2:-}; shift 2 ;;
+    --maps=*) MAPS_ARG=${1#--maps=}; shift ;;
     --ci) WANT_CI=yes; shift ;;
     --confirm-untrack) CONFIRM_UNTRACK=yes; shift ;;
     *) TARGET=$1; shift ;;
@@ -47,6 +55,13 @@ case "$SHARE_ARG" in
   ""|agent|all|learning|none) ;;
   *) echo "agent-kit: --share must be agent, all, learning or none"; exit 1 ;;
 esac
+case "$MAPS_ARG" in
+  ""|own|beside) ;;
+  *) echo "agent-kit: --maps must be own or beside"; exit 1 ;;
+esac
+if [ "$MAPS_ARG" = beside ] && [ -n "$SHARE_ARG" ] && [ "$SHARE_ARG" != none ]; then
+  echo "agent-kit: --maps beside keeps your setup on this computer, so it needs --share none (or no --share)"; exit 1
+fi
 ROOT=$(git -C "$TARGET" rev-parse --show-toplevel 2>/dev/null) || {
   echo "agent-kit: $TARGET is not a git repository. Run: git init"; exit 1; }
 cd "$ROOT"
@@ -102,8 +117,15 @@ remove_legacy_rules() {  # rules written by kit 0.1 / 0.2 before blocks existed
 
 echo "agent-kit $NEW_VERSION -> $ROOT (installed before: $OLD_VERSION)"
 
+# Beside mode: the repo is the team's; the kit works next to its files.
+MAPS=$MAPS_ARG
+[ -n "$MAPS" ] || { [ -f .agents/agent-kit.conf ] && MAPS=$(conf MAPS); }
+MAPS=${MAPS:-own}
+tracked_any() { [ -n "$(git ls-files -- "$@" 2>/dev/null | head -1)" ]; }
+[ "$MAPS" = beside ] && say "beside mode: the team's AGENTS.md, CLAUDE.md and settings stay untouched; your setup stays on this computer"
+
 # Kit-owned: always replaced.
-mkdir -p .agents/kit .agents/skills .githooks
+mkdir -p .agents/kit .agents/skills
 cp "$T"/kit/*.sh "$T"/kit/*.py "$T"/kit/*.md .agents/kit/
 rm -f .agents/kit/writing-style.md  # renamed to writing-style.agentk.md in 0.6
 cp "$KIT/VERSION" .agents/kit/VERSION
@@ -113,7 +135,18 @@ say "updated .agents/kit/ (checks, hooks, helpers, writing style, VERSION)"
 # Git hooks: ours are replaced; someone else's are left for the agent to merge.
 PRE_LINE='sh "$(git rev-parse --show-toplevel)/.agents/kit/check.sh" --staged --quiet || exit 1'
 POST_LINE='sh "$(git rev-parse --show-toplevel)/.agents/kit/queue.sh" add HEAD || true'
-for hook in pre-commit post-commit; do
+HOOKS="pre-commit post-commit"
+[ "$MAPS" = beside ] && HOOKS="$HOOKS post-merge post-checkout"
+hooks_path=$(git config core.hooksPath || true)
+KIT_HOOKS=yes
+if [ "$MAPS" = beside ] && { tracked_any .githooks || { [ -n "$hooks_path" ] && [ "$hooks_path" != .githooks ]; } ||
+     [ -f .pre-commit-config.yaml ] || [ -f lefthook.yml ] || [ -f lefthook.yaml ] || [ -f .lefthook.yml ] || [ -d .husky ]; }; then
+  KIT_HOOKS=no  # the team's hook setup: adding to it would edit their files
+  note "the team has its own git hooks, so the kit adds none in beside mode. No pre-commit check runs here: run sh .agents/kit/check.sh before you push. The local wiring refreshes on the agent's Stop hook and with: sh .agents/kit/wire.sh"
+fi
+[ "$KIT_HOOKS" = yes ] && mkdir -p .githooks
+for hook in $HOOKS; do
+  [ "$KIT_HOOKS" = yes ] || break
   if [ ! -f ".githooks/$hook" ] || grep -q 'agents/kit/' ".githooks/$hook"; then
     cp "$T/githooks/$hook" ".githooks/$hook"
     chmod +x ".githooks/$hook"
@@ -123,7 +156,6 @@ for hook in pre-commit post-commit; do
     note ".githooks/$hook already exists: add the line  $line"
   fi
 done
-hooks_path=$(git config core.hooksPath || true)
 managers=""
 [ -f .pre-commit-config.yaml ] && managers="$managers pre-commit"
 for file in lefthook.yml lefthook.yaml .lefthook.yml; do [ -f "$file" ] && managers="$managers lefthook"; done
@@ -135,7 +167,7 @@ if [ -z "$hooks_path" ]; then
     case "$hook" in *.sample) ;; *) own_hooks="$own_hooks $(basename "$hook")" ;; esac
   done
 fi
-if [ "$hooks_path" = ".githooks" ]; then
+if [ "$KIT_HOOKS" = no ] || [ "$hooks_path" = ".githooks" ]; then
   :
 elif [ -z "$hooks_path" ] && [ -z "$managers$own_hooks" ]; then
   git config core.hooksPath .githooks
@@ -185,14 +217,24 @@ fi
 create_if_missing "$T/config/agent-kit.conf" .agents/agent-kit.conf || true
 grep -q '^OWN_SKILLS=' .agents/agent-kit.conf ||
   printf '\n# Skills the repo owns: the kit never replaces them, even if they share\n# a name with a kit skill (e.g. "lineage scaffold").\nOWN_SKILLS=""\n' >> .agents/agent-kit.conf
-create_if_missing "$T/config/codex-hooks.json" .codex/hooks.json || true
-if ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json; then
+[ -n "$MAPS_ARG" ] && set_conf MAPS "$MAPS"
+if [ "$MAPS" = beside ]; then
+  # Hooks go into the personal settings file; the team's files stay as they are.
+  if ! create_if_missing "$T/config/claude-settings.json" .claude/settings.local.json; then
+    grep -q 'agents/kit/stop-hook.sh' .claude/settings.local.json ||
+      note ".claude/settings.local.json exists: merge the SessionStart and Stop hooks from $T/config/claude-settings.json into it (never into the team's .claude/settings.json)"
+  fi
+else
+  create_if_missing "$T/config/codex-hooks.json" .codex/hooks.json || true
+fi
+if [ "$MAPS" = beside ]; then :
+elif ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json; then
   grep -q 'agents/kit/stop-hook.sh' .claude/settings.json ||
     note ".claude/settings.json exists: merge the Stop hook from $T/config/claude-settings.json (and remove any older docs hook)"
   grep -q 'agents/kit/session-start.sh' .claude/settings.json ||
     note ".claude/settings.json exists: merge the SessionStart hook from $T/config/claude-settings.json"
 fi
-grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
+[ "$MAPS" = beside ] || grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
 
 # Skills: replace only what the repo never edited.
@@ -243,13 +285,16 @@ say "recorded skill fingerprints in $SUMS"
 # Share mode: what may reach the remote.
 SHARE=$(conf SHARE)
 SHARE=${SHARE_ARG:-${SHARE:-agent}}
+[ "$MAPS" = beside ] && SHARE=none  # nothing of yours reaches the team's repo
 set_conf SHARE "$SHARE"
 case "$SHARE" in all|agent) SHARE_AGENT=yes ;; *) SHARE_AGENT=no ;; esac
 case "$SHARE" in all|learning) SHARE_LEARNING=yes ;; *) SHARE_LEARNING=no ;; esac
 say "share mode: $SHARE (agent files pushed: $SHARE_AGENT, learning docs pushed: $SHARE_LEARNING)"
 
 # .claude/skills: a link, or a copy where symlinks fail (Windows).
-if [ -d .claude/skills ] && [ ! -L .claude/skills ] && [ "$(conf SKILLS_LINK)" != "copy" ]; then
+if [ "$MAPS" = beside ] && [ -d .claude/skills ] && [ ! -L .claude/skills ]; then
+  sh .agents/kit/sync-skills.sh | sed 's/^/  /'  # beside the team's skills, one folder each
+elif [ -d .claude/skills ] && [ ! -L .claude/skills ] && [ "$(conf SKILLS_LINK)" != "copy" ]; then
   note ".claude/skills is a real folder: move its own skills into .agents/skills, then run: sh .agents/kit/sync-skills.sh"
 elif [ ! -L .claude/skills ]; then
   sh .agents/kit/sync-skills.sh | sed 's/^/  /'
@@ -265,10 +310,31 @@ LEDGER=$(conf LEDGER)
 DECISIONS_DIR=$(conf DECISIONS_DIR)
 DOC_SUFFIX=$(conf DOC_SUFFIX)
 KIT_MD=${DOC_SUFFIX:-.md}  # kit docs: README.agentk.md, DECISIONS.agentk.md (empty: kit 0.5 names)
-remove_legacy_rules
+[ "$MAPS" = beside ] || remove_legacy_rules
 local_rules=""
 shared_rules=""
-if [ "$SHARE_AGENT" = no ]; then
+if [ "$MAPS" = beside ]; then
+  # Exact paths, not whole folders: the team's own new files there must still show up.
+  local_rules="*${DOC_SUFFIX:-.agentk.md}
+CLAUDE.local.md
+AGENTS.override.md
+/.agents/
+/.claude/settings.local.json
+/.cursor/rules/agent-kit.mdc"
+  if [ -L .claude/skills ]; then local_rules="$local_rules
+/.claude/skills"
+  else
+    for skill in .agents/skills/*/; do
+      name=${skill%/}; name=${name##*/}
+      [ -f ".claude/skills/$name/.agent-kit" ] && local_rules="$local_rules
+/.claude/skills/$name/"
+    done
+  fi
+  [ "$KIT_HOOKS" = yes ] && ! tracked_any .githooks && local_rules="$local_rules
+/.githooks/"
+  [ -n "$LEARNING_DIR" ] && local_rules="$local_rules
+/$LEARNING_DIR/"
+elif [ "$SHARE_AGENT" = no ]; then
   local_rules="AGENTS.md"
   for pointer in $(conf POINTER_FILES); do local_rules="$local_rules
 $pointer"; done
@@ -297,7 +363,7 @@ if [ "$SHARE_AGENT" = yes ]; then
 .claude/*.local.*
 CLAUDE.local.md"
 fi
-if [ -n "$LEARNING_DIR" ] && [ "$SHARE_LEARNING" = no ]; then
+if [ "$MAPS" != beside ] && [ -n "$LEARNING_DIR" ] && [ "$SHARE_LEARNING" = no ]; then
   if [ "$SHARE_AGENT" = yes ]; then
     shared_rules="$shared_rules
 /$LEARNING_DIR/"
@@ -306,10 +372,12 @@ if [ -n "$LEARNING_DIR" ] && [ "$SHARE_LEARNING" = no ]; then
 /$LEARNING_DIR/"
   fi
 fi
-write_block .gitignore "$shared_rules"
+[ "$MAPS" = beside ] || write_block .gitignore "$shared_rules"
 write_block "$EXCLUDE" "$local_rules"
 lf_rules=$(grep -v '^#' "$T/config/gitattributes")
-if [ "$SHARE_AGENT" = yes ]; then
+if [ "$MAPS" = beside ]; then
+  write_block "$ATTRIBUTES" "$lf_rules"  # the team's .gitattributes stays as it is
+elif [ "$SHARE_AGENT" = yes ]; then
   write_block .gitattributes "$lf_rules"
   write_block "$ATTRIBUTES" ""
 else
@@ -326,7 +394,9 @@ for pointer in $(conf POINTER_FILES); do agent_paths="$agent_paths $pointer :(gl
 [ -n "$DECISIONS_DIR" ] && agent_paths="$agent_paths $DECISIONS_DIR"
 [ -n "$DOC_SUFFIX" ] && agent_paths="$agent_paths :(glob)**/*$DOC_SUFFIX"
 [ -n "$DOC_SUFFIX" ] && [ "$SHARE_LEARNING" = yes ] && [ -n "$LEARNING_DIR" ] && agent_paths="$agent_paths :(exclude)$LEARNING_DIR"
-if [ "$SHARE_AGENT" = no ]; then
+if [ "$MAPS" = beside ]; then
+  : # check.sh guards beside mode: it never suggests untracking the team's files
+elif [ "$SHARE_AGENT" = no ]; then
   set -f  # the pathspecs contain ** for git, not for the shell
   # shellcheck disable=SC2086  # pathspecs, one per word
   tracked=$(git ls-files -- $agent_paths | head -5 | tr '\n' ' ')
@@ -364,6 +434,12 @@ if [ "$WANT_CI" = yes ]; then
   else
     note "--ci skipped: mode $SHARE keeps the kit local, so CI has no check.sh to run"
   fi
+fi
+
+if [ "$MAPS" = beside ]; then
+  echo
+  echo "Local wiring (your maps -> each agent; sh .agents/kit/wire.sh --plan shows it):"
+  sh .agents/kit/wire.sh | sed 's/^/  /'
 fi
 
 if [ -n "$NOTES" ]; then

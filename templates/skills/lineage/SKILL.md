@@ -73,7 +73,10 @@ folder, question, scale (documents, questions, runs), outcome (a number, or
 
 ## 5. Update the maps
 
-Check each `AGENTS.md` the change touches, from the root down to the unit:
+Check each map the change touches, from the root down to the unit: the
+kit's `AGENTS.md`, or `AGENTS.agentk.md` in a team repo (`MAPS="beside"`,
+where the team's `AGENTS.md` is never edited and `sh .agents/kit/wire.sh`
+runs after a map changes):
 
 - add, move or remove map rows so every listed path exists;
 - add or reword an invariant the decision creates or ends;

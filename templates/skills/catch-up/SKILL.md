@@ -38,7 +38,8 @@ the comment or docstring from it."
 
 Show the proposal as a diff, in these parts:
 
-1. **Maps and kit detail docs** (`AGENTS.md`, `README.agentk.md`). Rows
+1. **Maps and kit detail docs** (`AGENTS.md`, or `AGENTS.agentk.md` in a
+   team repo; `README.agentk.md`). Rows
    for new or moved paths, changed commands, defaults, env vars and
    interfaces. Keep maps within their line limits.
 2. **Docstrings and comments** in the changed code, following the comment
