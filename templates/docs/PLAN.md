@@ -16,7 +16,7 @@ version.>
 | <name> | <one line> | <unit> (<HTTP / queue / events / files / calls>) |
 
 Each unit gets its folder and map (the `scaffold` skill) when work on it
-starts. The choices behind this plan are in `DECISIONS.md`.
+starts. The choices behind this plan are in `DECISIONS.agentk.md`.
 
 ## Open questions
 

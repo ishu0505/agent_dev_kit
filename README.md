@@ -13,16 +13,28 @@ repo of any language, on macOS, Linux and Windows. The HTML guide is
 
 ## What you get in a repo
 
+**Your Markdown files stay yours.** Every Markdown file the kit writes ends
+in `.agentk.md` (`README.agentk.md`, `DECISIONS.agentk.md`,
+`KIT.agentk.md`), so you can see at a glance what came from the kit. The kit
+never edits, renames or deletes your other Markdown files, such as
+`README.md` or `docs/*.md`: agents read them, and `docs-sync` reports when
+one no longer matches the code, with a sentence you can paste in. Four
+names keep no suffix, because agents load them only by these exact names:
+`AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `SKILL.md`. The ending is
+`DOC_SUFFIX` in `.agents/agent-kit.conf`.
+
 | Part | Where | What it does |
 |---|---|---|
 | Maps | `AGENTS.md` in the root, and in each unit past a size threshold | Short pages: what is where, rules, how to run. An agent loads the root map and the maps on the path to the folder it works in, nothing else |
+| Detail docs | `README.agentk.md` beside each unit map | The detail a map points to. Your own `README.md` in the same folder is linked, never changed |
+| Command card | `KIT.agentk.md` at the root | How to use the kit in this repo. Your root `README.md` is not changed |
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
-| Lineage | `DECISIONS.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Every decision with why, alternatives, evidence, and what would reverse it |
-| Plan | `PLAN.md` (new projects) | The goal, the first milestone, the planned units |
+| Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Every decision with why, alternatives, evidence, and what would reverse it |
+| Plan | `PLAN.agentk.md` (new projects) | The goal, the first milestone, the planned units |
 | Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff` |
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
-| Writing style | `.agents/kit/writing-style.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
+| Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
 | Config | `.agents/agent-kit.conf` | Which folders are units, map thresholds, line limits, pointer files, interface files |
 | Learning docs | `learning_docs/` | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Refreshed at the end of a task. Local or pushed, by share mode |
 
@@ -38,8 +50,8 @@ You pick one when you set a repo up. The agent asks.
 | `none` | local | local | Nothing about agents or learning docs may reach the remote |
 
 **Agent files** are every `AGENTS.md` and pointer file (`CLAUDE.md`),
-`DECISIONS.md`, `PLAN.md`, the experiment ledger, and the folders `.agents/`,
-`.claude/`, `.codex/`, `.githooks/`.
+every file ending in `.agentk.md` outside the learning docs, and the
+folders `.agents/`, `.claude/`, `.codex/`, `.githooks/`.
 
 How it works:
 
@@ -74,7 +86,7 @@ pulls it. Use `--share agent` or `all` if the team should keep them; add
 - **Unit**: a folder you work inside as a whole: a service, a package, an
   app, an experiment. A unit with at least `MAP_MIN_FILES` code files
   (default 15) or `MAP_MIN_LINES` code lines (default 1500) gets a
-  `README.md` and an `AGENTS.md`; a smaller one is a row in a map.
+  `README.agentk.md` and an `AGENTS.md`; a smaller one is a row in a map.
 - **Map**: an `AGENTS.md` file. It points to detail; it does not hold it.
 - **Skill**: a `SKILL.md` file of instructions an agent follows when you
   name it (`docs-sync check`).
@@ -149,14 +161,29 @@ using it: fork it, or clone it and push it to your own GitHub repo.
    - any other agent: `Read ~/agent_dev_kit/BOOTSTRAP.md and follow it.`
 
 3. The agent sees an empty repo and says "case B, new project". Confirm.
-4. Answer its questions one at a time: the goal, the first milestone, the
-   stack, the planned units, the constraints, and the **share mode**
-   (`agent`, `all`, `learning` or `none`; see "Share modes"). "Not decided
-   yet" is a fine answer; it is recorded as an open question. To skip that
-   question, say it up front: `/agent-kit setup, share mode none`.
+4. Answer its questions, one at a time: the goal, the first milestone, the
+   stack, the planned parts, the constraints, and what may go to GitHub
+   (the **share mode**; see "Share modes"). Each question is in plain words
+   and comes with choices, so you mostly pick a number:
+
+   ```
+   Which coding agents do you use here?
+     1. Claude Code only (recommended: I found .claude/ and no other agent)
+     2. Claude Code and Codex
+     3. Claude Code, plus Gemini CLI or Antigravity
+     4. Something else: type your own answer
+   ```
+
+   Claude Code shows these as a choice box; Codex, Gemini CLI and other
+   agents print a numbered list. The last choice is always your own words.
+   "Not decided yet" is recorded as an open question. The first question
+   also offers "use your proposed answers for everything", which jumps to
+   the summary. To skip a question, say it up front:
+   `/agent-kit setup, share mode none`.
 5. Read the file list it proposes and say OK.
-6. It runs `install.sh`, then writes `PLAN.md`, `DECISIONS.md`, the root
-   `AGENTS.md` and the README section, and runs the checks.
+6. It runs `install.sh`, then writes `PLAN.agentk.md`,
+   `DECISIONS.agentk.md`, the root `AGENTS.md` and `KIT.agentk.md`, and runs
+   the checks.
 7. Review the changes, then commit them yourself (or ask the agent to).
 
 Later, when you start a unit (say `services/api/`), ask for `scaffold`; the
@@ -168,10 +195,14 @@ unit gets its map, and `check.sh` stays green.
 2. Type `agent-kit setup` (`/agent-kit setup` in Claude Code).
 3. The agent reads the code and build files and reports, in under 30 lines,
    the units, commands and conventions it found. Confirm it says "case A".
-4. Answer its questions; each one comes with a proposed answer you can
-   accept. One is the share mode (see "Share modes").
-5. Approve the file list. It installs the kit and writes the maps, the
-   config and the first decisions.
+4. Answer its questions: each has the agent's proposed answer first, a few
+   other choices, and "type your own" last. One is the share mode (see
+   "Share modes"); one confirms that the kit names its own files
+   `*.agentk.md` and leaves your `README.md` files alone.
+5. Approve the file list and the settings table (each setting with your
+   answer and what it means in plain words). It installs the kit and
+   writes the maps, the kit's detail docs, the config and the first
+   decisions. None of your existing files change.
 6. It asks whether to write learning docs now. Say "overview only" for a
    quick start, or "all" for every unit and flow.
 7. Review and commit. Files the share mode keeps local never show up in
@@ -187,7 +218,13 @@ unit gets its map, and `check.sh` stays green.
    runs `install.sh`. Your config, maps, decisions and settings stay byte
    for byte. Skills are handled as in "Your skills are safe".
 4. It lists anything partial or missing and asks only about that.
-5. Review the changes and commit.
+5. **From kit 0.5 or older**, the kit's files still have plain names
+   (`DECISIONS.md`, a unit's `README.md`). Nothing breaks: the old names
+   keep working. The agent lists the kit's files, asks you which unit
+   `README.md` files the kit wrote and which are yours, and offers to rename
+   the kit's files to `*.agentk.md` (with `git mv`, so history follows).
+   Say no, and it keeps the old names.
+6. Review the changes and commit.
 
 ## Your skills are safe
 
@@ -234,14 +271,15 @@ the agent tidies the repo with you. Run it on its own any time:
    ```
 
 2. **Proposal.** For each file the agent proposes **keep**, **merge** (into
-   `AGENTS.md` or `DECISIONS.md`, then remove), **own** (a skill that goes
+   `AGENTS.md` or `DECISIONS.agentk.md`, then remove; only for agent files,
+   never your docs), **own** (a skill that goes
    into `OWN_SKILLS`), **remove**, or **leave alone** (data and generated
    output, one answer per folder), with a reason.
 3. **One group at a time.** You answer each group; you can change any
    action. No existing skill is touched without your yes.
 4. **Apply.** Only what you approved. Tracked files go with `git rm`, so
    they can come back from history. Nothing is committed.
-5. **Record.** One `DECISIONS.md` entry lists what was kept, merged and
+5. **Record.** One decision lists what was kept, merged and
    removed, and why.
 
 ## 4b. Move a repo with a hand-made setup onto the kit

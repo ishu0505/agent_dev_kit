@@ -25,15 +25,22 @@ scope `all`). It lists each doc whose **anchors** changed, with the files:
 
 - a map: the paths it names (a named folder counts only when a file in it
   is added, removed or renamed);
-- a README: the paths in its `<!-- agent-kit: source_paths ... -->` line,
-  else its folder;
+- a detail doc (`README.agentk.md`) or a README people wrote
+  (`README.md`): the paths in its `<!-- agent-kit: source_paths ... -->`
+  line, else its folder;
 - a learning doc: its `source_paths` since its `source_commit`;
 - an accepted decision: its `source_paths` (with `DECISIONS_DIR`).
 
 Only these docs are read in step 3. For a unit path, keep the docs inside
 it. With `DECISIONS_DIR` empty, also read each `accepted` entry of
-`DECISIONS.md` that names a changed file. When a README has no anchor line
-and keeps showing up for unrelated changes, propose one.
+the decision index that names a changed file. When a kit detail doc has no
+anchor line and keeps showing up for unrelated changes, add one in `fix`
+mode.
+
+The third column says who owns each doc: `kit` (the kit wrote it: maps,
+pointer files, files ending in `.agentk.md`) or `yours` (people wrote it).
+Read both. Fix only `kit` docs; see `.agents/kit/writing-style.agentk.md`,
+"Which files you may edit".
 
 ## 3. Read and compare
 
@@ -52,10 +59,17 @@ A claim you cannot confirm or refute is "unverified", not "wrong".
 
 ## 4. Report
 
-One table, grouped by unit:
+Two tables, each grouped by unit:
+
+**Kit docs** (`fix` mode changes these):
 
 | Doc | Claim | What the code does | Evidence | Proposed fix |
 |---|---|---|---|---|
+
+**Your docs: report only** (the people fix these themselves):
+
+| Doc | Line | Says | What the code does | Evidence | Sentence to paste |
+|---|---|---|---|---|---|
 
 Evidence is `file:line`. End with: docs checked, docs in sync, docs with
 drift, unverified claims. In `check` mode, stop here and change nothing.
@@ -67,8 +81,11 @@ drift, unverified claims. In `check` mode, stop here and change nothing.
   silently. Ask the user: was the code change intended? If yes, record a new
   decision with the `lineage` skill and update the invariant. If no, it is a
   bug: leave the doc, and report the bug.
-- Rewrite stale map lines and README sections by
-  `.agents/kit/writing-style.md`. Keep maps within their line limits.
+- Rewrite stale map lines and kit detail docs (`README.agentk.md`) by
+  `.agents/kit/writing-style.agentk.md`. Keep maps within their line limits.
+- **Never edit a `yours` doc** (`README.md`, `CONTRIBUTING.md`, `docs/*.md`
+  and other Markdown the kit did not write). Leave its rows in the "Your
+  docs" table for the people to fix.
 - Refresh stale learning docs with the `learning-docs` skill (it updates
   each `source_commit`).
 - Run `sh .agents/kit/check.sh` again and show that it passes. Report every

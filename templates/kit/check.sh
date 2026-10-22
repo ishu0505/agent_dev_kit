@@ -63,6 +63,7 @@ CHECK_ENV=""
 RUN_COMMANDS_MAPS=""
 LEDGER=""
 DECISIONS_DIR=""
+DOC_SUFFIX=""
 LEARNING_DIR="learning_docs"
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 CONF=".agents/agent-kit.conf"
@@ -73,6 +74,12 @@ else
   echo "     fix: run agent_dev_kit/install.sh on this repo"
   exit 1
 fi
+# Every Markdown file the kit writes ends in DOC_SUFFIX (".agentk.md");
+# empty means the plain names of kit 0.5 and older (README.md, DECISIONS.md).
+KIT_MD=${DOC_SUFFIX:-.md}
+UNIT_DOC="README$KIT_MD"
+DECISIONS_INDEX="DECISIONS$KIT_MD"
+PLAN_DOC="PLAN$KIT_MD"
 # File extensions that make a word in backticks look like a path.
 DOC_EXTENSIONS="md txt json yaml yml toml lock cfg ini conf env html css scss xml csv proto sql sh ps1 bat mk gradle"
 TAB=$(printf '\t')
@@ -239,7 +246,7 @@ check_map() {  # check_map <map> <max lines>
   own=$(yes_if is_changed "$map")
   lines=$(wc -l < "$map" | tr -d ' ')
   [ "$lines" -le "$2" ] || report "$own" "$map has $lines lines (max $2)" \
-    "move detail into the README it points to; keep the map"
+    "move detail into $UNIT_DOC (or the doc it points to); keep the map"
   map_tokens "$map" > "$TMP_TOKENS"
   while IFS="$TAB" read -r kind line word; do
     path=${word%/}
@@ -363,7 +370,7 @@ check_maps() {
   for unit in $units; do
     inside=$(yes_if changed_under "$unit")
     if needs_map "$unit"; then
-      for needed in README.md AGENTS.md; do
+      for needed in "$UNIT_DOC" AGENTS.md; do
         [ -f "$unit/$needed" ] || report "$inside" "$unit has no $needed" \
           "create it with the scaffold skill (or add $unit to MAP_EXEMPT in $CONF)"
       done
@@ -401,10 +408,14 @@ check_skills() {
 }
 
 agent_paths() {  # pathspecs of every agent file: maps, pointers, lineage, kit folders
-  printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' DECISIONS.md PLAN.md .agents .claude .codex .githooks
+  printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' "$DECISIONS_INDEX" "$PLAN_DOC" .agents .claude .codex .githooks
   for pointer in $POINTER_FILES; do printf '%s\n' "$pointer" ":(glob)**/$pointer"; done
   [ -z "$LEDGER" ] || printf '%s\n' "$LEDGER"
   [ -z "$DECISIONS_DIR" ] || printf '%s\n' "$DECISIONS_DIR"
+  if [ -n "$DOC_SUFFIX" ]; then  # every kit doc, wherever it is
+    printf '%s\n' ":(glob)**/*$DOC_SUFFIX"
+    [ "$SHARE" = learning ] && [ -n "$LEARNING_DIR" ] && printf '%s\n' ":(exclude)$LEARNING_DIR"
+  fi
 }
 
 check_share_mode() {  # files reach the remote only when SHARE allows it
@@ -510,12 +521,12 @@ check_ledger() {  # every folder beside the ledger has a row with an outcome
   done
 }
 
-check_decisions() {  # one file per decision, and DECISIONS.md lists each with its status
+check_decisions() {  # one file per decision, and the index lists each with its status
   [ -n "$DECISIONS_DIR" ] || return
-  caused=$(yes_if is_changed DECISIONS.md); changed_under "${DECISIONS_DIR%/}" && caused=yes
-  [ -f DECISIONS.md ] || ls "${DECISIONS_DIR%/}"/D-*.md >/dev/null 2>&1 || return
-  if [ ! -f DECISIONS.md ]; then
-    report "$caused" "DECISIONS.md (the index of $DECISIONS_DIR/) is missing" \
+  caused=$(yes_if is_changed "$DECISIONS_INDEX"); changed_under "${DECISIONS_DIR%/}" && caused=yes
+  [ -f "$DECISIONS_INDEX" ] || ls "${DECISIONS_DIR%/}"/D-*.md >/dev/null 2>&1 || return
+  if [ ! -f "$DECISIONS_INDEX" ]; then
+    report "$caused" "$DECISIONS_INDEX (the index of $DECISIONS_DIR/) is missing" \
       "create it from agent_dev_kit/templates/docs/DECISIONS.md"
     return
   fi
@@ -526,7 +537,7 @@ check_decisions() {  # one file per decision, and DECISIONS.md lists each with i
       n = split($0, cells, "|")
       if (!col) { for (i = 2; i < n; i++) if (trim(cells[i]) == "Status") col = i; next }
       if (match(cells[2], /D-[0-9]+/)) print substr(cells[2], RSTART, RLENGTH) "\t" trim(cells[col])
-    }' DECISIONS.md)
+    }' "$DECISIONS_INDEX")
   ids=""
   for file in "${DECISIONS_DIR%/}"/D-*.md; do
     [ -f "$file" ] || continue
@@ -535,9 +546,9 @@ check_decisions() {  # one file per decision, and DECISIONS.md lists each with i
     status=$(sed -n 's/^status:[[:blank:]]*//p' "$file" | head -1 | tr -d '\r')
     row=$(printf '%s\n' "$index" | awk -F "$TAB" -v i="$id" '$1 == i { print $2; found = 1; exit } END { if (!found) print "<no row>" }')
     if [ "$row" = "<no row>" ]; then
-      report "$caused" "$id ($file) has no row in DECISIONS.md" "add: | [$id]($file) | <decision> | $status | <date> |"
+      report "$caused" "$id ($file) has no row in $DECISIONS_INDEX" "add: | [$id]($file) | <decision> | $status | <date> |"
     elif [ "$row" != "$status" ]; then
-      report "$caused" "$id is \"$status\" in $file but \"$row\" in DECISIONS.md" "make the index row match the file"
+      report "$caused" "$id is \"$status\" in $file but \"$row\" in $DECISIONS_INDEX" "make the index row match the file"
     fi
     case "$status" in
       "superseded by "*) target=${status#superseded by }
@@ -547,9 +558,31 @@ check_decisions() {  # one file per decision, and DECISIONS.md lists each with i
   done
   for id in $(printf '%s\n' "$index" | cut -f1); do
     case " $ids " in *" $id "*) ;; *)
-      report "$caused" "DECISIONS.md lists $id, but $DECISIONS_DIR/ has no $id-*.md" "write the file or remove the row" ;;
+      report "$caused" "$DECISIONS_INDEX lists $id, but $DECISIONS_DIR/ has no $id-*.md" "write the file or remove the row" ;;
     esac
   done
+}
+
+check_fixed_names() {  # maps, pointers and skills keep their exact names
+  [ -n "$DOC_SUFFIX" ] || return
+  fixed="AGENTS SKILL"
+  for pointer in $POINTER_FILES; do fixed="$fixed ${pointer%.md}"; done
+  if [ -n "$SCOPE" ]; then
+    printf '%s\n' "$CHANGED" > "$TMP/candidates"
+  else
+    set -- -name '.?*' -o -name '_*'
+    for skip in $SKIP_DIRS; do set -- "$@" -o -name "$skip"; done
+    find . -type d \( "$@" \) -prune -o -type f -name "*$DOC_SUFFIX" -print | sed 's|^\./||' > "$TMP/candidates"
+    find .agents/skills -type f -name "*$DOC_SUFFIX" 2>/dev/null >> "$TMP/candidates"
+  fi
+  while IFS= read -r file; do
+    base=${file##*/}
+    for name in $fixed; do
+      [ "$base" = "$name$DOC_SUFFIX" ] || continue
+      report "$(yes_if is_changed "$file")" "$file must keep its exact name: agents load only $name.md" \
+        "rename it: git mv $file $(dirname "$file")/$name.md"
+    done
+  done < "$TMP/candidates"
 }
 
 run_commands() {  # the ## Run and ## Check blocks of RUN_COMMANDS_MAPS succeed
@@ -598,6 +631,7 @@ check_portability
 check_learning_docs
 check_ledger
 check_decisions
+check_fixed_names
 run_commands
 notes
 

@@ -1,8 +1,13 @@
-## Agent context
+# Using the agent kit in this repo
 
-This repo uses [agent_dev_kit](<kit url>): `AGENTS.md` maps for coding
-agents, `DECISIONS.md` for the reason behind each choice, skills in
-`.agents/skills/`, and checks that keep the docs true.
+This repo uses [agent_dev_kit](<kit url>). It gives coding agents short
+maps (`AGENTS.md`), keeps the reason behind each choice
+(`DECISIONS.agentk.md`), and checks that the docs stay true.
+
+Every Markdown file the kit writes ends in `.agentk.md`, except `AGENTS.md`,
+`CLAUDE.md` and `GEMINI.md`, which agents need by those exact names. The kit
+never edits your other Markdown files, such as `README.md`: it reads them,
+and tells you when one no longer matches the code.
 
 | Situation | Do this |
 |---|---|

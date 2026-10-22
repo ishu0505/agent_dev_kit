@@ -10,8 +10,8 @@ shell edits, subagents and every agent are covered, and:
    problems those files cause;
 3. asks for the docs step once per file, and only when a changed code file
    is named in a map, is an interface file (INTERFACE_GLOBS), or was added or
-   removed in a folder a map names; an edit to an AGENTS.md or README.md
-   above the file satisfies it;
+   removed in a folder a map names; an edit to an AGENTS.md, the kit's
+   detail doc (README.agentk.md) or a README.md above the file satisfies it;
 4. records learning docs whose `source_paths` changed in
    `.git/agent-kit/stale-learning` for the wrap-up skill; never blocks for it.
 
@@ -38,8 +38,9 @@ CHECKS_FAILING = (
 )
 REMINDER = (
     "Docs step: this turn changed code that the docs describe:\n{items}\n"
-    "Update the map or README named above in the same change, and run the lineage skill "
-    "for a decision. If no doc needs to change, say so in one line."
+    "Update the map or {unit_doc} named above in the same change (never a Markdown file the "
+    "kit did not write), and run the lineage skill for a decision. If no doc needs to change, "
+    "say so in one line."
 )
 
 
@@ -149,9 +150,14 @@ def skipped(path: str, config: dict[str, str]) -> bool:
     return any(part in names or part[:1] in (".", "_") for part in path.split("/")[:-1])
 
 
-def is_doc_for(doc: str, path: str) -> bool:
-    """An AGENTS.md or README.md in the path's folder or a folder above it."""
-    if posixpath.basename(doc) not in ("AGENTS.md", "README.md"):
+def unit_doc(config: dict[str, str]) -> str:
+    """The kit's detail doc in each unit: README.agentk.md, or README.md before kit 0.6."""
+    return "README" + (config.get("DOC_SUFFIX") or ".md")
+
+
+def is_doc_for(doc: str, path: str, config: dict[str, str]) -> bool:
+    """A map, kit detail doc or README.md in the path's folder or a folder above it."""
+    if posixpath.basename(doc) not in ("AGENTS.md", "README.md", unit_doc(config)):
         return False
     folder = posixpath.dirname(doc)
     return not folder or path.startswith(folder + "/")
@@ -197,7 +203,7 @@ def docs_items(repo: Path, config: dict[str, str], changes: dict[str, str], remi
     code = sorted(path for path in changes
                   if not path.endswith(".md") and not skipped(path, config) and path not in reminded)
     docs = [path for path in changes if path.endswith(".md")]
-    code = [path for path in code if not any(is_doc_for(doc, path) for doc in docs)]
+    code = [path for path in code if not any(is_doc_for(doc, path, config) for doc in docs)]
     if not code:
         return []
     anchors = map_anchors(repo, code)
@@ -216,7 +222,7 @@ def docs_items(repo: Path, config: dict[str, str], changes: dict[str, str], remi
                 break
         if not reason and any(fnmatch.fnmatch(path, glob) or fnmatch.fnmatch(posixpath.basename(path), glob)
                               for glob in interface):
-            reason = f"`{path}` is an interface file (INTERFACE_GLOBS); check the README that documents it"
+            reason = f"`{path}` is an interface file (INTERFACE_GLOBS); check the {unit_doc(config)} that documents it"
         if reason:
             items.append((path, reason))
     reminded.update(path for path, _ in items)
@@ -292,7 +298,8 @@ def main(argv: list[str]) -> None:
     items = docs_items(repo, config, changes, reminded)
     state_file.write_text(json.dumps({"snapshot": now, "reminded": sorted(reminded)}))
     if items:
-        print(json.dumps({"decision": "block", "reason": REMINDER.format(items="\n".join(items))}))
+        print(json.dumps({"decision": "block", "reason": REMINDER.format(
+            items="\n".join(items), unit_doc=unit_doc(config))}))
 
 
 if __name__ == "__main__":

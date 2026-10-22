@@ -10,7 +10,8 @@ Priorities, in this order when they conflict: **<first>**, **<second>**,
 | Path | What | Read first |
 |---|---|---|
 | `<folder>/` | <one line> | `<folder>/AGENTS.md` |
-| `DECISIONS.md` | Every decision, its reason and its evidence | |
+| `DECISIONS.agentk.md` | Every decision, its reason and its evidence | |
+| `KIT.agentk.md` | How to use the agent kit here | |
 
 Before you work in a folder, read the `AGENTS.md` maps on the path to it.
 Read nothing else until the task needs it.
@@ -32,6 +33,9 @@ Read nothing else until the task needs it.
 ## Docs
 
 - A map points to detail; it does not hold it. Keep it short.
+- Write only kit docs: `AGENTS.md`, pointer files, and files ending in
+  `.agentk.md`. Every other Markdown file belongs to the people here: read
+  it, report drift in it, never edit it.
 - At the end of every task, and before a pull request, run the `wrap-up`
   skill. Other skills (`lineage`, `scaffold`, `catch-up`, `explain-diff`)
   are in `.agents/skills/`.
