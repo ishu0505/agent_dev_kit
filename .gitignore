@@ -1,2 +1,8 @@
 __pycache__/
 .DS_Store
+# >>> agent-kit (managed by install.sh; edit SHARE in .agents/agent-kit.conf)
+.claude/settings.local.json
+.claude/*.local.*
+CLAUDE.local.md
+/learning_docs/
+# <<< agent-kit
