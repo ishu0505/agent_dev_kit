@@ -37,6 +37,8 @@ names keep no suffix, because agents load them only by these exact names:
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
 | Config | `.agents/agent-kit.conf` | Which folders are units, map thresholds, line limits, pointer files, interface files |
 | Learning docs | `learning_docs/` | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Refreshed at the end of a task. Local or pushed, by share mode |
+| Warning rows | Optional sections in any map: "Do not read unless asked", "Lookalikes", "Hidden links" | Short facts you confirmed: what to skip, which folder only looks right, and which change breaks a file far away in a way search does not show. `candidates.sh` proposes rows; it never writes them |
+| Task files | `.agents/work/<name>.agentk.md`, never committed | Notes for one long task (goal, findings, decisions, plan, next step), so a fresh session continues from the file, not the chat. `wrap-up` moves what stays true into the maps and decisions, then deletes it |
 
 ## A team repo that already has AGENTS.md or CLAUDE.md
 
@@ -362,6 +364,8 @@ mode.
 | Commit with no docs needed | put `[no-docs]` in the message | The commit stays out of the catch-up queue |
 | Tidy agent and doc files | `agent-kit cleanup` | Inventory, then one question per group; nothing removed without your yes |
 | Edit a repo skill | edit it in `.agents/skills/` | In copy mode, then run `sh .agents/kit/sync-skills.sh` |
+| Work on a long task | ask for the task; the agent opens a task file | It opens one when the work spans sessions or parts, needs your OK on a plan, or is an investigation to keep; say "no task file" to skip. `sh .agents/kit/task.sh list` shows open tasks |
+| Find what agents should skip | `sh .agents/kit/candidates.sh [folder]` | No AI, read only. Test data, generated code, big data files, old copies. You confirm each row before it goes in a map |
 
 ### How to see and call skills in each agent
 
@@ -407,6 +411,40 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
 - **In CI** (`install.sh --ci`): `check.sh --ci`, and on a pull request
   `--since <base>`, so the branch is judged on its own changes.
 - **At the end of a task**: the root map tells the agent to run `wrap-up`.
+- **Hidden links**: when a turn changes the first file of a map's "Hidden
+  links" row and not the second, the Stop hook names the second file once
+  per session, so the agent checks it in the same task.
+- **Task files**: the session start names open task files. When a turn
+  changes code and the active task file of the branch was not updated in
+  this session, the Stop hook asks once to update it.
+
+### Task files: when, and what happens to them
+
+- **When.** The agent decides with one rule from the root map, and tells
+  you: the work will take more than one session, changes more than one part,
+  needs your OK on a plan, or is an investigation whose findings you want to
+  keep. Small fixes, questions and doc fixes get no task file. You can always
+  say "make a task file" or "no task file".
+- **While working.** After each step the agent updates Found, Decisions,
+  Done and Next. A new session, or another agent, continues from the file.
+- **Several tasks.** One file per task; each records its branch. When two
+  tasks change the same code, give each its own git worktree.
+- **At the end.** `wrap-up` offers `lineage` for lasting decisions,
+  proposes the map rows the task taught (each needs your yes), then deletes
+  the file, or keeps it paused if steps remain.
+
+### How to measure whether it helps
+
+The research on context files is mixed: short facts written by people help a
+little, and long text written by an AI can make agents worse. So measure in
+your own repo:
+
+1. Pick two or three real tasks with a known correct result.
+2. Run each with the kit as it is; note whether the result was right, and
+   its cost (Claude Code: `/cost`).
+3. Add the warning rows and use task files.
+4. Run the same tasks again, from a fresh session each time.
+5. Keep the rows that helped; remove the ones that did not.
 
 ## 6b. A folder of several repos (a workspace)
 
@@ -466,3 +504,7 @@ folder and set the folder up as a workspace. In that folder, say:
   only the pre-commit check is guaranteed there.
 - `docs-sync` and `learning-docs` are agent work; their quality depends on
   the agent reading the code. The checks are the part that is guaranteed.
+- Warning rows are only as true as the facts you confirmed. `check.sh`
+  catches a path that is gone; `docs-sync` asks whether an old folder is in
+  use again. Hidden links are never guessed: models predict what a change
+  breaks poorly from code alone, so the kit keeps only links people know.

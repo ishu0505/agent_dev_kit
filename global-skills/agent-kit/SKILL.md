@@ -39,7 +39,8 @@ Then:
   people since the docs were last checked (`sh .agents/kit/pulled.sh status`,
   offer `docs-sync` with scope `pulled`); stale learning docs
   (`$(git rev-parse --git-common-dir)/agent-kit/stale-learning`); docs
-  whose code changed (`sh .agents/kit/stale.sh`); and in a team repo the
+  whose code changed (`sh .agents/kit/stale.sh`); open task files
+  (`sh .agents/kit/task.sh list`); and in a team repo the
   per-agent wiring (`sh .agents/kit/wire.sh --plan`). Change nothing.
 - **wire** (team repo, `MAPS="beside"`): show `sh .agents/kit/wire.sh --plan`,
   then apply it after the user's yes (`sh .agents/kit/wire.sh`), including

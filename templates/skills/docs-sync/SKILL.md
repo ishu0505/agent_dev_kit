@@ -60,7 +60,11 @@ List every claim that is now false:
 - interfaces: function names, routes, message fields, CLI flags;
 - flow steps in learning docs (does each named function still do that?);
 - invariants: search for a violation (e.g. a provider SDK imported outside
-  the one module allowed to call it).
+  the one module allowed to call it);
+- a map's warning rows: a "Do not read unless asked" or "Lookalikes" path
+  that live code now imports or calls (the folder is in use again), and a
+  "Hidden links" row whose link the code no longer has (grep for the key or
+  name the row gives). `check.sh` already catches a path that is gone.
 
 A claim you cannot confirm or refute is "unverified", not "wrong".
 

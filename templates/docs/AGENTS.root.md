@@ -24,6 +24,22 @@ Read nothing else until the task needs it.
 
 - <rules a change must never break, each with the one place it lives>
 
+<!-- Optional, rows the user confirmed, at most five each; delete if empty. -->
+## Do not read unless asked
+- `<path>` — <generated / old copy / test data>
+## Lookalikes
+- `<right path>`, not `<wrong path>` — <how to tell them apart>
+## Hidden links
+- `<path>` → `<path>` — <a link search cannot find; never a normal import>
+
+## Tasks
+
+- Open a task file (`sh .agents/kit/task.sh new <name>`) when the work spans
+  sessions or units, needs my OK on a plan, or is an investigation to keep.
+  Tell me; I can say no. Small fixes, questions, doc fixes: no task file.
+- After each step, update its Found, Decisions, Done and Next. Continue a
+  task only from its file.
+
 ## Check
 
 ```bash

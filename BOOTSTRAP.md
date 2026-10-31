@@ -103,6 +103,12 @@ Then look at the repo, tell me which case you see and wait for my OK:
   offer to restore it with `git checkout <commit> -- <file>`. Then run
   `install.sh --maps beside` and commit only the restored team files, after
   my yes.
+- **Case C from kit 0.8 or older** (no `.agents/kit/task.sh` before the
+  install): the install adds task files and the candidate list. Offer once,
+  with choices: add the "Tasks" block from `KIT/templates/docs/AGENTS.root.md`
+  (or `AGENTS.beside.md`) to the root map (recommended), and run interview
+  question 10 for the warning rows (recommended), or skip. Change nothing
+  else in the maps.
 - **Case C from kit 0.5 or older** (`DOC_SUFFIX` is missing from
   `.agents/agent-kit.conf`): the kit's files still have plain names. List
   them: `DECISIONS.md`, the decision files, `PLAN.md`, the ledger, the
@@ -138,6 +144,10 @@ clean.
 - Find the real commands for build, run, test, lint and format.
 - Note conventions (naming, layout, errors, tests) and invariants (one
   place that does X, generated files, migrations, contracts).
+- Run `sh KIT/templates/kit/candidates.sh .` (read only). It lists folders
+  and files that look like test data, generated code, or an old copy of
+  another folder. Keep the list for interview question 10; do not trust it
+  without my answer.
 
 Report in under 30 lines: units, commands, conventions, existing docs,
 unclear points.
@@ -264,7 +274,15 @@ Every case:
    Choices include "none". (Sets `LEDGER`.)
 9. **Learning docs** (lessons for people, with quizzes): who reads them,
    which flows matter most, which parts first. Choices include "later".
-10. **Folders agents must never edit**: generated code, vendored code, data.
+10. **Folders agents must never edit, and traps.** Generated code,
+    vendored code, data. Then show the `candidates.sh` list as a table
+    with your proposal for each row: "do not read unless asked",
+    "lookalike of `<live folder>`", or "not a trap". Then ask once: "Does
+    a change anywhere break a file far away in a way a search does not
+    show (a config key, a name written as text, a file another language
+    reads)?" Each confirmed row goes in the optional "Do not read unless
+    asked", "Lookalikes" or "Hidden links" section of the nearest map, at
+    most five rows a section. Write no row I did not confirm.
 11. **What may go to GitHub.** Show this table and recommend one:
 
     | Choice | Agent files (maps, kit docs, settings) | Learning docs |
@@ -348,7 +366,10 @@ Show three things and wait for my approval:
    needs one, then each unit with the `scaffold` skill
    (`KIT/templates/docs/AGENTS.unit.md`, at most `UNIT_MAP_MAX` lines). One
    pointer file per `POINTER_FILES` entry beside every map, containing only
-   `@AGENTS.md`. Map only paths that exist.
+   `@AGENTS.md`. Map only paths that exist. Write the optional warning
+   sections ("Do not read unless asked", "Lookalikes", "Hidden links") only
+   with rows I confirmed in question 10, and leave out a section with no
+   rows. Keep the root map's "Tasks" block.
 4. **Lineage**: `DECISIONS.agentk.md` from `KIT/templates/docs/DECISIONS.md` (the
    index), and one file per decision from `KIT/templates/docs/decision.md`
    in `DECISIONS_DIR`, seeded with the decisions from the interview (write
@@ -412,9 +433,10 @@ backticks, and `check.sh` checks every one that looks like a path.
 - Ask me whether to write the learning docs now (all, overview only, or
   later), and if yes run the `learning-docs` skill.
 - Run `docs-sync check` once and show its report.
-- Show me how the work flows from now on, in four lines: maps load only for
-  the folder an agent works in; `wrap-up` ends every task; `catch-up` handles
-  code written by hand; `explain-diff` goes into each pull request.
+- Show me how the work flows from now on, in five lines: maps load only for
+  the folder an agent works in; a long task keeps its notes in a task file
+  (`.agents/work/`, never committed); `wrap-up` ends every task; `catch-up`
+  handles code written by hand; `explain-diff` goes into each pull request.
 - In a team repo, show the per-agent report from
   `sh .agents/kit/wire.sh --plan`: each agent, whether it loads my map and
   the team's files, and any limit (with the fallback applied).

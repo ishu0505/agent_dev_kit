@@ -27,8 +27,15 @@ and tells you when one no longer matches the code.
 | Which docs may be stale? | `sh .agents/kit/stale.sh` (read only) |
 | A commit that needs no docs | put `[no-docs]` in its message |
 | Add a service, package or experiment | `scaffold` |
+| A long task (more than one session, more than one part, or a plan to approve) | the agent opens a task file: `sh .agents/kit/task.sh new <name>`; it lives in `.agents/work/` and is never committed |
+| See open tasks | `sh .agents/kit/task.sh list` (the session start also names them) |
+| Find folders agents should skip, or old copies that look like live code | `sh .agents/kit/candidates.sh [folder]` (read only); confirmed rows go in a map's "Do not read unless asked" and "Lookalikes" sections |
 | Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |
 | Newer kit version | in the kit folder `git pull`, then ask the agent: `agent-kit upgrade` |
+
+Two tasks that change the same code: give each its own branch, in its own
+git worktree (`git worktree add ../<repo>-<task> -b <branch>`), so their
+changes and task files do not mix.
 
 On Windows, run the shell commands in Git Bash. How to call a skill: Claude Code and agy `/docs-sync check`; Codex `$docs-sync check`. Cursor,
 Antigravity and other agents that load `.agents/skills`: name the skill.
