@@ -449,17 +449,22 @@ if [ -n "$LEARNING_DIR" ] && [ "$SHARE_LEARNING" = no ] && [ -n "$(git ls-files 
   note "learning docs are tracked but mode $SHARE keeps them local: run  git rm -r --cached -q --ignore-unmatch -- $LEARNING_DIR  then commit"
 fi
 
-# Executable bit in git, so macOS and Linux clones of a repo set up on
-# Windows still run the hooks. Only when the scripts are shared.
-# Only files git already tracks: the install never stages a new file.
+# Executable bit in git, so macOS and Linux clones still run the hooks. Where
+# the file system keeps the bit (macOS, Linux), git add picks it up, so only
+# tracked scripts are marked and nothing new is staged. Where git cannot see
+# it (core.fileMode=false: Windows), the kit's own scripts are staged with
+# the bit, as nothing else can record it.
 if [ "$SHARE_AGENT" = yes ]; then
-  scripts=$(git ls-files -- .githooks .agents/kit | grep -E '(\.sh|/pre-commit|/post-[a-z]+)$' || true)
-  if [ -n "$scripts" ]; then
-    # shellcheck disable=SC2086  # plain kit paths, no spaces
-    git update-index --chmod=+x $scripts 2>/dev/null && say "marked the tracked kit scripts executable in git"
+  if [ "$(git config --bool core.fileMode)" = false ]; then
+    git add --chmod=+x .githooks/pre-commit .githooks/post-commit .githooks/post-merge .agents/kit/*.sh 2>/dev/null &&
+      say "staged the kit scripts as executable (this clone cannot keep the bit: core.fileMode=false)"
+  else
+    scripts=$(git ls-files -- .githooks .agents/kit | grep -E '(\.sh|/pre-commit|/post-[a-z]+)$' || true)
+    if [ -n "$scripts" ]; then
+      # shellcheck disable=SC2086  # plain kit paths, no spaces
+      git update-index --chmod=+x $scripts 2>/dev/null && say "marked the tracked kit scripts executable in git"
+    fi
   fi
-  [ -n "$(git ls-files -- .agents/kit/check.sh)" ] ||
-    note "when you commit the kit, mark its scripts executable for macOS and Linux clones: git add --chmod=+x .githooks/* .agents/kit/*.sh"
 fi
 
 # CI: the same checks on every push and pull request.

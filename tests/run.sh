@@ -642,8 +642,10 @@ sh "$KIT/install.sh" "$R" > /dev/null 2>&1
 grep -q 'exec sh' "$R/.claude/settings.json" && ! grep -q 'sh -c .sh \\"' "$R/.claude/settings.json" &&
   ok "upgrade swaps the old kit hook command" || bad "upgrade swaps the old kit hook command" "$(cat "$R/.claude/settings.json")"
 
-[ -z "$(git -C "$WORK/oldhooks" diff --cached --name-only)" ] &&
-  ok "install stages nothing in a fresh repo" || bad "install stages nothing in a fresh repo" "$(git -C "$WORK/oldhooks" diff --cached --name-only)"
+if [ "$(git -C "$WORK/oldhooks" config --bool core.fileMode)" != false ]; then  # Windows must stage the executable bit
+  [ -z "$(git -C "$WORK/oldhooks" diff --cached --name-only)" ] &&
+    ok "install stages nothing in a fresh repo" || bad "install stages nothing in a fresh repo" "$(git -C "$WORK/oldhooks" diff --cached --name-only)"
+fi
 
 new_repo queue8; R="$WORK/queue8"
 mkdir -p "$R/pkg/sub dir"; echo x > "$R/pkg/__init__.py"; echo y > "$R/pkg/sub dir/my file.py"

@@ -54,7 +54,8 @@ new explanation standard the next time they are refreshed; run
     spaces.
   - Scripts read `.agents/agent-kit.conf` as text through the new `lib.sh`
     (before, some ran it as shell code).
-  - The install no longer stages new files (`git add --chmod`), and handles
+  - The install no longer stages new files on macOS and Linux (only on
+    Windows, where git cannot otherwise record the executable bit), and handles
     `|`, `&` and `\` in config values. `--share` and `--maps` without a
     value name the fix.
   - Codex gets the SessionStart hook.
