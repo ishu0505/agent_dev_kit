@@ -43,7 +43,28 @@ If `sh .agents/kit/pulled.sh count` is above zero, other people's commits
 changed code since the docs were last checked. Tell the user and offer the
 `docs-sync` skill with scope `pulled`. Do not run it without a yes.
 
-## 5. Pull request
+## 5. Task file, and what this task learned
+
+Run `sh .agents/kit/task.sh list`. If a task file (`.agents/work/`) belongs
+to this work, read it, then:
+
+1. For each entry under Decisions that should last (marked "(lineage)", or
+   a choice about architecture, a library or a contract), offer the
+   `lineage` skill. Do not run it without a yes.
+2. Propose the map rows the task taught, from Found: a folder that was a
+   trap ("Do not read unless asked"), a folder that looked right but was
+   wrong ("Lookalikes"), or two files linked in a way search did not show
+   ("Hidden links"). Show each row and the map it goes in; write only the
+   rows the user approves. At most five rows per section in a map.
+3. If Next or the Plan still has open steps, ask: close the task, or keep
+   it paused? For paused, set `Status: paused` and make Next exact.
+4. On close, run `sh .agents/kit/task.sh close <name>`.
+
+With no task file, propose a map row only when this task hit a real trap,
+at most two, each with the user's yes. Never add a row from a guess: each
+one must come from something this task saw.
+
+## 6. Pull request
 
 When a pull request is being opened or updated, run the `explain-diff`
 skill for `since <base>` and put its section in the pull request
@@ -51,8 +72,9 @@ description (replace the old section between the markers; never add a
 second one). When the user asks for the plainer explanation, use
 `explain-d-ez` instead; for an interactive page, `explain-d-in`.
 
-## 6. Report
+## 7. Report
 
 A short list: checks (pass or fixed), docs changed, learning docs
 refreshed or still stale, catch-up items, other people's commits waiting
-for docs-sync, and whether the pull request section was written.
+for docs-sync, the task file (closed, paused, or none) and map rows added,
+and whether the pull request section was written.

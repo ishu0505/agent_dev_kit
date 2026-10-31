@@ -16,7 +16,7 @@ multi-repo workspaces. Every Markdown file it writes into a repo ends in
 | `install.sh` | Copies kit files into a target repo; also the upgrade |
 | `install-global.sh` | Links the `agent-kit` skill into each agent's skill folder |
 | `global-skills/agent-kit/` | The one global skill: setup, upgrade, check, workspace |
-| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `pulled.sh` (other people's commits since the docs were checked), `lib.sh` (config reader, shared helpers), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `agent-files.sh` (who owns each agent file), `wire.sh` (team repos: local wiring of the kit's maps), `writing-style.agentk.md`, `explain-standard.agentk.md` (80% STE, quiz ladder); copied to `.agents/kit/` |
+| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `pulled.sh` (other people's commits since the docs were checked), `lib.sh` (config reader, shared helpers), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `agent-files.sh` (who owns each agent file), `wire.sh` (team repos: local wiring of the kit's maps), `writing-style.agentk.md`, `explain-standard.agentk.md` (80% STE, quiz ladder), `task.sh` + `task.agentk.md` (task files a target repo keeps in .agents/work/, never committed), `candidates.sh` (read-only candidates for a map's "Do not read" and "Lookalikes" rows); copied to `.agents/kit/` |
 | `templates/workspace/` | `workspace.sh` (init, add, scan, where, status, decline), `ws-hook.sh`, the workspace map and config; copied to `<workspace>/.agent-workspace/` |
 | `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in` |
 | `templates/config/` | `agent-kit.conf`, Claude and Codex hook configs |
@@ -49,6 +49,9 @@ multi-repo workspaces. Every Markdown file it writes into a repo ends in
   The Stop hook is the one Python file (standard library, 3.9+) and must
   never block when it fails.
 - **Every check failure prints its fix.**
+- **Map warning rows are confirmed facts.** "Do not read unless asked",
+  "Lookalikes" and "Hidden links" rows are written only after the user says
+  yes; scripts may propose them, never write them.
 
 ## Before calling a change done
 

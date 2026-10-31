@@ -16,7 +16,12 @@ shell edits, subagents and every agent are covered, and:
    `.git/agent-kit/stale-learning` for the wrap-up skill; never blocks for it;
 5. with MAPS="beside" (a team repo): refreshes the local wiring when a map
    changed (`.agents/kit/wire.sh`), and asks once when the turn edited one
-   of the team's own agent files (AGENTS.md, CLAUDE.md, GEMINI.md).
+   of the team's own agent files (AGENTS.md, CLAUDE.md, GEMINI.md);
+6. names the other side of a map's "Hidden links" row once per session when
+   the turn changed its first path (and not the second);
+7. asks once per session to update the active task file of this branch
+   (`.agents/work/`) when the turn changed code and the session has not
+   touched that file.
 
 `--repo <path>` names the repo instead of the event's cwd. In a multi-repo
 workspace, `ws-hook.sh` runs it with `--workspace <root> --repos <dir>...`:
@@ -50,6 +55,14 @@ TEAM_FILE = (
     "{map_file} instead, unless the user asked you to edit the team's file. If they did, say so in one line."
 )
 TEAM_NAMES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
+HIDDEN_LINKS = (
+    "Hidden links: this turn changed files that other code depends on in a way search does not show:\n"
+    "{items}\nCheck that each named file still matches, in this task. If it does, say so in one line."
+)
+TASK_FILE = (
+    "Task file: `{path}` is the active task on this branch, and this session has not updated it. "
+    "Update its Found, Decisions, Done and Next now, so a fresh session can continue from it."
+)
 REMINDER = (
     "Docs step: this turn changed code that the docs describe:\n{items}\n"
     "Update the map or {unit_doc} named above in the same change (never a Markdown file the "
@@ -255,6 +268,60 @@ def docs_items(repo: Path, config: dict[str, str], changes: dict[str, str], remi
         [f"- and {len(items) - 5} more"] if len(items) > 5 else [])
 
 
+def hidden_link_items(repo: Path, changes: dict[str, str], reminded: set[str]) -> list[str]:
+    """Rows of a map's "Hidden links" section whose first path changed this turn."""
+    try:
+        out = subprocess.run(["sh", ".agents/kit/check.sh", "--links"], cwd=repo,
+                             capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+
+    def matches(path: str, pattern: str) -> bool:
+        pattern = pattern.rstrip("/")
+        return path == pattern or fnmatch.fnmatch(path, pattern) or path.startswith(pattern + "/")
+
+    items = []
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) != 4:
+            continue
+        map_path, number, source, target = parts
+        key = f"link:{source}>{target}"
+        if key in reminded or any(matches(path, target) for path in changes):
+            continue  # reminded already, or the turn changed the other side too
+        hits = sorted(path for path in changes if matches(path, source))
+        if hits:
+            reminded.add(key)
+            items.append(f"- `{hits[0]}` changed, and `{target}` depends on it "
+                         f"({map_path} line {number}): check that it still matches.")
+    return items
+
+
+def task_item(repo: Path, config: dict[str, str], changes: dict[str, str], reminded: set[str],
+              start: float) -> str:
+    """The active task file of this branch, when code changed and the session has not touched it."""
+    if not any(not path.endswith(".md") and not skipped(path, config) for path in changes):
+        return ""
+    work = repo / ".agents" / "work"
+    if not work.is_dir():
+        return ""
+    branch = git(repo, "symbolic-ref", "--short", "-q", "HEAD").strip()
+    for task in sorted(work.glob("*" + (config.get("DOC_SUFFIX") or ".md"))):
+        head = task.read_text(errors="replace").replace("\r\n", "\n")
+        status = re.search(r"^Status:[ \t]*(\S+)", head, re.M)
+        task_branch = re.search(r"^Branch:[ \t]*(.+?)[ \t]*$", head, re.M)
+        if not status or status.group(1) != "active":
+            continue
+        if branch and task_branch and task_branch.group(1) != branch:
+            continue
+        key = f"task:{task.name}"
+        if key in reminded or task.stat().st_mtime >= start:
+            continue
+        reminded.add(key)
+        return TASK_FILE.format(path=task.relative_to(repo).as_posix())
+    return ""
+
+
 def front_paths(doc: Path) -> list[str]:
     text = doc.read_text(errors="replace")
     match = re.match(r"---\n(.*?)\n---", text.replace("\r\n", "\n"), re.S)
@@ -303,13 +370,19 @@ def run_repo(repo: Path, event: dict, baseline: bool) -> tuple[str, dict[str, st
     state_dir = fresh_state_dir((repo / common / "agent-kit" / "state").resolve())
     state_file = state_dir / f"{session_name(event)}.json"
     now = snapshot(repo)
+
+    def save(reminded: list[str] | set[str]) -> None:
+        state_file.write_text(json.dumps({"snapshot": now, "reminded": sorted(reminded), "start": start}))
+
     if baseline:
-        state_file.write_text(json.dumps({"snapshot": now, "reminded": []}))
+        start = time.time()
+        save([])
         return "", {}
     state = json.loads(state_file.read_text()) if state_file.exists() else None
+    start = (state or {}).get("start") or time.time()
     if state is None:
         if not turn_used_change_tools(event.get("transcript_path")):
-            state_file.write_text(json.dumps({"snapshot": now, "reminded": []}))
+            save([])
             return "", {}
         state = {"snapshot": {"head": now["head"], "files": {}}, "reminded": []}
     changes = changes_since(repo, state["snapshot"], now)
@@ -335,14 +408,21 @@ def run_repo(repo: Path, event: dict, baseline: bool) -> tuple[str, dict[str, st
                       and git(repo, "ls-files", "--", path).strip())
         if team:
             reminded.update(f"team:{path}" for path in team)
-            state_file.write_text(json.dumps({"snapshot": now, "reminded": sorted(reminded)}))
+            save(reminded)
             return TEAM_FILE.format(files=", ".join(f"`{path}`" for path in team),
                                     map_file=map_file(config)), changes
     items = docs_items(repo, config, changes, reminded)
-    state_file.write_text(json.dumps({"snapshot": now, "reminded": sorted(reminded)}))
+    links = hidden_link_items(repo, changes, reminded)
+    task = task_item(repo, config, changes, reminded, start)
+    save(reminded)
+    reasons = []
     if items:
-        return REMINDER.format(items="\n".join(items), unit_doc=unit_doc(config)), changes
-    return "", changes
+        reasons.append(REMINDER.format(items="\n".join(items), unit_doc=unit_doc(config)))
+    if links:
+        reasons.append(HIDDEN_LINKS.format(items="\n".join(links)))
+    if task:
+        reasons.append(task)
+    return "\n\n".join(reasons), changes
 
 
 def plain_changes(repo: Path, state_dir: Path, event: dict, baseline: bool) -> dict[str, str]:

@@ -402,6 +402,10 @@ fi
 # AGENTS.override.md for Codex; it stays on this computer.
 [ "$MAPS" = beside ] || local_rules="${local_rules:+$local_rules
 }/AGENTS.override.md"
+# Task files (.agents/work/) are personal notes for work in progress: never
+# committed, in every mode (beside mode already keeps all of .agents/ local).
+[ "$MAPS" = beside ] || local_rules="$local_rules
+/.agents/work/"
 [ "$MAPS" = beside ] || write_block .gitignore "$shared_rules"
 write_block "$EXCLUDE" "$local_rules"
 lf_rules=$(grep -v '^#' "$T/config/gitattributes")

@@ -19,6 +19,14 @@ Details: `README.agentk.md`. Shared rules: the maps above this folder.
 
 - <rules for this folder only; never repeat the parent's>
 
+<!-- Optional, rows the user confirmed, at most five each; delete if empty. -->
+## Do not read unless asked
+- `<path>` — <generated / old copy / test data>
+## Lookalikes
+- `<right path>`, not `<wrong path>` — <how to tell them apart>
+## Hidden links
+- `<path>` → `<path>` — <a link search cannot find; never a normal import>
+
 ## Further reading
 
 - `README.agentk.md` — <what is in it>

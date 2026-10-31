@@ -113,6 +113,8 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>A decision or result</td><td><code>lineage</code></td><td>Asks why, alternatives, evidence; writes a decision file and its row in <code>DECISIONS.agentk.md</code></td></tr>
       <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>
       <tr><td>Tidy agent and doc files</td><td><code>agent-kit cleanup</code></td><td>Lists every agent and doc file, proposes keep, merge, own or remove, and asks one group at a time</td></tr>
+      <tr><td>A long task</td><td>Ask for the task; the agent opens a task file</td><td>When the work spans sessions or parts, needs your OK on a plan, or is an investigation to keep. Notes go in <code>.agents/work/</code>, never committed; <code>wrap-up</code> closes it</td></tr>
+      <tr><td>What should agents skip?</td><td><code>sh .agents/kit/candidates.sh</code></td><td>Read only, no AI: test data, generated code, big data files, old copies. You confirm each row before it goes in a map</td></tr>
     </tbody>
   </table></div>
   <p>How to call a skill: Claude Code and agy use a slash (<code>/agent-kit setup</code>). Codex uses a dollar sign (<code>$agent-kit setup</code>); its <code>/</code> menu does not list skills. Cursor and Muse take the name in plain words. <code>/skills</code> lists skills in Claude Code, Codex and agy. Start a new session after installing a skill. Any agent without skills: <code>Read ~/agent_dev_kit/BOOTSTRAP.md and follow it.</code></p>
@@ -165,6 +167,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td><code>DECISIONS.agentk.md</code>, <code>PLAN.agentk.md</code></td><td>The decision index (one file per decision in <code>docs/decisions/</code>); the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex; SessionStart hook for Claude Code</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>learning_docs/</code></td><td>Learning docs; pushed or local by share mode</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>.agents/work/</code></td><td>Task files: notes for one long task (goal, findings, decisions, plan, next step). Never committed, in every share mode; deleted by <code>wrap-up</code></td><td><span class="pill check">yours, local</span></td></tr>
     </tbody>
   </table></div>
   <p>Kit files are replaced on upgrade. Repo files are created once and never overwritten. Nothing is a setup-only leftover, so there is nothing to clean up.</p>
@@ -232,6 +235,8 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Every commit</td><td><code>check.sh --staged</code>: blocks only what the commit breaks (a map it edits, a path it deletes, a unit it adds code to)</td><td><span class="pill ok">every agent</span> <span class="pill ok">humans</span></td></tr>
       <tr><td>After a commit</td><td>Code committed without the docs above it goes into the catch-up queue; <code>catch-up</code> explains it and proposes docs and docstrings for you to approve</td><td><span class="pill ok">humans</span></td></tr>
       <tr><td>End of an agent turn</td><td>Stop hook: compares <code>git status</code> with the last turn. Nothing changed, nothing runs. Otherwise it checks those files, and asks for the docs step once per file a map names or an interface file</td><td><span class="pill ok">Claude Code</span> <span class="pill check">Codex: verify</span></td></tr>
+      <tr><td>Session start</td><td>Names open task files, so the agent asks whether to continue one</td><td><span class="pill ok">Claude Code</span> <span class="pill check">Codex: verify</span></td></tr>
+      <tr><td>End of an agent turn</td><td>When the first file of a map's "Hidden links" row changed and the second did not, it names the second file once. When code changed and the active task file was not updated this session, it asks once to update it</td><td><span class="pill ok">Claude Code</span> <span class="pill check">Codex: verify</span></td></tr>
       <tr><td>End of a task</td><td><code>wrap-up</code>: checks, docs of the branch, stale learning docs (asks first), the <code>explain-diff</code> section with a quiz for the pull request</td><td><span class="pill ok">every agent</span></td></tr>
       <tr><td>CI</td><td><code>check.sh --ci</code> (pull requests: <code>--since</code> the base), from <code>install.sh --ci</code></td><td><span class="pill ok">everyone</span></td></tr>
     </tbody>
@@ -251,6 +256,8 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Portable hooks</td><td>A hook command contains your home folder or the repo's absolute path, or runs a missing script</td></tr>
       <tr><td>Hooks active</td><td>This clone never ran <code>git config core.hooksPath .githooks</code></td></tr>
       <tr><td>Share mode</td><td>A file the mode keeps local is tracked or staged (after <code>git add -f</code>, say), or its ignore rule is missing; or learning docs are ignored in a mode that pushes them</td></tr>
+      <tr><td>Warning rows</td><td>A path in a map's "Do not read unless asked", "Lookalikes" or "Hidden links" row is gone: the row is stale</td></tr>
+      <tr><td>Task files</td><td>A file in <code>.agents/work/</code> is tracked or staged, or the folder is not git-ignored</td></tr>
       <tr><td>Ledger</td><td>An experiment has no ledger row, or a row has no outcome (new ones say <code>pending: not run yet</code>)</td></tr>
     </tbody>
   </table></div>

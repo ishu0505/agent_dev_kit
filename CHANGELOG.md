@@ -3,6 +3,53 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.9.0 — 2026-10-31
+
+Maps that warn, task files, and hidden links: changes for accuracy. They
+help an agent edit the right file, see a breakage that search does not show,
+and keep its notes when the chat gets compacted.
+
+**What an upgrading repo must do:** run `agent-kit upgrade` (or
+`sh <agent_dev_kit>/install.sh .`). The install adds `/.agents/work/` to
+`.git/info/exclude`, so task files never reach git. Nothing else is
+required: a map without the new sections passes the checks as before. The
+upgrade offers, once: add the "Tasks" block from `templates/docs/AGENTS.root.md`
+(or `AGENTS.beside.md`) to the root map, and run `candidates.sh` to find
+warning rows for you to confirm. If your share mode pushes agent files,
+commit `.agents/kit/task.sh`, `task.agentk.md` and `candidates.sh`.
+
+- **Warning rows in the maps.** Three optional sections in every map
+  template: "Do not read unless asked" (generated code, test data, old
+  copies), "Lookalikes" (the live folder, not the one with a similar name)
+  and "Hidden links" (a change here breaks that file in a way search does
+  not show: a config key, a name written as text, a file another language
+  reads). Each row is a fact you confirmed, at most five a section; scripts
+  propose rows, never write them. `check.sh` checks every path in them,
+  from the map's folder or the root, with `**` globs, and a stale row fails
+  with its fix. Editing a path in a warning row asks for no docs step.
+- **`candidates.sh [folder]`** (read only) lists rows to confirm: folders
+  named like test data, snapshots or generated code, files a tool generated
+  (by name, or a `DO NOT EDIT` / `@generated` header), big data files, and
+  folders that look like an old copy (`billing_legacy/` beside `billing/`).
+  It never guesses hidden links. Setup (question 10), `scaffold` and the
+  upgrade use it.
+- **Hidden links in the Stop hook.** When a turn changes the first path of
+  a "Hidden links" row and not the second, the Stop hook names the second
+  file once per session. New `check.sh --links` prints the rows.
+- **Task files.** For work that spans sessions or units, needs your OK on
+  a plan, or is an investigation to keep, the agent opens
+  `.agents/work/<name>.agentk.md` (`task.sh new`) with Goal, Scope, Found,
+  Decisions, Plan, Done, Next and Open questions, so a fresh session
+  continues from the file. Never committed, in every share mode and in team
+  repos; `check.sh` fails when one is tracked. The session start names open
+  tasks; the Stop hook asks once per session to update the active task of
+  the branch when code changed and the file did not. `wrap-up` offers
+  `lineage` for its decisions, proposes the map rows the task taught, then
+  closes it (`task.sh close`) or keeps it paused. The root map's new
+  "Tasks" block says when to open one.
+- `docs-sync` checks that warning rows are still true (an old folder that
+  live code uses again).
+
 ## 0.8.0 — 2026-10-31
 
 Multi-repo workspaces, docs after a team pull, two new explanation skills,
