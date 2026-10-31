@@ -31,7 +31,7 @@ names keep no suffix, because agents load them only by these exact names:
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
 | Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Every decision with why, alternatives, evidence, and what would reverse it |
 | Plan | `PLAN.agentk.md` (new projects) | The goal, the first milestone, the planned units |
-| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff` |
+| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in` |
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
@@ -253,8 +253,9 @@ unit gets its map, and `check.sh` stays green.
 
 ## Your skills are safe
 
-The kit brings seven skills: `lineage`, `scaffold`, `docs-sync`,
-`learning-docs`, `wrap-up`, `catch-up`, `explain-diff`. A skill with any
+The kit brings nine skills: `lineage`, `scaffold`, `docs-sync`,
+`learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
+`explain-d-in`. A skill with any
 other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
@@ -346,6 +347,9 @@ mode.
 | Finish a task | `wrap-up` | Checks, docs of this branch, asks before refreshing stale learning docs, writes the PR section |
 | Document code you wrote yourself | `catch-up` | Explains each change, asks what it is for, proposes docs and docstrings; applies only what you approve |
 | Understand a branch or PR | `explain-diff` | Background, intuition, code walkthrough, five-question quiz. `--post` puts it in the PR |
+| The same, in plain words | `explain-d-ez` | About 80% of ASD-STE100; six questions from easy to hard. `--post` puts it in the PR |
+| The same, as an interactive page | `explain-d-in` | Diagrams, before/after and step-through widgets, a clickable quiz. A private Artifact in Claude Code; a local HTML file elsewhere |
+| Catch up after a pull | `docs-sync pulled` | Checks the docs and learning docs against other people's commits since the last check |
 | Know if code and docs agree | `docs-sync check` | Report only. Reads only docs whose anchors changed (`since main` by default) |
 | See what may be stale | `sh .agents/kit/stale.sh` | No AI. Each doc whose code changed since the doc did |
 | Make the docs match the code | `docs-sync fix` | Never changes code. Asks you when a change breaks a decision |
@@ -353,7 +357,8 @@ mode.
 | Record a decision or a result | `lineage` | It asks why, what else, evidence, what would reverse it |
 | Add a service, package or experiment | `scaffold` | Creates its README, map and pointer files |
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |
-| See what waits | `agent-kit status` | Checks, the catch-up queue, stale docs |
+| See what waits | `agent-kit status` | Checks, the catch-up queue, other people's commits, stale docs |
+| Set up a folder of several repos | `agent-kit workspace` | One map for the folder, one question per repo without the kit (see 6b) |
 | Commit with no docs needed | put `[no-docs]` in the message | The commit stays out of the catch-up queue |
 | Tidy agent and doc files | `agent-kit cleanup` | Inventory, then one question per group; nothing removed without your yes |
 | Edit a repo skill | edit it in `.agents/skills/` | In copy mode, then run `sh .agents/kit/sync-skills.sh` |
@@ -384,8 +389,13 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
   changed code but not the docs above that code (usually code written by
   hand). The next agent session says so in one line, and `catch-up` works
   through the queue with you. It never blocks.
-- **When an agent session starts** (Claude Code): one line about the queue
-  and stale learning docs, only when there is something.
+- **After a pull or merge**: `.githooks/post-merge` says in one line when
+  other people's commits changed code since the docs were last checked.
+- **When an agent session starts** (Claude Code and Codex): one line each
+  about the queue, other people's commits since the docs were last checked
+  (`pulled.sh`; it works without git hooks, so a rebase or a GUI pull counts
+  too) and stale learning docs, only when there is something. The agent
+  offers `docs-sync` with scope `pulled`.
 - **After every agent turn** (Claude Code; Codex if its hooks are on): the
   Stop hook compares `git status` with the last turn. Nothing changed:
   nothing runs. Something changed: `check.sh` for those files only, and a
@@ -398,10 +408,41 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
   `--since <base>`, so the branch is judged on its own changes.
 - **At the end of a task**: the root map tells the agent to run `wrap-up`.
 
+## 6b. A folder of several repos (a workspace)
+
+When your repos work together (a frontend and its API, say), put them in one
+folder and set the folder up as a workspace. In that folder, say:
+
+    agent-kit workspace        (or: Read <agent_dev_kit>/WORKSPACE.md and follow it)
+
+- **The folder gets one map**, `WORKSPACE.agentk.md`: each repo's role, its
+  kit status and the file to read first; the contracts between the repos;
+  the rules. `CLAUDE.md` and `AGENTS.md` beside it point to it. Claude Code
+  also reads it when it starts inside a repo there (it reads `CLAUDE.md` in
+  every parent folder). Codex gets a local pointer in each repo with the
+  kit.
+- **One question per repo without the kit**: install (beside the team's
+  files for a team repo), not now, or never. "Never" is a note in that
+  repo's `.git` folder, so nothing changes in the repo and nothing reaches
+  the team. The agent then keeps a short "light map" of that repo in
+  `.agent-workspace/maps/`, never inside the repo.
+- **Bring repos in** with `agent-kit workspace add <url|path>`, or clone or
+  copy them in by hand and run `agent-kit workspace scan`.
+- **The same repo in several workspaces**: `add` makes it a git worktree
+  (one `.git`, a folder in each workspace). The role and contracts belong to
+  each workspace; the kit, the "never" note and the queues belong to the
+  repo. `agent-kit workspace where` lists a repo's workspaces. Symlinked
+  repos are not supported.
+- **Start the agent in the workspace folder** for a change across repos:
+  after each turn, every repo with the kit is checked, and a change to a
+  provider file in `LINKS` (for example `backend:openapi.yaml>frontend:src/api`
+  in `.agent-workspace/workspace.conf`) reminds the agent to check the
+  consumer.
+
 ## 7. Change the kit itself
 
 1. Edit the templates (`templates/`), skills or scripts.
-2. Run `sh tests/run.sh` (114 tests in throwaway repos; needs sh, git,
+2. Run `sh tests/run.sh` (about 190 tests in throwaway repos; needs sh, git,
    Python 3). Pushing runs them on macOS, Ubuntu, Fedora and Windows
    (`.github/workflows/test.yml`).
 3. Bump `VERSION`, add a `CHANGELOG.md` entry saying what an upgrading repo

@@ -4,14 +4,17 @@
 # only writes the "What" column. Read only.
 #
 # Usage: sh .agents/kit/map-rows.sh [folder]
+KIT_LIB="$(cd "$(dirname "$0")" && pwd)/lib.sh"  # before cd: $0 may be relative
 cd "$(git rev-parse --show-toplevel)" || exit 1
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 LEARNING_DIR="learning_docs"
-[ -f .agents/agent-kit.conf ] && . ./.agents/agent-kit.conf
+DOC_SUFFIX=""
+. "$KIT_LIB" && load_conf
+if [ "${MAPS:-own}" = beside ]; then MAP_FILE="AGENTS${DOC_SUFFIX:-.agentk.md}"; else MAP_FILE="AGENTS.md"; fi
 folder=${1:-.}
 folder=${folder%/}
 named=""
-[ -f "$folder/AGENTS.md" ] && named=$(sh .agents/kit/check.sh --anchors "$folder/AGENTS.md" | cut -f3)
+[ -f "$folder/$MAP_FILE" ] && named=$(sh .agents/kit/check.sh --anchors "$folder/$MAP_FILE" | cut -f3)
 
 is_named() { printf '%s\n' "$named" | grep -qxF -- "$1"; }
 rel() { if [ "$folder" = . ]; then printf '%s' "$1"; else printf '%s/%s' "$folder" "$1"; fi; }

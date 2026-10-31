@@ -34,20 +34,25 @@ Refresh them now?" On yes, run the `learning-docs` skill with scope `stale`,
 then empty the stale-learning file. On no, leave the file; the next session
 start shows it.
 
-## 4. Code written by hand
+## 4. Code written by hand, and other people's commits
 
 If `sh .agents/kit/queue.sh count` is above zero, tell the user and offer
 the `catch-up` skill. Do not run it without a yes.
+
+If `sh .agents/kit/pulled.sh count` is above zero, other people's commits
+changed code since the docs were last checked. Tell the user and offer the
+`docs-sync` skill with scope `pulled`. Do not run it without a yes.
 
 ## 5. Pull request
 
 When a pull request is being opened or updated, run the `explain-diff`
 skill for `since <base>` and put its section in the pull request
 description (replace the old section between the markers; never add a
-second one).
+second one). When the user asks for the plainer explanation, use
+`explain-d-ez` instead; for an interactive page, `explain-d-in`.
 
 ## 6. Report
 
 A short list: checks (pass or fixed), docs changed, learning docs
-refreshed or still stale, catch-up items, and whether the pull request
-section was written.
+refreshed or still stale, catch-up items, other people's commits waiting
+for docs-sync, and whether the pull request section was written.

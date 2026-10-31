@@ -1,6 +1,6 @@
 ---
 name: lineage
-description: Record a decision or an experiment result in the repo's lineage (DECISIONS.md and the experiment ledger), and bring the AGENTS.md maps up to date. Use when the user decides something about architecture, a model, a library, a stage or a tool; when an experiment or benchmark finishes; or when a folder, service or unit is added, moved, renamed or retired.
+description: Record a decision or an experiment result in the repo's lineage (DECISIONS.agentk.md, one file per decision, and the experiment ledger), and bring the AGENTS.md maps up to date. Use when the user decides something about architecture, a model, a library, a stage or a tool; when an experiment or benchmark finishes; or when a folder, service or unit is added, moved, renamed or retired.
 ---
 
 # Lineage
@@ -10,14 +10,17 @@ ledger named by `LEDGER` in `.agents/agent-kit.conf`. Both are
 append-mostly: history is kept, and a changed mind is a new entry that
 supersedes the old one.
 
-Where decisions live depends on `DECISIONS_DIR` in the same file:
+File names: `DOC_SUFFIX` in the same file (`.agentk.md`) ends every file
+this skill writes; below, `DECISIONS<suffix>` means `DECISIONS.agentk.md`
+(or `DECISIONS.md` when `DOC_SUFFIX` is empty, in repos set up before kit
+0.6). Where decisions live depends on `DECISIONS_DIR`:
 
 - set (e.g. `docs/decisions`): one file per decision,
-  `<DECISIONS_DIR>/D-NNN-<short-slug>.md`, and one row for it in the index
-  table of `DECISIONS.md`;
-- empty: every decision is an entry in `DECISIONS.md` itself.
+  `<DECISIONS_DIR>/D-NNN-<short-slug><suffix>`, and one row for it in the
+  index table of `DECISIONS<suffix>`;
+- empty: every decision is an entry in `DECISIONS<suffix>` itself.
 
-Write by `.agents/kit/writing-style.md`.
+Write by `.agents/kit/writing-style.agentk.md`.
 
 ## 1. Name the change
 
@@ -36,7 +39,7 @@ words:
 - **What would reverse it?** A result, a cost, a scale.
 
 Push back on an answer that restates the decision, cites no evidence, or
-contradicts an earlier entry in `DECISIONS.md`; quote that entry. Accept
+contradicts an earlier decision; quote that entry. Accept
 "I don't know yet" and record it as open. Done when all four are answered or
 explicitly open.
 
@@ -50,8 +53,8 @@ yours as yours.
   (front matter `id`, `status`, `date`, `supersedes`, `source_paths`, then
   the sections). `source_paths` lists the code the decision governs, so
   `docs-sync` rereads it only when that code changes. Add the row
-  `| [D-NNN](<path>) | <the choice> | <status> | <date> |` to `DECISIONS.md`.
-- Without it: append the entry to `DECISIONS.md` using the template at its
+  `| [D-NNN](<path>) | <the choice> | <status> | <date> |` to `DECISIONS<suffix>`.
+- Without it: append the entry to `DECISIONS<suffix>` using the template at its
   top.
 
 When the decision replaces an earlier one, set the earlier one's status to
@@ -59,7 +62,7 @@ When the decision replaces an earlier one, set the earlier one's status to
 else in it.
 
 **Moving to one file per decision.** When `DECISIONS_DIR` is set but
-`DECISIONS.md` still holds full entries, offer to split them: one file per
+`DECISIONS<suffix>` still holds full entries, offer to split them: one file per
 entry, unchanged text, and the index table. Do it only on the user's yes.
 
 ## 4. Update the experiment ledger
@@ -70,14 +73,18 @@ folder, question, scale (documents, questions, runs), outcome (a number, or
 
 ## 5. Update the maps
 
-Check each `AGENTS.md` the change touches, from the root down to the unit:
+Check each map the change touches, from the root down to the unit: the
+kit's `AGENTS.md`, or `AGENTS.agentk.md` in a team repo (`MAPS="beside"`,
+where the team's `AGENTS.md` is never edited and `sh .agents/kit/wire.sh`
+runs after a map changes):
 
 - add, move or remove map rows so every listed path exists;
 - add or reword an invariant the decision creates or ends;
 - delete lines the change made stale.
 
 Keep maps within `TOP_MAP_MAX` and `UNIT_MAP_MAX` lines (config). Detail
-belongs in the README or report the map points to. A new unit gets its map
+belongs in the unit's detail doc (`README.agentk.md`) or the report the map
+points to. A new unit gets its map
 from the `scaffold` skill.
 
 ## 6. Check and report

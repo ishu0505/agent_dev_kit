@@ -47,16 +47,16 @@ flowchart TD
 
 ## Quiz
 
-1. **Easy.** <recall a fact>
-2. **Easy.** <recall a fact>
-3. **Medium.** <trace a flow or explain a reason>
-4. **Medium.** <trace a flow or explain a reason>
-5. **Hard.** <predict behaviour in a failure or edge case>
-6. **Hard.** <compare two designs or find the trap>
+1. **Easy.** <a fundamental: what it does, its input or its output>
+2. **Easy.** <a fundamental>
+3. **Medium.** <a concept it uses, or trace one concrete case through it>
+4. **Medium.** <a concept, or trace a case>
+5. **Hard.** <the behavior it affects elsewhere, or a failure or edge case>
+6. **Hard.** <what would break without it, or a trade-off against another design>
 
 <details>
 <summary>Check your answers</summary>
 
-1. <answer, the reason, and the code reference>
+1. <answer, the reason, the code reference, and what a common wrong answer misses>
 2. ...
 </details>

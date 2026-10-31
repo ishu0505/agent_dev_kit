@@ -3,6 +3,62 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.8.0 — 2026-10-31
+
+Multi-repo workspaces, docs after a team pull, two new explanation skills,
+and bug fixes.
+
+**What an upgrading repo must do:** run `agent-kit upgrade` (or
+`sh <agent_dev_kit>/install.sh .`). The install swaps the old kit hook
+command in `.claude/settings.json`, `.claude/settings.local.json` and
+`.codex/hooks.json` by itself when you never changed it; otherwise follow its
+note. A repo whose `.codex/hooks.json` the kit made before 0.8 gets a note to
+merge the new SessionStart hook. Then commit `.githooks/post-merge` and the
+new skills if your share mode pushes agent files. Learning docs move to the
+new explanation standard the next time they are refreshed; run
+`learning-docs all` to rewrite them now.
+
+- **Docs after a team pull.** New `pulled.sh` keeps a "docs checked up to"
+  mark per branch in `.git/agent-kit/synced/` and lists other people's
+  commits that changed code since then. It needs no git hooks, so a merge,
+  a rebase, a fast-forward or a GUI pull all count. The session start (Claude
+  Code and Codex) says so in one line and offers `docs-sync` with the new
+  scope `pulled`; `post-merge` (now installed in every repo) says it after
+  `git pull`; `wrap-up` and `agent-kit status` show the count. `docs-sync`
+  says who fixes what: local kit docs after your yes, shared kit docs on a
+  new branch for a pull request, the people's docs report only.
+- **Multi-repo workspaces.** `agent-kit workspace` (new `WORKSPACE.md` and
+  `templates/workspace/`) sets up a folder that holds several repos:
+  `WORKSPACE.agentk.md` (repos, roles, contracts, rules), root pointers, and
+  hooks that check every repo with the kit after a turn and remind the agent
+  of `LINKS` between repos. `workspace.sh` has `init`, `add` (clone, git
+  worktree or move), `scan` (finds repos you copied in), `where` (every
+  workspace that holds a repo), `status` and `decline`. "Never install" is a
+  note in that repo's `.git` folder; nothing else in the repo changes.
+  `wire.sh` gives Codex a local pointer to the workspace map in own-mode
+  repos too (`AGENTS.override.md`, kept out of git).
+- **New skills `explain-d-ez` and `explain-d-in`.** Both follow the new
+  `explain-standard.agentk.md`: about 80% of the way to ASD-STE100, and a
+  quiz ladder of six questions from easy to hard (fundamentals, concepts,
+  affected behavior). `explain-d-ez` writes Markdown (its own PR markers);
+  `explain-d-in` builds an interactive page from `page-skeleton.html`
+  (before/after and step-through widgets, a clickable quiz) and publishes a
+  private Artifact in Claude Code, or a local HTML file outside the repo in
+  other agents. `explain-diff` is unchanged, for comparison.
+- **Learning docs use the explanation standard** and its quiz ladder;
+  `writing-style.agentk.md` points them there.
+- **Fixes.**
+  - The hook commands fail quietly outside a git repo (before, they printed
+    an error and exited 127, for example in a workspace folder).
+  - The catch-up queue counts `__init__.py`, `_app.tsx` and paths with
+    spaces.
+  - Scripts read `.agents/agent-kit.conf` as text through the new `lib.sh`
+    (before, some ran it as shell code).
+  - The install no longer stages new files (`git add --chmod`), and handles
+    `|`, `&` and `\` in config values. `--share` and `--maps` without a
+    value name the fix.
+  - Codex gets the SessionStart hook.
+
 ## 0.7.0 — 2026-10-22
 
 Team repos: work beside the team's own AGENTS.md / CLAUDE.md, on this

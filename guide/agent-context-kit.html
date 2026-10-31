@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.7.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.8.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -135,7 +135,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Your skills are safe, and the repo gets a clean-up first</h2>
-  <p>The kit brings seven skills. A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
+  <p>The kit brings nine skills. A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>The skill in your repo</th><th>What the install does</th></tr></thead>
     <tbody>
@@ -157,7 +157,7 @@ footer { color: var(--muted); font-size: 14px; }
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>
       <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop and SessionStart hooks, <code>queue.sh</code>, <code>stale.sh</code>, <code>map-rows.sh</code>, <code>writing-style.agentk.md</code>, <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
-      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.githooks/pre-commit</code>, <code>post-commit</code></td><td>Checks what a commit breaks; queues code committed without its docs</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, map thresholds, line limits, pointer files, interface files, ledger, decisions folder</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root and in every unit past the size threshold</td><td><span class="pill check">repo</span></td></tr>
@@ -322,7 +322,8 @@ the folder that contains this file. The kit gives the repo:
 2. **Lineage**: `DECISIONS.agentk.md`, the index of every decision and its
    reason (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
-   `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`.
+   `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
+   `explain-d-in`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
    commit breaks blocks), after every agent turn that changed files, and in
    CI, so the docs stay true.
@@ -347,6 +348,14 @@ the decisions and the plan. Work in the phases below, do not skip ahead, and
 write nothing before phase 3 is approved (phase 4 starts with the install).
 
 ## Phase 0 — Personal or team repo, then which case
+
+**Not a repo, but a folder of repos?** If `git rev-parse` fails here and
+folders below hold `.git`, this is a multi-repo workspace: follow
+`KIT/WORKSPACE.md` instead. If this repo&#x27;s parent (or grandparent) folder
+holds other repos, finish this setup, then offer once: &quot;This repo sits next
+to other repos (&lt;names&gt;). Set up the folder as a workspace?&quot; (`agent-kit
+workspace`, recommended when the repos work together, such as a frontend
+and its API).
 
 **The first question, always** (setup and upgrade alike, before anything
 else). Run `sh KIT/templates/kit/agent-files.sh .` (read only). It prints a

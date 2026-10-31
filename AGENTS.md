@@ -1,24 +1,27 @@
 # agent_dev_kit
 
 A kit that installs agent context into any repo: `AGENTS.md` maps, the
-decision lineage, seven repo skills, docs checks, a catch-up queue for code
-written by hand, and learning docs. Every Markdown file it writes into a
-repo ends in `.agentk.md`; it never edits the repo's own docs. Humans start
-at `README.md`.
+decision lineage, nine repo skills, docs checks, a catch-up queue for code
+written by hand, a notice for teammates' pulled commits, learning docs, and
+multi-repo workspaces. Every Markdown file it writes into a repo ends in
+`.agentk.md`; it never edits the repo's own docs. Humans start at
+`README.md`.
 
 ## Map
 
 | Path | What |
 |---|---|
 | `BOOTSTRAP.md` | The setup prompt an agent follows inside a target repo |
+| `WORKSPACE.md` | The setup prompt for a folder that holds several repos |
 | `install.sh` | Copies kit files into a target repo; also the upgrade |
 | `install-global.sh` | Links the `agent-kit` skill into each agent's skill folder |
-| `global-skills/agent-kit/` | The one global skill: setup, upgrade, check |
-| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `agent-files.sh` (who owns each agent file), `wire.sh` (team repos: local wiring of the kit's maps), `writing-style.agentk.md`; copied to `.agents/kit/` |
-| `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff` |
+| `global-skills/agent-kit/` | The one global skill: setup, upgrade, check, workspace |
+| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `pulled.sh` (other people's commits since the docs were checked), `lib.sh` (config reader, shared helpers), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `agent-files.sh` (who owns each agent file), `wire.sh` (team repos: local wiring of the kit's maps), `writing-style.agentk.md`, `explain-standard.agentk.md` (80% STE, quiz ladder); copied to `.agents/kit/` |
+| `templates/workspace/` | `workspace.sh` (init, add, scan, where, status, decline), `ws-hook.sh`, the workspace map and config; copied to `<workspace>/.agent-workspace/` |
+| `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in` |
 | `templates/config/` | `agent-kit.conf`, Claude and Codex hook configs |
 | `templates/docs/` | Map (`AGENTS.root.md`, `AGENTS.beside.md` for team repos, `AGENTS.unit.md`), decision index and file, ledger, plan, learning-doc and command-card (`KIT.md`) templates |
-| `templates/githooks/` | The pre-commit and post-commit hooks; post-merge and post-checkout (team repos) |
+| `templates/githooks/` | The pre-commit, post-commit and post-merge hooks; post-checkout (team repos) |
 | `templates/ci/` | The GitHub Actions workflow (`install.sh --ci`) |
 | `guide/` | The HTML guide: `template.html` + `build.py` |
 | `tests/run.sh` | End-to-end tests in throwaway repos |

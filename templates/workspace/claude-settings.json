@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'd=$(pwd -P); while [ ! -f \"$d/.agent-workspace/kit/ws-hook.sh\" ] && [ \"$d\" != / ] && [ \"$d\" != . ]; do d=$(dirname \"$d\"); done; [ -f \"$d/.agent-workspace/kit/ws-hook.sh\" ] && exec sh \"$d/.agent-workspace/kit/ws-hook.sh\" session-start; exit 0'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'd=$(pwd -P); while [ ! -f \"$d/.agent-workspace/kit/ws-hook.sh\" ] && [ \"$d\" != / ] && [ \"$d\" != . ]; do d=$(dirname \"$d\"); done; [ -f \"$d/.agent-workspace/kit/ws-hook.sh\" ] && exec sh \"$d/.agent-workspace/kit/ws-hook.sh\" stop; exit 0'"
+          }
+        ]
+      }
+    ]
+  }
+}

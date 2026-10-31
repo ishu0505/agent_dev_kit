@@ -1,6 +1,6 @@
 ---
 name: agent-kit
-description: Set up, upgrade, clean up or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version, or see what waits (stale docs, code written without its docs). In a team repo it works beside the team's own AGENTS.md / CLAUDE.md and keeps everything local. Arguments - setup (default), upgrade, cleanup, check, status, wire, unwire.
+description: Set up, upgrade, clean up or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version, or see what waits (stale docs, code written without its docs). In a team repo it works beside the team's own AGENTS.md / CLAUDE.md and keeps everything local. Also sets up a multi-repo workspace (a folder holding several repos, such as a frontend and a backend). Arguments - setup (default), upgrade, cleanup, check, status, wire, unwire, workspace [init|add|scan|where|status].
 ---
 
 # agent-kit
@@ -31,15 +31,27 @@ Then:
   If `.agents/kit/` does not exist, say the kit is not installed here and
   offer `setup`. For a deeper check, run the repo's `docs-sync` skill in
   check mode.
-- **status**: read only. Show, in one short list: the result of
-  `sh .agents/kit/check.sh`; commits waiting for docs
-  (`sh .agents/kit/queue.sh list`, offer `catch-up`); stale learning docs
+- **status**: read only. At a workspace root (`.agent-workspace/` exists),
+  run `sh .agent-workspace/kit/workspace.sh status` instead. In a repo,
+  show in one short list: the result of `sh .agents/kit/check.sh`; commits
+  waiting for docs
+  (`sh .agents/kit/queue.sh list`, offer `catch-up`); commits from other
+  people since the docs were last checked (`sh .agents/kit/pulled.sh status`,
+  offer `docs-sync` with scope `pulled`); stale learning docs
   (`$(git rev-parse --git-common-dir)/agent-kit/stale-learning`); docs
   whose code changed (`sh .agents/kit/stale.sh`); and in a team repo the
   per-agent wiring (`sh .agents/kit/wire.sh --plan`). Change nothing.
 - **wire** (team repo, `MAPS="beside"`): show `sh .agents/kit/wire.sh --plan`,
   then apply it after the user's yes (`sh .agents/kit/wire.sh`), including
   the Gemini step from `KIT/BOOTSTRAP.md` phase 4, step 7.
+- **workspace** (a folder that holds several repos): with no further
+  argument or `init`, read `KIT/WORKSPACE.md` and follow it in the current
+  folder. `add <url|path>`, `scan`, `where` and `status` run
+  `sh .agent-workspace/kit/workspace.sh <argument>` (from the workspace
+  folder or any folder inside it). After `add` or `scan`, ask about each
+  repo that waits for an answer, as `KIT/WORKSPACE.md` step 2 says.
+- **setup** started in a folder that is not a git repo but holds repos:
+  that is a workspace; offer `workspace` instead.
 - **unwire**: `sh .agents/kit/wire.sh --remove` deletes every local file
   the kit made to connect the maps; the user's maps and the team's files
   stay.

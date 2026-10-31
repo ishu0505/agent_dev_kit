@@ -42,9 +42,9 @@ WANT_CI=no
 CONFIRM_UNTRACK=no
 while [ $# -gt 0 ]; do
   case "$1" in
-    --share) SHARE_ARG=${2:-}; shift 2 ;;
+    --share|--maps) [ $# -ge 2 ] || { echo "agent-kit: $1 needs a value (see the usage at the top of install.sh)"; exit 1; }
+      case "$1" in --share) SHARE_ARG=$2 ;; *) MAPS_ARG=$2 ;; esac; shift 2 ;;
     --share=*) SHARE_ARG=${1#--share=}; shift ;;
-    --maps) MAPS_ARG=${2:-}; shift 2 ;;
     --maps=*) MAPS_ARG=${1#--maps=}; shift ;;
     --ci) WANT_CI=yes; shift ;;
     --confirm-untrack) CONFIRM_UNTRACK=yes; shift ;;
@@ -75,9 +75,10 @@ say() { echo "  $1"; }
 conf() {  # conf <KEY>: a value from .agents/agent-kit.conf
   sed -n "s/^$1=\"\{0,1\}\([^\"]*\)\"\{0,1\}\$/\1/p" .agents/agent-kit.conf | tail -1
 }
-set_conf() {  # set_conf <KEY> <value>: replace or add a config line
+set_conf() {  # set_conf <KEY> <value>: replace or add a config line (the value is literal text)
   if grep -q "^$1=" .agents/agent-kit.conf; then
-    sed "s|^$1=.*|$1=\"$2\"|" .agents/agent-kit.conf > .agents/agent-kit.conf.tmp &&
+    CONF_VALUE=$2 awk -v k="$1" 'index($0, k "=") == 1 { print k "=\"" ENVIRON["CONF_VALUE"] "\""; next } { print }' \
+      .agents/agent-kit.conf > .agents/agent-kit.conf.tmp &&
       mv .agents/agent-kit.conf.tmp .agents/agent-kit.conf
   else
     printf '\n%s="%s"\n' "$1" "$2" >> .agents/agent-kit.conf
@@ -135,8 +136,8 @@ say "updated .agents/kit/ (checks, hooks, helpers, writing style, VERSION)"
 # Git hooks: ours are replaced; someone else's are left for the agent to merge.
 PRE_LINE='sh "$(git rev-parse --show-toplevel)/.agents/kit/check.sh" --staged --quiet || exit 1'
 POST_LINE='sh "$(git rev-parse --show-toplevel)/.agents/kit/queue.sh" add HEAD || true'
-HOOKS="pre-commit post-commit"
-[ "$MAPS" = beside ] && HOOKS="$HOOKS post-merge post-checkout"
+HOOKS="pre-commit post-commit post-merge"
+[ "$MAPS" = beside ] && HOOKS="$HOOKS post-checkout"
 hooks_path=$(git config core.hooksPath || true)
 KIT_HOOKS=yes
 if [ "$MAPS" = beside ] && { tracked_any .githooks || { [ -n "$hooks_path" ] && [ "$hooks_path" != .githooks ]; } ||
@@ -152,8 +153,12 @@ for hook in $HOOKS; do
     chmod +x ".githooks/$hook"
     say "updated .githooks/$hook"
   else
-    line=$PRE_LINE; [ "$hook" = post-commit ] && line=$POST_LINE
-    note ".githooks/$hook already exists: add the line  $line"
+    case "$hook" in
+      pre-commit) line="the line  $PRE_LINE" ;;
+      post-commit) line="the line  $POST_LINE" ;;
+      *) line="the lines of $T/githooks/$hook" ;;
+    esac
+    note ".githooks/$hook already exists: add to it $line"
   fi
 done
 managers=""
@@ -218,6 +223,25 @@ create_if_missing "$T/config/agent-kit.conf" .agents/agent-kit.conf || true
 grep -q '^OWN_SKILLS=' .agents/agent-kit.conf ||
   printf '\n# Skills the repo owns: the kit never replaces them, even if they share\n# a name with a kit skill (e.g. "lineage scaffold").\nOWN_SKILLS=""\n' >> .agents/agent-kit.conf
 [ -n "$MAPS_ARG" ] && set_conf MAPS "$MAPS"
+# Kit 0.7 and older wrote a hook command that fails outside a git repo. The
+# settings files are the repo's, so only that exact command is swapped.
+refresh_hook_commands() {  # refresh_hook_commands <settings file>
+  [ -f "$1" ] || return 0
+  changed=no
+  for script in session-start.sh stop-hook.sh; do
+    OLD_CMD="sh -c 'sh \\\"\$(git rev-parse --show-toplevel)/.agents/kit/$script\\\"'"
+    NEW_CMD=$(sed -n "s/^ *\"command\": \"\(.*kit\/$script.*\)\"\$/\1/p" "$T/config/claude-settings.json" | head -1)
+    grep -qF -- "$OLD_CMD" "$1" || continue
+    OLD_CMD=$OLD_CMD NEW_CMD=$NEW_CMD awk '{ o = ENVIRON["OLD_CMD"]; n = ENVIRON["NEW_CMD"]; out = ""
+      while ((i = index($0, o)) > 0) { out = out substr($0, 1, i - 1) n; $0 = substr($0, i + length(o)) }
+      print out $0 }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+    changed=yes
+  done
+  [ "$changed" = no ] || say "updated the kit hook commands in $1 (they now do nothing outside a git repo)"
+}
+for settings in .claude/settings.json .claude/settings.local.json .codex/hooks.json; do
+  refresh_hook_commands "$settings"
+done
 if [ "$MAPS" = beside ]; then
   # Hooks go into the personal settings file; the team's files stay as they are.
   if ! create_if_missing "$T/config/claude-settings.json" .claude/settings.local.json; then
@@ -236,6 +260,8 @@ elif ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json;
 fi
 [ "$MAPS" = beside ] || grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
+[ "$MAPS" = beside ] || grep -q 'agents/kit/session-start.sh' .codex/hooks.json ||
+  note ".codex/hooks.json has no kit SessionStart hook (new in 0.8): merge it from $T/config/codex-hooks.json"
 
 # Skills: replace only what the repo never edited.
 skill_sum() {  # skill_sum <folder>: one fingerprint for every file in a skill
@@ -372,6 +398,10 @@ if [ "$MAPS" != beside ] && [ -n "$LEARNING_DIR" ] && [ "$SHARE_LEARNING" = no ]
 /$LEARNING_DIR/"
   fi
 fi
+# Own mode in a multi-repo workspace: wire.sh may write a root
+# AGENTS.override.md for Codex; it stays on this computer.
+[ "$MAPS" = beside ] || local_rules="${local_rules:+$local_rules
+}/AGENTS.override.md"
 [ "$MAPS" = beside ] || write_block .gitignore "$shared_rules"
 write_block "$EXCLUDE" "$local_rules"
 lf_rules=$(grep -v '^#' "$T/config/gitattributes")
@@ -421,9 +451,15 @@ fi
 
 # Executable bit in git, so macOS and Linux clones of a repo set up on
 # Windows still run the hooks. Only when the scripts are shared.
+# Only files git already tracks: the install never stages a new file.
 if [ "$SHARE_AGENT" = yes ]; then
-  git add --chmod=+x .githooks/pre-commit .githooks/post-commit .agents/kit/*.sh 2>/dev/null &&
-    say "staged scripts as executable (git add --chmod=+x)"
+  scripts=$(git ls-files -- .githooks .agents/kit | grep -E '(\.sh|/pre-commit|/post-[a-z]+)$' || true)
+  if [ -n "$scripts" ]; then
+    # shellcheck disable=SC2086  # plain kit paths, no spaces
+    git update-index --chmod=+x $scripts 2>/dev/null && say "marked the tracked kit scripts executable in git"
+  fi
+  [ -n "$(git ls-files -- .agents/kit/check.sh)" ] ||
+    note "when you commit the kit, mark its scripts executable for macOS and Linux clones: git add --chmod=+x .githooks/* .agents/kit/*.sh"
 fi
 
 # CI: the same checks on every push and pull request.

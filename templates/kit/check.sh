@@ -41,6 +41,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+KIT_LIB="$(cd "$(dirname "$0")" && pwd)/lib.sh"  # before cd: $0 may be relative
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
   echo "agent-kit: not inside a git repository"; exit 1; }
 cd "$ROOT" || exit 1
@@ -70,7 +71,7 @@ LEARNING_DIR="learning_docs"
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 CONF=".agents/agent-kit.conf"
 if [ -f "$CONF" ]; then
-  . "./$CONF"
+  . "$KIT_LIB" && load_conf "$CONF"
 else
   echo "FAIL $CONF is missing"
   echo "     fix: run agent_dev_kit/install.sh on this repo"
@@ -212,6 +213,7 @@ map_tokens() {  # map_tokens <map>: kind, line and text of every `word` in backt
 }
 
 looks_like_path() {  # looks_like_path <folder> <word>: a prose word worth checking
+  case "$2" in "${DOC_SUFFIX:-.agentk.md}"|.agentk.md) return 1 ;; esac  # the kit's name ending, not a file
   [ -n "$LEARNING_DIR" ] && case "$2" in "$LEARNING_DIR"|"$LEARNING_DIR"/*) return 1 ;; esac  # often local only
   case "$2" in
     *" "*|*://*|*"<"*|*">"*|*'$'*|*"{"*|*"}"*|*"@"*|*"="*|*"("*|*")"*|*"'"*|*'"'*|*","*|*";"*|-*|*\\*) return 1 ;;

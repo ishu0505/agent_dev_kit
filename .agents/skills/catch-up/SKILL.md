@@ -9,7 +9,7 @@ People write code by hand too. This skill helps the user understand that
 code, and brings the docs up to date with it. **The user approves every
 change. Never change code behaviour, never commit.**
 
-Write every explanation and doc by `.agents/kit/writing-style.md`.
+Write every explanation and doc by `.agents/kit/writing-style.agentk.md`.
 
 ## 1. Find the changes
 
@@ -38,8 +38,10 @@ the comment or docstring from it."
 
 Show the proposal as a diff, in these parts:
 
-1. **Maps and READMEs.** Rows for new or moved paths, changed commands,
-   defaults, env vars and interfaces. Keep maps within their line limits.
+1. **Maps and kit detail docs** (`AGENTS.md`, or `AGENTS.agentk.md` in a
+   team repo; `README.agentk.md`). Rows
+   for new or moved paths, changed commands, defaults, env vars and
+   interfaces. Keep maps within their line limits.
 2. **Docstrings and comments** in the changed code, following the comment
    rules in the writing style. Improve an existing docstring rather than
    replacing it. Add a comment only where the reason is not obvious.
@@ -47,8 +49,12 @@ Show the proposal as a diff, in these parts:
    the `lineage` skill.
 4. **Learning docs.** List the learning docs whose `source_paths` cover the
    change; `wrap-up` refreshes them.
+5. **Notes on your docs** (never part of the patch). When a `README.md` or
+   other Markdown file the kit did not write now says something false, name
+   the file and line and give a sentence the user can paste in.
 
-Ask: apply all, apply some (name them), change something, or skip.
+Ask with choices, as the writing style says: apply all (recommended), apply
+some (name them), change something, skip, or "something else: type it".
 
 ## 4. Apply only what the user approved
 

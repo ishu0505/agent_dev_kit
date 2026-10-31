@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: Create the agent context for a new unit (service, package, app, library, experiment) - README.md, an AGENTS.md map and pointer files - from the user's answers, and register it in the parent map. Use whenever the user starts a new unit, or a unit folder has no AGENTS.md (check.sh reports "has no AGENTS.md").
+description: Create the agent context for a new unit (service, package, app, library, experiment) - a detail doc (README.agentk.md), an AGENTS.md map and pointer files - from the user's answers, and register it in the parent map. Use whenever the user starts a new unit, or a unit folder has no AGENTS.md (check.sh reports "has no AGENTS.md").
 ---
 
 # Scaffold
@@ -18,18 +18,34 @@ threshold, `check.sh` asks for its map.
 
 A unit with its own map carries:
 
-- `README.md`: the detail, for humans;
+- `README<DOC_SUFFIX>` (`README.agentk.md`): the detail, for people and
+  agents;
 - `AGENTS.md`: a short map, at most `UNIT_MAP_MAX` lines, pointing into the
-  README;
+  detail doc;
 - one pointer file per entry in `POINTER_FILES` (e.g. `CLAUDE.md`), each
   containing exactly `@AGENTS.md`.
 
 If the new folder is not covered by `UNITS` or `UNIT_PARENTS`, ask the user
 whether it is a unit, and add it to the config if so.
 
+**In a team repo** (`MAPS="beside"`): the unit's map is `AGENTS.agentk.md`,
+there are no pointer files, and a team `AGENTS.md` or `CLAUDE.md` in the
+folder is read first and never edited. Write only what the team's file does
+not say. Then run `sh .agents/kit/wire.sh`, which connects the new map to
+each agent with local files.
+
+**The unit's own `README.md` stays theirs.** If the folder already has a
+`README.md` (or any Markdown file without the suffix), read it: it answers
+many of the questions below. Link to it from the map and the detail doc.
+Never copy it, edit it or move it. With `DOC_SUFFIX` empty (a repo set up
+before kit 0.6), the detail doc is `README.md`; then write it only when the
+folder has none.
+
 ## 1. Ask
 
-One question at a time; accept "not decided yet" and write it down as open.
+Ask as `.agents/kit/writing-style.agentk.md` says: one question at a time,
+with your proposed answer first and "Something else: type your own answer"
+last. Accept "not decided yet" and write it down as open.
 
 Service, package or app:
 - what it does, and what it must never do;
@@ -48,8 +64,8 @@ Experiment or benchmark:
 
 ## 2. Write
 
-Create the folder and the files. Write the README by
-`.agents/kit/writing-style.md`. Start the map's rows from
+Create the folder and the files. Write the detail doc by
+`.agents/kit/writing-style.agentk.md`. Start the map's rows from
 `sh .agents/kit/map-rows.sh <folder>`, which lists the subfolders and entry
 files from the tree; you write only the "What" column. `AGENTS.md` follows
 this shape (from
@@ -59,7 +75,7 @@ this shape (from
 # <name>
 
 <one line: what it does / the question it answers>
-Details: `README.md`. Shared rules: the maps above this folder.
+Details: `README.agentk.md`. Shared rules: the maps above this folder.
 
 ## Map
 | Path | What |
@@ -73,7 +89,8 @@ Details: `README.md`. Shared rules: the maps above this folder.
 - <rules for this folder only; never repeat the parent's>
 
 ## Further reading
-- `README.md` — <what is in it>
+- `README.agentk.md` — <what is in it>
+- `README.md` — <the people's own README; only when it exists>
 ```
 
 Only list paths that exist; the checks fail on a missing one.
