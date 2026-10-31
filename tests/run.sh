@@ -703,7 +703,7 @@ mkdir -p "$WS/front/src/api"; echo 'y = 1' > "$WS/front/src/api/client.py"
 git_quiet -C "$WS/front" add -A; git_quiet -C "$WS/front" commit --no-verify -m kit
 legacy_sum=$(cd "$WS/legacy" && git status --porcelain | cksum)
 out=$(cd "$WS" && sh "$KIT/templates/workspace/workspace.sh" init --name shop 2>&1)
-[ -f "$WS/WORKSPACE.agentk.md" ] && grep -q '@WORKSPACE.agentk.md' "$WS/CLAUDE.md" && grep -qF "$WS" "$AGENT_KIT_STATE/workspaces" &&
+[ -f "$WS/WORKSPACE.agentk.md" ] && grep -q '@WORKSPACE.agentk.md' "$WS/CLAUDE.md" && grep -q '/ws$' "$AGENT_KIT_STATE/workspaces" &&
   printf '%s' "$out" | grep -q 'Waiting for an answer about the kit: back legacy' &&
   ok "workspace: init writes the map and pointers, registers, and lists repos without an answer" || bad "workspace: init writes the map and pointers, registers, and lists repos without an answer" "$out"
 grep -q '| `front/` | _say what it is_ | kit .*, own | `front/AGENTS.md` |' "$WS/WORKSPACE.agentk.md" &&
