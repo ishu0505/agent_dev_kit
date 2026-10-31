@@ -41,6 +41,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+KIT_LIB="$(cd "$(dirname "$0")" && pwd)/lib.sh"  # before cd: $0 may be relative
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
   echo "agent-kit: not inside a git repository"; exit 1; }
 cd "$ROOT" || exit 1
@@ -63,23 +64,36 @@ CHECK_ENV=""
 RUN_COMMANDS_MAPS=""
 LEDGER=""
 DECISIONS_DIR=""
+DOC_SUFFIX=""
+MAPS="own"
+AGENTS_USED="claude codex"
 LEARNING_DIR="learning_docs"
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 CONF=".agents/agent-kit.conf"
 if [ -f "$CONF" ]; then
-  . "./$CONF"
+  . "$KIT_LIB" && load_conf "$CONF"
 else
   echo "FAIL $CONF is missing"
   echo "     fix: run agent_dev_kit/install.sh on this repo"
   exit 1
 fi
+# Every Markdown file the kit writes ends in DOC_SUFFIX (".agentk.md");
+# empty means the plain names of kit 0.5 and older (README.md, DECISIONS.md).
+KIT_MD=${DOC_SUFFIX:-.md}
+UNIT_DOC="README$KIT_MD"
+DECISIONS_INDEX="DECISIONS$KIT_MD"
+PLAN_DOC="PLAN$KIT_MD"
+# The kit's map file. MAPS="beside" (a team repo with its own AGENTS.md or
+# CLAUDE.md): the kit's maps are AGENTS.agentk.md, kept on this computer
+# only, and every AGENTS.md / CLAUDE.md / GEMINI.md is the team's.
+if [ "$MAPS" = beside ]; then MAP_FILE="AGENTS${DOC_SUFFIX:-.agentk.md}"; else MAP_FILE="AGENTS.md"; fi
 # File extensions that make a word in backticks look like a path.
 DOC_EXTENSIONS="md txt json yaml yml toml lock cfg ini conf env html css scss xml csv proto sql sh ps1 bat mk gradle"
 TAB=$(printf '\t')
 
 FAILS=0
 WARNS=0
-MAPS=0
+MAP_COUNT=0
 fail() {
   FAILS=$((FAILS + 1))
   printf 'FAIL %s\n     fix: %s\n' "$1" "$2"
@@ -141,10 +155,10 @@ exists() {  # exists <folder> <path or glob>
   esac
 }
 
-find_maps() {  # every AGENTS.md outside skipped folders, as a path from the root
+find_maps() {  # every kit map (MAP_FILE) outside skipped folders, as a path from the root
   set -- -name '.?*' -o -name '_*'
   for skip in $SKIP_DIRS $LEARNING_DIR; do set -- "$@" -o -name "$skip"; done
-  find . -type d \( "$@" \) -prune -o -type f -name AGENTS.md -print | sed 's|^\./||' | LC_ALL=C sort
+  find . -type d \( "$@" \) -prune -o -type f -name "$MAP_FILE" -print | sed 's|^\./||' | LC_ALL=C sort
 }
 
 unit_folders() {  # every unit: listed in UNITS, or a child of a UNIT_PARENTS folder
@@ -199,6 +213,7 @@ map_tokens() {  # map_tokens <map>: kind, line and text of every `word` in backt
 }
 
 looks_like_path() {  # looks_like_path <folder> <word>: a prose word worth checking
+  case "$2" in "${DOC_SUFFIX:-.agentk.md}"|.agentk.md) return 1 ;; esac  # the kit's name ending, not a file
   [ -n "$LEARNING_DIR" ] && case "$2" in "$LEARNING_DIR"|"$LEARNING_DIR"/*) return 1 ;; esac  # often local only
   case "$2" in
     *" "*|*://*|*"<"*|*">"*|*'$'*|*"{"*|*"}"*|*"@"*|*"="*|*"("*|*")"*|*"'"*|*'"'*|*","*|*";"*|-*|*\\*) return 1 ;;
@@ -235,11 +250,11 @@ fi
 check_map() {  # check_map <map> <max lines>
   map=$1
   folder=$(dirname "$map")
-  MAPS=$((MAPS + 1))
+  MAP_COUNT=$((MAP_COUNT + 1))
   own=$(yes_if is_changed "$map")
   lines=$(wc -l < "$map" | tr -d ' ')
   [ "$lines" -le "$2" ] || report "$own" "$map has $lines lines (max $2)" \
-    "move detail into the README it points to; keep the map"
+    "move detail into $UNIT_DOC (or the doc it points to); keep the map"
   map_tokens "$map" > "$TMP_TOKENS"
   while IFS="$TAB" read -r kind line word; do
     path=${word%/}
@@ -263,6 +278,7 @@ check_map() {  # check_map <map> <max lines>
           "fix the name, or remove it if the setting is gone"
     done < "$TMP_ENV"
   fi
+  [ "$MAPS" = beside ] && return  # no pointer files: wire.sh connects the maps locally
   for pointer in $POINTER_FILES; do
     if ! grep -q '@AGENTS.md' "$folder/$pointer" 2>/dev/null; then
       caused=$own; is_changed "$(rel "$folder" "$pointer")" && caused=yes
@@ -306,7 +322,7 @@ needs_map() {  # needs_map <unit>: big enough (or listed) to need its own map
 }
 reachable() {  # reachable <unit>: its parent folder has a map, or a map names it or its parent
   parent=$(dirname "$1")
-  [ "$parent" != . ] && [ -f "$parent/AGENTS.md" ] && return 0
+  [ "$parent" != . ] && [ -f "$parent/$MAP_FILE" ] && return 0
   for target in "$1" "$parent"; do
     [ "$target" = . ] && continue
     while IFS= read -r map <&4; do
@@ -323,11 +339,11 @@ reachable() {  # reachable <unit>: its parent folder has a map, or a map names i
 relevant_maps() {  # the maps a scoped run must read: changed, or above a removed path
   printf '%s\n' "$CHANGED" > "$TMP/changed"
   printf '%s\n' "$GONE" > "$TMP/gone"
-  awk -v pointers="$POINTER_FILES" '
+  awk -v pointers="$POINTER_FILES" -v map="$MAP_FILE" '
     FILENAME == ARGV[1] { if (NF) changed[$0]; next }
     FILENAME == ARGV[2] { if (NF) gone[$0]; next }
     {
-      folder = $0; sub(/\/?AGENTS\.md$/, "", folder)
+      folder = substr($0, 1, length($0) - length(map)); sub(/\/$/, "", folder)
       if ($0 in changed) { print; next }
       n = split(pointers, p, " ")
       for (i = 1; i <= n; i++) if ((folder == "" ? p[i] : folder "/" p[i]) in changed) { print; next }
@@ -336,8 +352,8 @@ relevant_maps() {  # the maps a scoped run must read: changed, or above a remove
 }
 
 check_maps() {
-  if [ ! -f AGENTS.md ]; then
-    fail "AGENTS.md is missing at the repo root" "write the root map (BOOTSTRAP.md, phase 4)"
+  if [ ! -f "$MAP_FILE" ]; then
+    fail "$MAP_FILE is missing at the repo root" "write the root map (BOOTSTRAP.md, phase 4)"
     return
   fi
   find_maps > "$TMP_MAPS"
@@ -363,13 +379,13 @@ check_maps() {
   for unit in $units; do
     inside=$(yes_if changed_under "$unit")
     if needs_map "$unit"; then
-      for needed in README.md AGENTS.md; do
+      for needed in "$UNIT_DOC" "$MAP_FILE"; do
         [ -f "$unit/$needed" ] || report "$inside" "$unit has no $needed" \
           "create it with the scaffold skill (or add $unit to MAP_EXEMPT in $CONF)"
       done
-    elif [ ! -f "$unit/AGENTS.md" ] && ! reachable "$unit"; then
+    elif [ ! -f "$unit/$MAP_FILE" ] && ! reachable "$unit"; then
       report "$inside" "no map names $unit, so agents cannot find it" \
-        "add a row for \`$unit/\` (or its parent folder) to the nearest AGENTS.md"
+        "add a row for \`$unit/\` (or its parent folder) to the nearest $MAP_FILE"
     fi
   done
 }
@@ -382,6 +398,16 @@ tree_sum() {  # tree_sum <folder>: one checksum line per file, for comparing cop
 
 check_skills() {
   [ -d .agents/skills ] || return
+  if [ "$MAPS" = beside ] && [ -d .claude/skills ] && [ ! -L .claude/skills ]; then
+    for skill in .agents/skills/*/; do  # kit skills copied beside the team's skills
+      name=${skill%/}; name=${name##*/}
+      copy=".claude/skills/$name"
+      [ -f "$copy/.agent-kit" ] || continue
+      [ "$(tree_sum "$copy" | grep -v '^\./\.agent-kit ')" = "$(tree_sum "${skill%/}")" ] ||
+        fail "$copy is out of sync with .agents/skills/$name" "run: sh .agents/kit/sync-skills.sh"
+    done
+    return
+  fi
   if [ -f .claude/skills ]; then
     # A symlink checked out where links are off (Windows) becomes a text file.
     fail ".claude/skills is a plain file: this clone cannot use symlinks" \
@@ -400,11 +426,34 @@ check_skills() {
   fi
 }
 
+kit_local_paths() {  # beside mode: pathspecs of everything the kit makes on this computer
+  printf '%s\n' ":(glob)**/*${DOC_SUFFIX:-.agentk.md}" .agents .claude/settings.local.json .cursor/rules/agent-kit.mdc \
+    ':(glob)**/CLAUDE.local.md' ':(glob)**/AGENTS.override.md'
+  [ -L .claude/skills ] && printf '%s\n' .claude/skills
+  for skill in .agents/skills/*/; do
+    [ -d "$skill" ] || continue
+    name=${skill%/}; name=${name##*/}
+    [ -f ".claude/skills/$name/.agent-kit" ] && printf '%s\n' ".claude/skills/$name"
+  done
+  return 0
+}
+kit_made() {  # kit_made <tracked path>: the kit wrote it (not a team file of the same name)
+  case "$1" in
+    *CLAUDE.local.md|*AGENTS.override.md|*agent-kit.mdc) git show ":$1" 2>/dev/null | grep -q 'agent-kit' ;;
+    *) return 0 ;;
+  esac
+}
+
 agent_paths() {  # pathspecs of every agent file: maps, pointers, lineage, kit folders
-  printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' DECISIONS.md PLAN.md .agents .claude .codex .githooks
+  if [ "$MAPS" = beside ]; then kit_local_paths; return; fi
+  printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' "$DECISIONS_INDEX" "$PLAN_DOC" .agents .claude .codex .githooks
   for pointer in $POINTER_FILES; do printf '%s\n' "$pointer" ":(glob)**/$pointer"; done
   [ -z "$LEDGER" ] || printf '%s\n' "$LEDGER"
   [ -z "$DECISIONS_DIR" ] || printf '%s\n' "$DECISIONS_DIR"
+  if [ -n "$DOC_SUFFIX" ]; then  # every kit doc, wherever it is
+    printf '%s\n' ":(glob)**/*$DOC_SUFFIX"
+    [ "$SHARE" = learning ] && [ -n "$LEARNING_DIR" ] && printf '%s\n' ":(exclude)$LEARNING_DIR"
+  fi
 }
 
 check_share_mode() {  # files reach the remote only when SHARE allows it
@@ -412,6 +461,22 @@ check_share_mode() {  # files reach the remote only when SHARE allows it
     agent|all|learning|none) ;;
     *) fail "SHARE=\"$SHARE\" is not a share mode" "set SHARE to agent, all, learning or none in $CONF"; return ;;
   esac
+  if [ "$MAPS" = beside ]; then
+    if [ "$SHARE" != none ]; then
+      fail "MAPS=beside keeps your setup on this computer, but SHARE=$SHARE would push it" \
+        "set SHARE=\"none\" in $CONF, then run: sh <agent_dev_kit>/install.sh --maps beside ."
+      return
+    fi
+    set -f
+    # shellcheck disable=SC2046
+    leaked=$(git ls-files -- $(kit_local_paths) | while IFS= read -r path; do kit_made "$path" && printf '%s ' "$path"; done)
+    set +f
+    [ -z "$leaked" ] || fail "your local setup is tracked or staged, so it would reach the team's repo: $leaked" \
+      "run: git rm -r --cached -q -- $leaked (the files stay on disk)"
+    { git check-ignore -q "$MAP_FILE" && git check-ignore -q .agents/kit/check.sh; } || fail "your local setup is not ignored, so it can be committed by mistake" \
+      "run once: sh <agent_dev_kit>/install.sh --maps beside .  (it writes .git/info/exclude)"
+    return
+  fi
   if [ "$SHARE" = agent ] || [ "$SHARE" = all ]; then
     untracked=$(git ls-files --others --exclude-standard -- .agents .claude .codex .githooks | tr '\n' ' ')
     [ -z "$untracked" ] || fail "agent files are not in git, so a fresh clone lacks them: $untracked" \
@@ -438,11 +503,13 @@ hook_runs_check() {  # some hook manager runs check.sh before a commit
 }
 
 check_git_setup() {
-  if [ "$CI" = 0 ] && ! hook_runs_check; then
+  if [ "$CI" = 0 ] && [ "$MAPS" = beside ] && ! hook_runs_check; then
+    [ "$QUIET" = 1 ] || echo "NOTE no pre-commit check runs here (the team's hook setup is not touched in beside mode); run sh .agents/kit/check.sh before you push"
+  elif [ "$CI" = 0 ] && ! hook_runs_check; then
     fail "the pre-commit check is not active in this clone" \
       "run once: git config core.hooksPath .githooks  (or add .agents/kit/check.sh --staged to your hook manager; install.sh prints the line)"
   fi
-  for config in .claude/settings.json .codex/hooks.json; do
+  for config in .claude/settings.json .claude/settings.local.json .codex/hooks.json; do
     [ -f "$config" ] || continue
     if grep -qF "$ROOT" "$config" ||
        grep -qE '(/Users/|/home/|[A-Za-z]:[\\/]+Users)' "$config"; then
@@ -459,7 +526,7 @@ check_portability() {  # works on Windows, macOS and Linux clones alike
   eol=$(git check-attr eol -- .agents/kit/check.sh | sed 's/.*: //')
   [ "$eol" = "lf" ] || fail "scripts may get Windows line endings (CRLF), which breaks sh" \
     "add the agent-kit lines from agent_dev_kit/templates/config/gitattributes to .gitattributes"
-  for script in .githooks/pre-commit .githooks/post-commit .agents/kit/*.sh; do
+  for script in .githooks/* .agents/kit/*.sh; do
     mode=$(git ls-files -s -- "$script" | cut -c1-6)
     [ -z "$mode" ] || [ "$mode" = "100755" ] || fail "$script is not executable in git; macOS and Linux clones skip it" \
       "run: git add --chmod=+x $script"
@@ -510,12 +577,12 @@ check_ledger() {  # every folder beside the ledger has a row with an outcome
   done
 }
 
-check_decisions() {  # one file per decision, and DECISIONS.md lists each with its status
+check_decisions() {  # one file per decision, and the index lists each with its status
   [ -n "$DECISIONS_DIR" ] || return
-  caused=$(yes_if is_changed DECISIONS.md); changed_under "${DECISIONS_DIR%/}" && caused=yes
-  [ -f DECISIONS.md ] || ls "${DECISIONS_DIR%/}"/D-*.md >/dev/null 2>&1 || return
-  if [ ! -f DECISIONS.md ]; then
-    report "$caused" "DECISIONS.md (the index of $DECISIONS_DIR/) is missing" \
+  caused=$(yes_if is_changed "$DECISIONS_INDEX"); changed_under "${DECISIONS_DIR%/}" && caused=yes
+  [ -f "$DECISIONS_INDEX" ] || ls "${DECISIONS_DIR%/}"/D-*.md >/dev/null 2>&1 || return
+  if [ ! -f "$DECISIONS_INDEX" ]; then
+    report "$caused" "$DECISIONS_INDEX (the index of $DECISIONS_DIR/) is missing" \
       "create it from agent_dev_kit/templates/docs/DECISIONS.md"
     return
   fi
@@ -526,7 +593,7 @@ check_decisions() {  # one file per decision, and DECISIONS.md lists each with i
       n = split($0, cells, "|")
       if (!col) { for (i = 2; i < n; i++) if (trim(cells[i]) == "Status") col = i; next }
       if (match(cells[2], /D-[0-9]+/)) print substr(cells[2], RSTART, RLENGTH) "\t" trim(cells[col])
-    }' DECISIONS.md)
+    }' "$DECISIONS_INDEX")
   ids=""
   for file in "${DECISIONS_DIR%/}"/D-*.md; do
     [ -f "$file" ] || continue
@@ -535,9 +602,9 @@ check_decisions() {  # one file per decision, and DECISIONS.md lists each with i
     status=$(sed -n 's/^status:[[:blank:]]*//p' "$file" | head -1 | tr -d '\r')
     row=$(printf '%s\n' "$index" | awk -F "$TAB" -v i="$id" '$1 == i { print $2; found = 1; exit } END { if (!found) print "<no row>" }')
     if [ "$row" = "<no row>" ]; then
-      report "$caused" "$id ($file) has no row in DECISIONS.md" "add: | [$id]($file) | <decision> | $status | <date> |"
+      report "$caused" "$id ($file) has no row in $DECISIONS_INDEX" "add: | [$id]($file) | <decision> | $status | <date> |"
     elif [ "$row" != "$status" ]; then
-      report "$caused" "$id is \"$status\" in $file but \"$row\" in DECISIONS.md" "make the index row match the file"
+      report "$caused" "$id is \"$status\" in $file but \"$row\" in $DECISIONS_INDEX" "make the index row match the file"
     fi
     case "$status" in
       "superseded by "*) target=${status#superseded by }
@@ -547,9 +614,31 @@ check_decisions() {  # one file per decision, and DECISIONS.md lists each with i
   done
   for id in $(printf '%s\n' "$index" | cut -f1); do
     case " $ids " in *" $id "*) ;; *)
-      report "$caused" "DECISIONS.md lists $id, but $DECISIONS_DIR/ has no $id-*.md" "write the file or remove the row" ;;
+      report "$caused" "$DECISIONS_INDEX lists $id, but $DECISIONS_DIR/ has no $id-*.md" "write the file or remove the row" ;;
     esac
   done
+}
+
+check_fixed_names() {  # maps, pointers and skills keep their exact names
+  [ -n "$DOC_SUFFIX" ] || return
+  fixed="SKILL"; [ "$MAPS" = beside ] || fixed="AGENTS SKILL"
+  for pointer in $POINTER_FILES; do fixed="$fixed ${pointer%.md}"; done
+  if [ -n "$SCOPE" ]; then
+    printf '%s\n' "$CHANGED" > "$TMP/candidates"
+  else
+    set -- -name '.?*' -o -name '_*'
+    for skip in $SKIP_DIRS; do set -- "$@" -o -name "$skip"; done
+    find . -type d \( "$@" \) -prune -o -type f -name "*$DOC_SUFFIX" -print | sed 's|^\./||' > "$TMP/candidates"
+    find .agents/skills -type f -name "*$DOC_SUFFIX" 2>/dev/null >> "$TMP/candidates"
+  fi
+  while IFS= read -r file; do
+    base=${file##*/}
+    for name in $fixed; do
+      [ "$base" = "$name$DOC_SUFFIX" ] || continue
+      report "$(yes_if is_changed "$file")" "$file must keep its exact name: agents load only $name.md" \
+        "rename it: git mv $file $(dirname "$file")/$name.md"
+    done
+  done < "$TMP/candidates"
 }
 
 run_commands() {  # the ## Run and ## Check blocks of RUN_COMMANDS_MAPS succeed
@@ -570,6 +659,13 @@ run_commands() {  # the ## Run and ## Check blocks of RUN_COMMANDS_MAPS succeed
   done
 }
 
+check_wiring() {  # beside mode: the local files that connect your maps to each agent are fresh
+  [ "$MAPS" = beside ] && [ -f .agents/kit/wire.sh ] || return
+  out=$(sh .agents/kit/wire.sh --check 2>&1) && return
+  fail "the local wiring of your maps is stale or missing: $(printf '%s' "$out" | head -3 | tr '\n' ' ')" \
+    "run: sh .agents/kit/wire.sh"
+}
+
 notes() {  # hints that never fail: a newer kit, code written without its docs
   [ "$QUIET" = 1 ] && return
   kit=${AGENT_KIT_HOME:-$HOME/agent_dev_kit}
@@ -580,6 +676,15 @@ notes() {  # hints that never fail: a newer kit, code written without its docs
          exit 1 }'; then
       echo "NOTE this repo has kit $have; $new is available: run agent-kit upgrade"
     fi
+  fi
+  if [ "$MAPS" = beside ]; then
+    case " $AGENTS_USED " in *" gemini "*|*" antigravity "*)
+      if git ls-files --error-unmatch .gemini/settings.json >/dev/null 2>&1 && grep -q '"fileName"' .gemini/settings.json; then
+        echo "NOTE the team's .gemini/settings.json sets context.fileName, so Gemini does not load $MAP_FILE here (see the ~/.gemini/GEMINI.md fallback)"
+      elif ! grep -qs "$MAP_FILE" "$HOME/.gemini/settings.json"; then
+        echo "NOTE Gemini does not load $MAP_FILE yet: add it to context.fileName in ~/.gemini/settings.json (agent-kit wire offers it)"
+      fi ;;
+    esac
   fi
   pending="$(git rev-parse --git-common-dir)/agent-kit/pending"
   if [ -s "$pending" ]; then
@@ -598,6 +703,8 @@ check_portability
 check_learning_docs
 check_ledger
 check_decisions
+check_fixed_names
+check_wiring
 run_commands
 notes
 
@@ -609,5 +716,5 @@ fi
 if [ "$WARNS" -gt 0 ]; then
   echo "agent-kit: $WARNS problem(s) outside this change do not block (see: sh .agents/kit/check.sh)"
 elif [ "$QUIET" = 0 ]; then
-  echo "agent-kit: all checks pass ($MAPS maps)"
+  echo "agent-kit: all checks pass ($MAP_COUNT maps)"
 fi

@@ -12,6 +12,8 @@ user asks.
 ## 1. Checks
 
 Run `sh .agents/kit/check.sh`. Fix what fails, and report what you fixed.
+In a team repo (`MAPS="beside"`), a stale-wiring failure is fixed with
+`sh .agents/kit/wire.sh`; never stage or commit a kit file there.
 Problems marked `WARN` are not part of this task: list them, do not fix
 them unless the user asks.
 
@@ -19,8 +21,9 @@ them unless the user asks.
 
 Find the base: the branch the work will merge into (`main` by default).
 Run the `docs-sync` skill in check mode with scope `since <base>`. When it
-finds drift caused by this task, propose the fixes and apply the ones the
-user approves (`docs-sync fix`).
+finds drift caused by this task in kit docs, propose the fixes and apply the
+ones the user approves (`docs-sync fix`). Show its "Your docs" table as it
+is: those files belong to the people, so they fix them.
 
 ## 3. Learning docs
 
@@ -31,20 +34,25 @@ Refresh them now?" On yes, run the `learning-docs` skill with scope `stale`,
 then empty the stale-learning file. On no, leave the file; the next session
 start shows it.
 
-## 4. Code written by hand
+## 4. Code written by hand, and other people's commits
 
 If `sh .agents/kit/queue.sh count` is above zero, tell the user and offer
 the `catch-up` skill. Do not run it without a yes.
+
+If `sh .agents/kit/pulled.sh count` is above zero, other people's commits
+changed code since the docs were last checked. Tell the user and offer the
+`docs-sync` skill with scope `pulled`. Do not run it without a yes.
 
 ## 5. Pull request
 
 When a pull request is being opened or updated, run the `explain-diff`
 skill for `since <base>` and put its section in the pull request
 description (replace the old section between the markers; never add a
-second one).
+second one). When the user asks for the plainer explanation, use
+`explain-d-ez` instead; for an interactive page, `explain-d-in`.
 
 ## 6. Report
 
 A short list: checks (pass or fixed), docs changed, learning docs
-refreshed or still stale, catch-up items, and whether the pull request
-section was written.
+refreshed or still stale, catch-up items, other people's commits waiting
+for docs-sync, and whether the pull request section was written.

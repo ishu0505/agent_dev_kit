@@ -20,7 +20,8 @@ the folder that contains this file. The kit gives the repo:
 2. **Lineage**: `DECISIONS.agentk.md`, the index of every decision and its
    reason (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
-   `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`.
+   `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
+   `explain-d-in`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
    commit breaks blocks), after every agent turn that changed files, and in
    CI, so the docs stay true.
@@ -45,6 +46,14 @@ the decisions and the plan. Work in the phases below, do not skip ahead, and
 write nothing before phase 3 is approved (phase 4 starts with the install).
 
 ## Phase 0 — Personal or team repo, then which case
+
+**Not a repo, but a folder of repos?** If `git rev-parse` fails here and
+folders below hold `.git`, this is a multi-repo workspace: follow
+`KIT/WORKSPACE.md` instead. If this repo's parent (or grandparent) folder
+holds other repos, finish this setup, then offer once: "This repo sits next
+to other repos (<names>). Set up the folder as a workspace?" (`agent-kit
+workspace`, recommended when the repos work together, such as a frontend
+and its API).
 
 **The first question, always** (setup and upgrade alike, before anything
 else). Run `sh KIT/templates/kit/agent-files.sh .` (read only). It prints a

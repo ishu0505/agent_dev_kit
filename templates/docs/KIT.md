@@ -16,6 +16,9 @@ and tells you when one no longer matches the code.
 | End of a task, or before a PR | ask the agent: `wrap-up` |
 | You wrote code by hand | `catch-up`: the agent explains it, proposes docs and docstrings, you approve |
 | Explain a branch or PR, with a quiz | `explain-diff` (`explain-diff --post` adds it to the PR) |
+| The same in plain words, quiz from easy to hard | `explain-d-ez` (`--post` adds it to the PR) |
+| The same as an interactive page | `explain-d-in` |
+| Check the docs after a pull of other people's work | `docs-sync` with scope `pulled` |
 | Are code and docs in sync? | `docs-sync check` |
 | Make the docs match the code | `docs-sync fix` |
 | Learn the system | `learning-docs` (writes `learning_docs/`; pushed only in share mode `all` or `learning`) |

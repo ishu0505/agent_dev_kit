@@ -37,5 +37,5 @@ Read nothing else until the task needs it.
   `.agentk.md`. Every other Markdown file belongs to the people here: read
   it, report drift in it, never edit it.
 - At the end of every task, and before a pull request, run the `wrap-up`
-  skill. Other skills (`lineage`, `scaffold`, `catch-up`, `explain-diff`)
-  are in `.agents/skills/`.
+  skill. Other skills (`lineage`, `scaffold`, `catch-up`, `explain-diff`,
+  `explain-d-ez`, `explain-d-in`) are in `.agents/skills/`.

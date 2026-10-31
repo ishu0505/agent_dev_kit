@@ -232,7 +232,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -626,6 +626,153 @@ printf '%s' "$out" | grep -q "^svc/api/AGENTS.agentk.md	.*svc/api/AGENTS.md (tea
 [ ! -e "$B/svc/api/CLAUDE.local.md" ] && [ ! -e "$B/svc/api/AGENTS.override.md" ] && [ "$(cat "$B/CLAUDE.local.md")" = "My own note." ] &&
   [ -f "$B/svc/api/AGENTS.agentk.md" ] && [ "$before" != "" ] &&
   ok "beside: --remove deletes only what the kit made" || bad "beside: --remove deletes only what the kit made"
+
+# --- 0.8 fixes ----------------------------------------------------------------
+NOREPO="$WORK/norepo"; mkdir -p "$NOREPO"
+for script in session-start.sh stop-hook.sh; do
+  cmd=$(sed -n "s/^ *\"command\": \"\(.*kit\/$script.*\)\"\$/\1/p" "$KIT/templates/config/claude-settings.json" | sed 's/\\"/"/g')
+  out=$(cd "$NOREPO" && GIT_CEILING_DIRECTORIES="$WORK" sh -c "$cmd" < /dev/null 2>&1); code=$?
+  [ "$code" = 0 ] && [ -z "$out" ] && ok "hook command for $script: silent outside a git repo" ||
+    bad "hook command for $script: silent outside a git repo" "exit $code: $out"
+done
+
+new_repo oldhooks; R="$WORK/oldhooks"
+printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"sh -c '"'"'sh \\"$(git rev-parse --show-toplevel)/.agents/kit/stop-hook.sh\\"'"'"'"}]}]}}\n' > "$R/.claude/settings.json"
+sh "$KIT/install.sh" "$R" > /dev/null 2>&1
+grep -q 'exec sh' "$R/.claude/settings.json" && ! grep -q 'sh -c .sh \\"' "$R/.claude/settings.json" &&
+  ok "upgrade swaps the old kit hook command" || bad "upgrade swaps the old kit hook command" "$(cat "$R/.claude/settings.json")"
+
+if [ "$(git -C "$WORK/oldhooks" config --bool core.fileMode)" != false ]; then  # Windows must stage the executable bit
+  [ -z "$(git -C "$WORK/oldhooks" diff --cached --name-only)" ] &&
+    ok "install stages nothing in a fresh repo" || bad "install stages nothing in a fresh repo" "$(git -C "$WORK/oldhooks" diff --cached --name-only)"
+fi
+
+new_repo queue8; R="$WORK/queue8"
+mkdir -p "$R/pkg/sub dir"; echo x > "$R/pkg/__init__.py"; echo y > "$R/pkg/sub dir/my file.py"
+git_quiet -C "$R" add -A; git_quiet -C "$R" commit --no-verify -m pkg
+(cd "$R" && sh .agents/kit/queue.sh add HEAD)
+(cd "$R" && sh .agents/kit/queue.sh list) | grep -q ' 2-files ' &&
+  ok "queue counts __init__.py and paths with spaces" || bad "queue counts __init__.py and paths with spaces" "$(cd "$R" && sh .agents/kit/queue.sh list)"
+
+printf 'MAP_EXEMPT="$HOME`echo x`"\r\n' >> "$R/.agents/agent-kit.conf"
+val=$(cd "$R" && sh -c '. ./.agents/kit/lib.sh && load_conf && printf "%s" "$MAP_EXEMPT"')
+[ "$val" = '$HOME`echo x`' ] && ok "config values are read as text, never run" || bad "config values are read as text, never run" "$val"
+
+out=$(sh "$KIT/install.sh" --share 2>&1); code=$?
+[ "$code" != 0 ] && printf '%s' "$out" | grep -q 'needs a value' &&
+  ok "install --share without a value names the fix" || bad "install --share without a value names the fix" "$out"
+
+V=$(variant suffixword); printf 'Kit docs end in `.agentk.md`.\n' >> "$V/AGENTS.md"
+expect_pass "a map may name the kit's name ending (.agentk.md)" "$V"
+
+# --- Team pulls: other people's commits since the docs were last checked -------
+PR="$WORK/pulls"; mkdir -p "$PR"; git init -q --bare "$PR/remote.git"
+git -C "$PR/remote.git" symbolic-ref HEAD refs/heads/main
+P1="$PR/mate"; git clone -q "$PR/remote.git" "$P1" 2>/dev/null
+mate2() { git -c user.name=mate -c user.email=mate@team.com -C "$P1" "$@" >/dev/null 2>&1; }
+echo 'x = 1' > "$P1/app.py"; mate2 add -A; mate2 commit -m start; mate2 push origin HEAD:refs/heads/main
+P2="$PR/me"; git clone -q "$PR/remote.git" "$P2" 2>/dev/null
+git -C "$P2" config user.email me@me.com; git -C "$P2" config user.name me
+sh "$KIT/install.sh" "$P2" > /dev/null 2>&1
+[ -z "$(cd "$P2" && echo '{}' | sh .agents/kit/session-start.sh | grep 'other people')" ] &&
+  ok "pulls: the first session sets the mark and says nothing" || bad "pulls: the first session sets the mark and says nothing"
+echo 'y = 2' >> "$P1/app.py"; mate2 commit -am "mate changes app"; echo 'notes' > "$P1/NOTES.txt"; mate2 add -A; mate2 commit -m "mate notes"
+mate2 push origin HEAD:refs/heads/main
+out=$(git -C "$P2" pull -q --no-rebase origin main 2>&1)
+printf '%s' "$out" | grep -q '1 commit(s) from other people' &&
+  ok "pulls: post-merge says what arrived (code commits only)" || bad "pulls: post-merge says what arrived (code commits only)" "$out"
+out=$(cd "$P2" && echo '{}' | sh .agents/kit/session-start.sh)
+printf '%s' "$out" | grep -q 'docs-sync skill with scope pulled' &&
+  ok "pulls: the session start offers docs-sync scope pulled" || bad "pulls: the session start offers docs-sync scope pulled" "$out"
+base=$(cd "$P2" && sh .agents/kit/pulled.sh base)
+[ "$(git -C "$P2" rev-parse HEAD~2)" = "$base" ] && ok "pulls: base is the commit before the pull" || bad "pulls: base is the commit before the pull" "$base"
+(cd "$P2" && sh .agents/kit/pulled.sh done)
+[ "$(cd "$P2" && sh .agents/kit/pulled.sh count)" = 0 ] && ok "pulls: done clears it" || bad "pulls: done clears it"
+echo 'z = 3' >> "$P2/app.py"; git_quiet -C "$P2" -c user.email=me@me.com commit --no-verify -am mine
+[ "$(cd "$P2" && sh .agents/kit/pulled.sh count)" = 0 ] && ok "pulls: your own commits never count" || bad "pulls: your own commits never count"
+
+# --- Multi-repo workspaces ------------------------------------------------------
+export AGENT_KIT_STATE="$WORK/kit-state"
+WS="$WORK/ws"; mkdir -p "$WS"
+for r in front back legacy; do
+  git init -q "$WS/$r"; echo 'x = 1' > "$WS/$r/app.py"; git_quiet -C "$WS/$r" add -A; git_quiet -C "$WS/$r" commit -m init
+done
+sh "$KIT/install.sh" "$WS/front" > /dev/null 2>&1
+printf '# front\n\nThe web app.\n' > "$WS/front/AGENTS.md"; echo "@AGENTS.md" > "$WS/front/CLAUDE.md"
+mkdir -p "$WS/front/src/api"; echo 'y = 1' > "$WS/front/src/api/client.py"
+git_quiet -C "$WS/front" add -A; git_quiet -C "$WS/front" commit --no-verify -m kit
+legacy_sum=$(cd "$WS/legacy" && git status --porcelain | cksum)
+out=$(cd "$WS" && sh "$KIT/templates/workspace/workspace.sh" init --name shop 2>&1)
+[ -f "$WS/WORKSPACE.agentk.md" ] && grep -q '@WORKSPACE.agentk.md' "$WS/CLAUDE.md" && grep -q '/ws$' "$AGENT_KIT_STATE/workspaces" &&
+  printf '%s' "$out" | grep -q 'Waiting for an answer about the kit: back legacy' &&
+  ok "workspace: init writes the map and pointers, registers, and lists repos without an answer" || bad "workspace: init writes the map and pointers, registers, and lists repos without an answer" "$out"
+grep -q '| `front/` | _say what it is_ | kit .*, own | `front/AGENTS.md` |' "$WS/WORKSPACE.agentk.md" &&
+  ok "workspace: the repo table names each repo's kit and map" || bad "workspace: the repo table names each repo's kit and map" "$(cat "$WS/WORKSPACE.agentk.md")"
+sed 's/| `back\/` | _say what it is_ |/| `back\/` | The API |/' "$WS/WORKSPACE.agentk.md" > "$WS/m.tmp" && mv "$WS/m.tmp" "$WS/WORKSPACE.agentk.md"
+(cd "$WS" && sh .agent-workspace/kit/workspace.sh decline legacy > /dev/null)
+grep -q '| `back/` | The API |' "$WS/WORKSPACE.agentk.md" && grep -q '| `legacy/` | _say what it is_ | declined |' "$WS/WORKSPACE.agentk.md" &&
+  ok "workspace: a refresh keeps the Role people wrote" || bad "workspace: a refresh keeps the Role people wrote" "$(cat "$WS/WORKSPACE.agentk.md")"
+[ -f "$WS/legacy/.git/agent-kit/declined" ] && [ "$(cd "$WS/legacy" && git status --porcelain | cksum)" = "$legacy_sum" ] &&
+  ok "workspace: never installing writes only inside .git" || bad "workspace: never installing writes only inside .git"
+
+(cd "$WS/front" && sh .agents/kit/wire.sh > /dev/null)
+grep -q '\.\./WORKSPACE.agentk.md' "$WS/front/AGENTS.override.md" && grep -q 'The web app' "$WS/front/AGENTS.override.md" &&
+  [ -z "$(git -C "$WS/front" status --porcelain -- AGENTS.override.md)" ] &&
+  ok "workspace: Codex gets a local override with the workspace pointer (own mode)" || bad "workspace: Codex gets a local override with the workspace pointer (own mode)"
+
+WS2="$WORK/ws2"; mkdir -p "$WS2"
+(cd "$WS2" && sh "$KIT/templates/workspace/workspace.sh" init > /dev/null 2>&1)
+out=$(cd "$WS2" && sh .agent-workspace/kit/workspace.sh add "$WS/back" 2>&1)
+[ -f "$WS2/back/.git" ] && printf '%s' "$out" | grep -q 'also in' &&
+  ok "workspace: add makes a worktree and names the other workspace" || bad "workspace: add makes a worktree and names the other workspace" "$out"
+[ "$(cd "$WS/back" && sh "$WS/.agent-workspace/kit/workspace.sh" where | wc -l | tr -d ' ')" = 2 ] &&
+  ok "workspace: where lists both workspaces" || bad "workspace: where lists both workspaces" "$(cd "$WS/back" && sh "$WS/.agent-workspace/kit/workspace.sh" where)"
+git init -q "$WORK/elsewhere"; ln -s "$WORK/elsewhere" "$WS2/linked" 2>/dev/null
+if [ -L "$WS2/linked" ]; then
+  (cd "$WS2" && sh .agent-workspace/kit/workspace.sh scan) | grep -q 'linked .*symlink: not supported' &&
+    ok "workspace: a symlinked repo is reported with its fix" || bad "workspace: a symlinked repo is reported with its fix"
+fi
+mkdir -p "$WS2/copied"; git init -q "$WS2/copied"
+(cd "$WS2" && sh .agent-workspace/kit/workspace.sh repos) | grep -q "^copied	none" &&
+  ok "workspace: a repo dropped in by hand is found" || bad "workspace: a repo dropped in by hand is found"
+
+printf 'LINKS="back:api.yaml>front:src/api"\n' >> "$WS/.agent-workspace/workspace.conf"
+ev="{\"session_id\":\"w1\",\"cwd\":\"$(native "$WS")\"}"
+out=$(echo "$ev" | sh "$WS/.agent-workspace/kit/ws-hook.sh" session-start)
+printf '%s' "$out" | grep -q 'no answer yet about the kit for: back\.' &&
+  ok "workspace: session start names repos without an answer" || bad "workspace: session start names repos without an answer" "$out"
+echo 'openapi: 3' > "$WS/back/api.yaml"; echo '# x' >> "$WS/front/src/api/client.py"
+out=$(echo "$ev" | sh "$WS/.agent-workspace/kit/ws-hook.sh" stop)
+printf '%s' "$out" | grep -q 'back/api.yaml. changed, and .front/src/api. uses it' &&
+  ok "workspace: the Stop hook names the consumer when a LINKS provider changes" || bad "workspace: the Stop hook names the consumer when a LINKS provider changes" "$out"
+out=$(echo "$ev" | sh "$WS/.agent-workspace/kit/ws-hook.sh" stop)
+[ -z "$out" ] && ok "workspace: each link is named once per session" || bad "workspace: each link is named once per session" "$out"
+out=$(cd "$WORK/norepo" && sh "$KIT/templates/workspace/workspace.sh" scan 2>&1)
+printf '%s' "$out" | grep -q 'fix: run' && ok "workspace: outside a workspace, scan names the fix" || bad "workspace: outside a workspace, scan names the fix" "$out"
+unset AGENT_KIT_STATE
+
+# --- Explanation skills ----------------------------------------------------------
+R="$WORK/go"
+for skill in explain-d-ez explain-d-in; do
+  [ -f "$R/.agents/skills/$skill/SKILL.md" ] && [ -f "$R/.claude/skills/$skill/SKILL.md" ] &&
+    grep -q "^name: $skill\$" "$R/.agents/skills/$skill/SKILL.md" &&
+    ok "$skill: installed for every agent, name matches its folder" || bad "$skill: installed for every agent, name matches its folder"
+done
+for skill in explain-d-ez explain-d-in learning-docs; do
+  grep -q 'explain-standard.agentk.md' "$KIT/templates/skills/$skill/SKILL.md" &&
+    ok "$skill follows the explanation standard" || bad "$skill follows the explanation standard"
+done
+grep -q 'Explain this at about 80% of the way to ASD-STE100' "$R/.agents/kit/explain-standard.agentk.md" &&
+  ok "the explanation standard is installed with the user's words" || bad "the explanation standard is installed with the user's words"
+! grep -q 'explain-standard' "$KIT/templates/skills/explain-diff/SKILL.md" &&
+  ok "explain-diff keeps its own rules (for comparison)" || bad "explain-diff keeps its own rules (for comparison)"
+SKEL="$KIT/templates/skills/explain-d-in/page-skeleton.html"
+! grep -qi '<script[^>]*src=' "$SKEL" && grep -q 'white-space: pre' "$SKEL" &&
+  ok "explain-d-in skeleton: no outside scripts, code keeps its newlines" || bad "explain-d-in skeleton: no outside scripts, code keeps its newlines"
+for python in python3 python; do command -v "$python" >/dev/null 2>&1 && break; done
+awk '/id="quiz-data"/ { on = 1; next } on && /<\/script>/ { exit } on { print }' "$SKEL" |
+  "$python" -c 'import json, sys; d = json.load(sys.stdin); assert {"level", "q", "options", "answer", "why"} <= set(d[0])' 2>/dev/null &&
+  ok "explain-d-in skeleton: the quiz block is valid JSON" || bad "explain-d-in skeleton: the quiz block is valid JSON"
 
 echo
 echo "$PASSED passed, $FAILED failed"

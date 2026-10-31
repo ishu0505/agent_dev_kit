@@ -1,6 +1,6 @@
 ---
 name: learning-docs
-description: Write or refresh the learning docs (LEARNING_DIR, default learning_docs/) that teach a person the whole architecture and each unit and flow in ASD-STE100 Simplified Technical English, written for an intern, with real code references, invented examples, Mermaid diagrams and easy/medium/hard quizzes with hidden answers. Whether they are committed follows SHARE in .agents/agent-kit.conf. Use when the user asks for learning docs, an explanation of the system for a newcomer, when a unit is added, or when wrap-up or docs-sync reports a stale learning doc. Scope - all, a unit, a flow, or stale.
+description: Write or refresh the learning docs (LEARNING_DIR, default learning_docs/) that teach a person the whole architecture and each unit and flow in plain, simple English (about 80% of ASD-STE100 Simplified Technical English), written for an intern, with real code references, invented examples, Mermaid diagrams and quizzes ordered from easy to hard, with hidden answers. Whether they are committed follows SHARE in .agents/agent-kit.conf. Use when the user asks for learning docs, an explanation of the system for a newcomer, when a unit is added, or when wrap-up or docs-sync reports a stale learning doc. Scope - all, a unit, a flow, or stale.
 ---
 
 # Learning docs
@@ -23,16 +23,17 @@ name, or `stale` (only docs whose code changed; see "Staying current").
 ## 1. Plan the files
 
 Read the root `AGENTS.md`, every unit map, and the code entry points. Then
-propose the file list and wait for the user's OK:
+propose the file list and wait for the user's OK. Every file name ends in
+`DOC_SUFFIX` from the config (`.agentk.md`; plain `.md` when it is empty):
 
-- `README.md` — reading order, one line per file.
-- `00-overview.md` — the whole system: what it does, the units, how they
+- `00-start-here.agentk.md` — reading order, one line per file.
+- `00-overview.agentk.md` — the whole system: what it does, the units, how they
   talk, one end-to-end diagram, where to start reading the code.
 - One file per unit (service, package, component), in the order data flows
-  through them: `01-api.md`, `02-worker.md`, ...
+  through them: `01-api.agentk.md`, `02-worker.agentk.md`, ...
 - One file per important flow that crosses units: API request, queue or
   worker job, event stream, data pipeline, CLI command, retry and failure
-  paths: `05-upload-to-result-flow.md`, ...
+  paths: `05-upload-to-result-flow.agentk.md`, ...
 
 ## 2. Read before you write
 
@@ -73,10 +74,13 @@ Sections, in this order (leave out one that does not apply):
    duplicates, what is and is not atomic. Correct a likely wrong assumption
    in plain words ("A log line here does not prove the reply arrived").
 7. **Next** — links to the files to read next.
-8. **Quiz** — at least six questions: two **easy** (recall a fact), two
-   **medium** (trace a flow or explain a reason), two **hard** (predict
-   behaviour in a failure or edge case, or compare two designs). Test
-   understanding of the project, not trivia. Hide the answers:
+8. **Quiz** — at least six questions on the quiz ladder of
+   `.agents/kit/explain-standard.agentk.md`, in order: two **easy** (the
+   fundamentals: what the unit or flow does, its input and output), two
+   **medium** (the concepts it uses; trace one concrete case through it),
+   two **hard** (the behavior it affects elsewhere, a failure or edge case,
+   or a trade-off against another design). Test understanding of the
+   project, not trivia. Hide the answers:
 
    ```
    <details>
@@ -93,9 +97,18 @@ request through every unit.
 
 ## 4. Language
 
-Follow `.agents/kit/writing-style.md`: ASD-STE100 Simplified Technical
-English, written for an intern on day one. Code names, paths and API fields
-stay exactly as in the code.
+Write and explain by `.agents/kit/explain-standard.agentk.md`:
+
+> Explain this at about 80% of the way to ASD-STE100 Simplified Technical
+> English. Use short sentences. Use active voice. One idea per sentence.
+> Use simple, common words. Explain technical terms the first time they
+> appear. Give steps in order, one action per step.
+
+The rest of `.agents/kit/writing-style.agentk.md` still applies (write for an
+intern on day one, which files you may edit, safety); its strict ASD-STE100
+section does not. Code names, paths and API fields stay exactly as in the
+code. A learning doc written before kit 0.8 moves to this standard the next
+time it is refreshed.
 
 ## 5. Staying current
 

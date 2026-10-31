@@ -7,14 +7,16 @@
 # Works before the kit is installed (run it from agent_dev_kit/templates/kit/)
 # and after (.agents/kit/inventory.sh). Needs sh, git, find, awk, cksum.
 
+KIT_LIB="$(cd "$(dirname "$0")" && pwd)/lib.sh"  # before cd: $0 may be relative
 ROOT=$(git -C "${1:-.}" rev-parse --show-toplevel 2>/dev/null) || {
   echo "inventory: not inside a git repository"; exit 1; }
 cd "$ROOT" || exit 1
 
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 LEARNING_DIR="learning_docs"
+DOC_SUFFIX=""
 OWN_SKILLS=""
-[ -f .agents/agent-kit.conf ] && . ./.agents/agent-kit.conf
+. "$KIT_LIB" && load_conf
 KIT_SKILLS="lineage scaffold docs-sync learning-docs catch-up wrap-up explain-diff"
 TODAY=$(date +%s)
 SEEN=$(mktemp) || exit 1
@@ -81,7 +83,14 @@ echo "(state, last commit, size; read only)"
 echo
 
 # shellcheck disable=SC2046  # file lists are one path per line, no spaces expected
-group "Maps and pointer files" $(find_files -name AGENTS.md -o -name CLAUDE.md -o -name GEMINI.md)
+if [ -n "$DOC_SUFFIX" ]; then
+  # shellcheck disable=SC2046
+  group "Kit docs: maps, pointer files and *$DOC_SUFFIX" $(find_files -name AGENTS.md -o -name CLAUDE.md -o -name GEMINI.md \
+    -o -name "*$DOC_SUFFIX" | grep -v -E "^(\.agents|${LEARNING_DIR:-__none__})/")
+else
+  # shellcheck disable=SC2046
+  group "Maps and pointer files" $(find_files -name AGENTS.md -o -name CLAUDE.md -o -name GEMINI.md)
+fi
 group "Rules for other agents" $(find_files -name .cursorrules -o -name .windsurfrules -o -name .clinerules \
   -o -path './.cursor/rules/*' -o -path './.github/copilot-instructions.md' -o -path './.github/instructions/*')
 
@@ -112,6 +121,7 @@ group "Decisions, plans and ledgers" $(find_files -name DECISIONS.md -o -name PL
 [ -n "$LEARNING_DIR" ] && [ -d "$LEARNING_DIR" ] && group "Learning docs" $(find_files -path "./$LEARNING_DIR/*")
 
 others=$(find_files -name '*.md' | grep -v -E '(^|/)(AGENTS|CLAUDE|GEMINI|DECISIONS|PLAN|EXPERIMENTS|SKILL)\.md$' |
+  grep -v -F "${DOC_SUFFIX:-__no_suffix__}" |
   grep -v -E "^(\.agents|\.claude|\.codex|\.cursor|\.github|${LEARNING_DIR:-__none__})/")
 others=$(for path in $others; do git check-ignore -q -- "$path" || echo "$path"; done)
 group "Other Markdown" $others
