@@ -54,4 +54,5 @@ Read nothing else until the task needs it.
   it, report drift in it, never edit it.
 - At the end of every task, and before a pull request, run the `wrap-up`
   skill. Other skills (`lineage`, `scaffold`, `catch-up`, `explain-diff`,
-  `explain-d-ez`, `explain-d-in`) are in `.agents/skills/`.
+  `explain-d-ez`, `explain-d-in`) are in `.agents/skills/`. Run
+  `interactive-docs` and `arch-emulator` only when the user names them.

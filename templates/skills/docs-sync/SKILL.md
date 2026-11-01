@@ -109,6 +109,10 @@ drift, unverified claims. In `check` mode, stop here and change nothing.
   docs" table for the people to fix.
 - Refresh stale learning docs with the `learning-docs` skill (it updates
   each `source_commit`).
+- Never touch `<LEARNING_DIR>/interactive_l_docs/` (only the
+  `interactive-docs` skill updates those pages, when the user names it) or
+  `<LEARNING_DIR>/architecture/` (dated `arch-emulator` reviews; a
+  snapshot, never synced).
 - **Scope `pulled`: who fixes what.** Other people wrote these commits, so
   ask before each group:
 

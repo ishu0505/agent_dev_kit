@@ -232,7 +232,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|interactive-docs|arch-emulator)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -865,6 +865,67 @@ for python in python3 python; do command -v "$python" >/dev/null 2>&1 && break; 
 awk '/id="quiz-data"/ { on = 1; next } on && /<\/script>/ { exit } on { print }' "$SKEL" |
   "$python" -c 'import json, sys; d = json.load(sys.stdin); assert {"level", "q", "options", "answer", "why"} <= set(d[0])' 2>/dev/null &&
   ok "explain-d-in skeleton: the quiz block is valid JSON" || bad "explain-d-in skeleton: the quiz block is valid JSON"
+
+# --- On-request skills: interactive-docs, arch-emulator --------------------------
+for skill in interactive-docs arch-emulator; do
+  [ -f "$R/.agents/skills/$skill/SKILL.md" ] && [ -f "$R/.claude/skills/$skill/SKILL.md" ] &&
+    grep -q "^name: $skill\$" "$R/.agents/skills/$skill/SKILL.md" &&
+    ok "$skill: installed for every agent, name matches its folder" || bad "$skill: installed for every agent, name matches its folder"
+  grep '^description:' "$KIT/templates/skills/$skill/SKILL.md" | grep -q 'ONLY when the user names it' &&
+    ok "$skill runs only when the user names it" || bad "$skill runs only when the user names it"
+  grep -q 'explain-standard.agentk.md' "$KIT/templates/skills/$skill/SKILL.md" &&
+    ok "$skill follows the explanation standard" || bad "$skill follows the explanation standard"
+  SKEL="$KIT/templates/skills/$skill/page-skeleton.html"
+  ! grep -qi '<script[^>]*src=' "$SKEL" && ! grep -qi '<link[^>]*stylesheet' "$SKEL" && grep -q 'white-space: pre' "$SKEL" &&
+    ok "$skill skeleton: self-contained, code keeps its newlines" || bad "$skill skeleton: self-contained, code keeps its newlines"
+  for block in quiz-data emulator-data; do
+    grep -q "id=\"$block\"" "$SKEL" || continue
+    awk -v id="$block" '$0 ~ "id=\"" id "\"" { on = 1; next } on && /<\/script>/ { exit } on { print }' "$SKEL" |
+      "$python" -c 'import json, sys; json.load(sys.stdin)' 2>/dev/null &&
+      ok "$skill skeleton: the $block block is valid JSON" || bad "$skill skeleton: the $block block is valid JSON"
+  done
+done
+! ls "$KIT/templates/skills/arch-emulator" | grep -v -E '^(SKILL\.md|.*\.agentk\.md|.*\.html)$' | grep -q '\.md$' &&
+  ok "arch-emulator: its Markdown files end in .agentk.md" || bad "arch-emulator: its Markdown files end in .agentk.md"
+grep -q 'interactive_l_docs' "$KIT/templates/skills/docs-sync/SKILL.md" &&
+  ok "docs-sync leaves the interactive pages alone" || bad "docs-sync leaves the interactive pages alone"
+
+new_repo ix
+I="$WORK/ix"
+mkdir -p "$I/src" && printf 'def handle():\n    return 1\n' > "$I/src/api.py"
+git_quiet -C "$I" add -A && git_quiet -C "$I" commit --no-verify -m "api [no-docs]"
+c1=$(git -C "$I" rev-parse --short HEAD)
+mkdir -p "$I/learning_docs/interactive_l_docs" "$I/learning_docs/architecture"
+printf -- '---\ntitle: The API\nsource_paths: [src/]\nsource_commit: %s\n---\n\n# The API\n' "$c1" > "$I/learning_docs/01-api.agentk.md"
+printf -- '---\ntitle: Review\nreviewed_commit: %s\nreviewed_paths: [src/]\n---\n\n# Review\n' "$c1" > "$I/learning_docs/architecture/2026-01-01-review.agentk.md"
+STATUS=".agents/skills/interactive-docs/status.sh"
+out=$(cd "$I" && sh "$STATUS")
+printf '%s' "$out" | grep -q '^missing	learning_docs/interactive_l_docs/01-api.html	learning_docs/01-api.agentk.md$' &&
+  ok "interactive-docs status: a learning doc without a page is missing" || bad "interactive-docs status: a learning doc without a page is missing" "$out"
+printf '%s' "$out" | grep -q 'architecture' &&
+  bad "interactive-docs status: architecture reviews are not learning docs" "$out" || ok "interactive-docs status: architecture reviews are not learning docs"
+printf '<html><head>\r\n<!-- agent-kit: interactive from=01-api.agentk.md source_commit=%s built=2026-01-01 -->\r\n</head></html>\r\n' "$c1" > "$I/learning_docs/interactive_l_docs/01-api.html"
+out=$(cd "$I" && sh "$STATUS")
+printf '%s' "$out" | grep -q '^current	' &&
+  ok "interactive-docs status: a page built from the doc's source_commit is current (CRLF too)" || bad "interactive-docs status: a page built from the doc's source_commit is current (CRLF too)" "$out"
+printf 'def handle():\n    return 2\n' > "$I/src/api.py"
+git_quiet -C "$I" commit --no-verify -am "change [no-docs]"
+out=$(cd "$I" && sh "$STATUS")
+printf '%s' "$out" | grep -q '^current	.*(learning doc stale)$' &&
+  ok "interactive-docs status: says when the learning doc itself is stale" || bad "interactive-docs status: says when the learning doc itself is stale" "$out"
+out=$(cd "$I" && sh .agents/kit/stale.sh)
+printf '%s' "$out" | grep -q 'architecture\|interactive_l_docs' &&
+  bad "stale.sh skips architecture reviews and interactive pages" "$out" || ok "stale.sh skips architecture reviews and interactive pages"
+edit "s/^source_commit: .*/source_commit: $(git -C "$I" rev-parse --short HEAD)/" "$I/learning_docs/01-api.agentk.md"
+out=$(cd "$I" && sh "$STATUS")
+printf '%s' "$out" | grep -q '^stale	learning_docs/interactive_l_docs/01-api.html' &&
+  ok "interactive-docs status: a page is stale after its learning doc is refreshed" || bad "interactive-docs status: a page is stale after its learning doc is refreshed" "$out"
+rm "$I/learning_docs/01-api.agentk.md"
+out=$(cd "$I" && sh "$STATUS")
+printf '%s' "$out" | grep -q '^orphan	learning_docs/interactive_l_docs/01-api.html	learning_docs/01-api.agentk.md$' &&
+  ok "interactive-docs status: a page whose learning doc is gone is an orphan" || bad "interactive-docs status: a page whose learning doc is gone is an orphan" "$out"
+[ -z "$(git -C "$I" status --porcelain -- learning_docs)" ] &&
+  ok "interactive pages and architecture reviews stay local in share mode agent" || bad "interactive pages and architecture reviews stay local in share mode agent" "$(git -C "$I" status --porcelain)"
 
 echo
 echo "$PASSED passed, $FAILED failed"
