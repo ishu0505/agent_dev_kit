@@ -3,6 +3,48 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.10.0 — 2026-11-01
+
+Two skills that run only when you name them: interactive learning docs,
+and an architecture review for scale and latency.
+
+**What an upgrading repo must do:** run `agent-kit upgrade` (or
+`sh <agent_dev_kit>/install.sh .`). It installs the two skills; nothing
+else changes, and no agent starts them by itself. Both write inside
+`LEARNING_DIR`, so they follow the share mode of the learning docs (local
+in `agent` and `none`, committed in `all` and `learning`) and stay local in
+team repos with no new exclude rule. If your share mode pushes agent files,
+commit `.agents/skills/interactive-docs/` and `.agents/skills/arch-emulator/`.
+
+- **`interactive-docs`** rewrites each learning doc as one self-contained
+  HTML page in `<LEARNING_DIR>/interactive_l_docs/` (same path, `.html`):
+  a clickable diagram of the parts, a step-through of one request on the
+  same diagram (with Play), a clickable database diagram (tables, keys,
+  who writes and reads each), failure toggles, code links and a clickable
+  quiz, plus `index.html`. Modes: `build`, `sync` (only pages whose
+  learning doc changed) and `status`. Each page records the learning
+  doc's `source_commit` in a marker; the new read-only
+  `.agents/skills/interactive-docs/status.sh` lists pages that are
+  `missing`, `stale`, `current` or `orphan`, and says when the learning
+  doc itself is stale. `docs-sync` and `learning-docs` never touch these
+  pages: only `interactive-docs sync` updates them.
+- **`arch-emulator`** reviews the repo for scale and latency, read only: the
+  parts and links (calls that wait, messages that do not), the repo and
+  service structure, request paths with timeouts and retries, a capacity
+  estimate per part with the source of each number (measured, repo config,
+  provider docs with a date, or a stated assumption), what fills up first
+  and at what load, the pros, cons and limits of each tool (queues such as
+  SQS, HTTP, databases, caches, serverless), what is good, the gaps with a
+  confidence, tests to run (on staging, never production), and fixes in
+  three tiers: quick, medium, long term. It writes a dated
+  `<LEARNING_DIR>/architecture/YYYY-MM-DD-review.agentk.md` and a page with
+  a load emulator (a slider for users or requests per second; bars per
+  part; Little's Law for requests in flight). Reviews are snapshots: their
+  front matter uses `reviewed_paths`, so `docs-sync`, `stale.sh` and the
+  Stop hook skip them. A rerun compares with the last review.
+- `docs-sync` and `learning-docs` say that the two subfolders are not
+  theirs.
+
 ## 0.9.0 — 2026-10-31
 
 Maps that warn, task files, and hidden links: changes for accuracy. They

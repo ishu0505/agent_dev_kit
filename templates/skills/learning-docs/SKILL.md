@@ -17,6 +17,10 @@ it. Whether it is pushed depends on `SHARE` in the same file:
   the change they describe. Never put secrets, customer data or private
   hosts in them, even in examples.
 
+Two subfolders are not learning docs; never write or refresh them here:
+`interactive_l_docs/` (the `interactive-docs` skill) and `architecture/`
+(the `arch-emulator` skill). Each runs only when the user names it.
+
 **Scope argument:** `all` (default for a first run), a unit path, a flow
 name, or `stale` (only docs whose code changed; see "Staying current").
 

@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.9.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.10.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -110,6 +110,8 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Are code and docs in sync?</td><td><code>docs-sync check</code></td><td>Report only: each doc claim the code no longer supports, with evidence</td></tr>
       <tr><td>Make them agree</td><td><code>docs-sync fix</code></td><td>Rewrites stale docs. Asks first when a change breaks a decision</td></tr>
       <tr><td>Learn the system</td><td><code>learning-docs</code></td><td>Writes local <code>learning_docs/</code>; <code>learning-docs stale</code> refreshes only what changed</td></tr>
+      <tr><td>Learn the system by clicking</td><td><code>interactive-docs</code></td><td>Only when you name it. One HTML page per learning doc in <code>learning_docs/interactive_l_docs/</code>: clickable diagrams, step-through flows, database diagrams, a quiz. <code>interactive-docs sync</code> rebuilds the pages whose learning doc changed; <code>docs-sync</code> never touches them</td></tr>
+      <tr><td>See how the system scales</td><td><code>arch-emulator</code></td><td>Only when you name it. Read only: what fills up first as load grows, latency per path, pros and cons of each tool, gaps, tests, and fixes (quick, medium, long term). A dated report and a page with a load slider in <code>learning_docs/architecture/</code></td></tr>
       <tr><td>A decision or result</td><td><code>lineage</code></td><td>Asks why, alternatives, evidence; writes a decision file and its row in <code>DECISIONS.agentk.md</code></td></tr>
       <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>
       <tr><td>Tidy agent and doc files</td><td><code>agent-kit cleanup</code></td><td>Lists every agent and doc file, proposes keep, merge, own or remove, and asks one group at a time</td></tr>
@@ -137,7 +139,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Your skills are safe, and the repo gets a clean-up first</h2>
-  <p>The kit brings nine skills. A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
+  <p>The kit brings eleven skills (two of them, <code>interactive-docs</code> and <code>arch-emulator</code>, run only when you name them). A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>The skill in your repo</th><th>What the install does</th></tr></thead>
     <tbody>
@@ -159,14 +161,14 @@ footer { color: var(--muted); font-size: 14px; }
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>
       <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop and SessionStart hooks, <code>queue.sh</code>, <code>stale.sh</code>, <code>map-rows.sh</code>, <code>writing-style.agentk.md</code>, <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
-      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>, <code>interactive-docs</code>, <code>arch-emulator</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.githooks/pre-commit</code>, <code>post-commit</code></td><td>Checks what a commit breaks; queues code committed without its docs</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, map thresholds, line limits, pointer files, interface files, ledger, decisions folder</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root and in every unit past the size threshold</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>README.agentk.md</code>, <code>KIT.agentk.md</code></td><td>The detail doc beside each unit map; how to use the kit here. Your own <code>README.md</code> files are never changed</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>DECISIONS.agentk.md</code>, <code>PLAN.agentk.md</code></td><td>The decision index (one file per decision in <code>docs/decisions/</code>); the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex; SessionStart hook for Claude Code</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>learning_docs/</code></td><td>Learning docs; pushed or local by share mode</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>learning_docs/</code></td><td>Learning docs; pushed or local by share mode. Inside: <code>interactive_l_docs/</code> (pages from <code>interactive-docs</code>) and <code>architecture/</code> (reviews from <code>arch-emulator</code>)</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>.agents/work/</code></td><td>Task files: notes for one long task (goal, findings, decisions, plan, next step). Never committed, in every share mode; deleted by <code>wrap-up</code></td><td><span class="pill check">yours, local</span></td></tr>
     </tbody>
   </table></div>
@@ -330,7 +332,8 @@ the folder that contains this file. The kit gives the repo:
    reason (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-   `explain-d-in`.
+   `explain-d-in`; and two that run only when the user names them:
+   `interactive-docs`, `arch-emulator`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
    commit breaks blocks), after every agent turn that changed files, and in
    CI, so the docs stay true.
