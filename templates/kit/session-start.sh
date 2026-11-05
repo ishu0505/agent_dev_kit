@@ -3,8 +3,11 @@
 # only this session's changes, and tells the agent in a line or two what is
 # waiting: commits that changed code without its docs, commits other people
 # pushed that changed code since the docs were last checked, stale learning
-# docs, and open task files (.agents/work/).
-# Prints nothing when nothing waits.
+# docs, and open task files (.agents/work/). Then it prints the coding
+# standard (.agents/kit/coding-standard.agentk.md), unless CODING_STANDARD is
+# "off" in the config or AGENT_KIT_SKIP_STANDARD is set (the workspace hook
+# prints it once for all repos).
+# Prints nothing else when nothing waits.
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$ROOT" || exit 0
 input=$(cat)
@@ -26,4 +29,11 @@ tasks=$(sh .agents/kit/task.sh list 2>/dev/null | awk -F '\t' '
   END { if (NR > 3) printf "; and %d more", NR - 3 }')
 [ -n "$tasks" ] &&
   echo "agent-kit: open task file(s) in .agents/work/: $tasks. Ask the user once whether to continue one; if yes, read its file first and work from it."
+CODING_STANDARD=on
+. ./.agents/kit/lib.sh 2>/dev/null && load_conf
+standard=.agents/kit/coding-standard.agentk.md
+if [ "$CODING_STANDARD" != off ] && [ -z "${AGENT_KIT_SKIP_STANDARD:-}" ] && [ -f "$standard" ]; then
+  echo "agent-kit: this repo's coding standard ($standard) follows. Apply it whenever you plan or write code."
+  tr -d '\r' < "$standard"
+fi
 exit 0

@@ -3,6 +3,38 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.11.0 — 2026-11-05
+
+One coding standard for every repo with the kit, loaded without a skill.
+
+**What an upgrading repo must do:** run `agent-kit upgrade` (or
+`sh <agent_dev_kit>/install.sh .`). It installs
+`.agents/kit/coding-standard.agentk.md`, and the SessionStart hook starts
+printing it. The root map is the repo's, so the upgrade agent asks before it
+adds this line under `## Code style` (in a team repo, under `## My rules` of
+`AGENTS.agentk.md`): "Before you plan, write or change code, follow
+`.agents/kit/coding-standard.agentk.md`. The rules here win when they
+conflict." Agents without the kit's hook (Gemini, Grok, Cursor, Codex in a
+team repo) find the standard only through that line. To turn the standard
+off, add `CODING_STANDARD="off"` to `.agents/agent-kit.conf`; a missing
+line means on.
+
+- **`coding-standard.agentk.md`** (kit-owned): KISS for every language:
+  simplicity over cleverness, reuse first, function and file sizes, full-word
+  idiomatic names, guard clauses and low nesting, explicit error handling,
+  an OWASP security baseline, then: the repo's own rules win, docstrings and
+  why-comments, and change only what the task needs.
+- **Session start** prints the standard after its other lines, in every
+  Claude and Codex session and again after compaction (about 3,500
+  characters). `AGENT_KIT_SKIP_STANDARD=1` skips it; the workspace hook
+  uses that and prints the standard once for all repos.
+- **Maps, plans, wrap-up:** the map templates point to the standard; the
+  task-file template has a `Standard:` line in its plan (the code reused, and
+  whether a new layer is needed); `wrap-up` reviews the lines the branch
+  changed against the standard and proposes fixes, applied only on a yes.
+- **Setup** question 4 explains the standard and asks only for the repo's
+  own rules.
+
 ## 0.10.0 — 2026-11-01
 
 Two skills that run only when you name them: interactive learning docs,

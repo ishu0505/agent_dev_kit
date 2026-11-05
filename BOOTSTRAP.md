@@ -259,8 +259,13 @@ Every case:
    narrower list, "the whole repo is one part", type your own. (Sets
    `UNITS`, `UNIT_PARENTS`, and `MAP_MIN_FILES` / `MAP_MIN_LINES` /
    `MAP_REQUIRED` / `MAP_EXEMPT` when I want a part treated differently.)
-4. **Code style rules** the agents must follow. Offer the ones you found
-   (linters, formatters, naming).
+4. **Code style rules** the agents must follow. Explain: "Every repo with
+   the kit gets one coding standard (`.agents/kit/coding-standard.agentk.md`:
+   simple code, reuse first, clear names, explicit errors, a security
+   baseline). The rules you give here are only this repo's own, and they win
+   when the two conflict." Offer the ones you found (linters, formatters,
+   naming). Choices include "turn the kit's standard off" (sets
+   `CODING_STANDARD="off"`).
 5. **Rules a change must never break.** Example: "only `billing/` may call
    the payment provider". Offer the ones you found.
 6. **The command that proves a change works** (tests, lint), and **whether

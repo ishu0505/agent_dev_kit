@@ -18,6 +18,9 @@ it, after the team's `AGENTS.md` there.
 
 ## My rules
 
+- Before you plan, write or change code, follow
+  `.agents/kit/coding-standard.agentk.md`. The team's files and the rules
+  here win when they conflict.
 - <rules the team's files do not cover; never one that contradicts them>
 
 <!-- Optional, rows the user confirmed, at most five each; delete if empty. -->

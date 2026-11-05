@@ -1,6 +1,6 @@
 ---
 name: wrap-up
-description: Finish a task so the docs stay true - run the checks, compare the branch's docs with its code, offer to refresh stale learning docs, offer catch-up for code written by hand, and write the explain-diff section for a pull request. Use at the end of every task, when the user says the work is done, and always before opening or updating a pull request.
+description: Finish a task so the docs stay true - run the checks, review the changed code against the coding standard, compare the branch's docs with its code, offer to refresh stale learning docs, offer catch-up for code written by hand, and write the explain-diff section for a pull request. Use at the end of every task, when the user says the work is done, and always before opening or updating a pull request.
 ---
 
 # Wrap-up
@@ -16,6 +16,14 @@ In a team repo (`MAPS="beside"`), a stale-wiring failure is fixed with
 `sh .agents/kit/wire.sh`; never stage or commit a kit file there.
 Problems marked `WARN` are not part of this task: list them, do not fix
 them unless the user asks.
+
+Then read the branch's code diff (`git diff <base>...` plus uncommitted
+changes; the base is found as in step 2) against
+`.agents/kit/coding-standard.agentk.md` and the map's `## Code style`.
+Skip this when `CODING_STANDARD="off"` in `.agents/agent-kit.conf`. Report
+each break in a short list: `path:line`, the rule number, and the fix. Look
+only at lines this task changed. Apply a fix only after the user says yes,
+and never change behaviour while fixing style.
 
 ## 2. Docs of this branch
 
