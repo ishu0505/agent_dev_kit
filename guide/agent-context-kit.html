@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.10.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.11.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -160,7 +160,7 @@ footer { color: var(--muted); font-size: 14px; }
   <div class="table-wrap"><table>
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>
-      <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop and SessionStart hooks, <code>queue.sh</code>, <code>stale.sh</code>, <code>map-rows.sh</code>, <code>writing-style.agentk.md</code>, <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop and SessionStart hooks, <code>queue.sh</code>, <code>stale.sh</code>, <code>map-rows.sh</code>, <code>writing-style.agentk.md</code>, <code>coding-standard.agentk.md</code> (loaded at every session start), <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>, <code>interactive-docs</code>, <code>arch-emulator</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.githooks/pre-commit</code>, <code>post-commit</code></td><td>Checks what a commit breaks; queues code committed without its docs</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, map thresholds, line limits, pointer files, interface files, ledger, decisions folder</td><td><span class="pill check">repo</span></td></tr>
@@ -570,8 +570,13 @@ Every case:
    narrower list, &quot;the whole repo is one part&quot;, type your own. (Sets
    `UNITS`, `UNIT_PARENTS`, and `MAP_MIN_FILES` / `MAP_MIN_LINES` /
    `MAP_REQUIRED` / `MAP_EXEMPT` when I want a part treated differently.)
-4. **Code style rules** the agents must follow. Offer the ones you found
-   (linters, formatters, naming).
+4. **Code style rules** the agents must follow. Explain: &quot;Every repo with
+   the kit gets one coding standard (`.agents/kit/coding-standard.agentk.md`:
+   simple code, reuse first, clear names, explicit errors, a security
+   baseline). The rules you give here are only this repo&#x27;s own, and they win
+   when the two conflict.&quot; Offer the ones you found (linters, formatters,
+   naming). Choices include &quot;turn the kit&#x27;s standard off&quot; (sets
+   `CODING_STANDARD=&quot;off&quot;`).
 5. **Rules a change must never break.** Example: &quot;only `billing/` may call
    the payment provider&quot;. Offer the ones you found.
 6. **The command that proves a change works** (tests, lint), and **whether

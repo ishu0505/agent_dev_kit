@@ -6,8 +6,8 @@
 #        sh .agent-workspace/kit/ws-hook.sh stop
 #
 # session-start: each repo with the kit runs its own session start (the
-#   lines get the repo name), and repos that wait for an answer about the
-#   kit are named once.
+#   lines get the repo name), the coding standard is printed once, and repos
+#   that wait for an answer about the kit are named once.
 # stop: the docs step for every repo with the kit at once, one message, plus
 #   a reminder when a provider file named in LINKS changed (see
 #   .agent-workspace/workspace.conf). Never blocks when something fails.
@@ -39,8 +39,18 @@ case "${1:-}" in
   session-start)
     printf '%s\n' "$kit_repos" | while IFS= read -r repo; do
       [ -n "$repo" ] && [ -f "$repo/.agents/kit/session-start.sh" ] || continue
-      (cd "$repo" && printf '%s' "$input" | sh .agents/kit/session-start.sh 2>/dev/null) |
+      (cd "$repo" && printf '%s' "$input" | AGENT_KIT_SKIP_STANDARD=1 sh .agents/kit/session-start.sh 2>/dev/null) |
         sed "s|^agent-kit: |agent-kit [$repo]: |"
+    done
+    # The coding standard once, from the first repo that has it on.
+    printf '%s\n' "$kit_repos" | while IFS= read -r repo; do
+      standard="$repo/.agents/kit/coding-standard.agentk.md"
+      [ -n "$repo" ] && [ -f "$standard" ] || continue
+      setting=$(cd "$repo" && CODING_STANDARD=on && . ./.agents/kit/lib.sh 2>/dev/null && load_conf && echo "$CODING_STANDARD")
+      [ "$setting" = off ] && continue
+      echo "agent-kit workspace: the coding standard ($standard) follows. Apply it whenever you plan or write code in a repo that has the kit."
+      tr -d '\r' < "$standard"
+      break
     done
     reminder --baseline >/dev/null
     waiting=$(printf '%s\n' "$repos" | awk -F'\t' '$2 == "none" { printf "%s%s", sep, $1; sep = ", " }')

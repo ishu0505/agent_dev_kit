@@ -28,6 +28,9 @@ into the maps and the decisions, then deletes this file. Never commit it. -->
 
 ## Plan
 
+Standard: <the existing code this reuses, with `path`>; <no new layer, or
+why one is needed> (`.agents/kit/coding-standard.agentk.md`).
+
 - [ ] <step>
 
 ## Done

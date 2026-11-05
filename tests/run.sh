@@ -468,8 +468,20 @@ echo "// trivial" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit -am 
 out=$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)
 printf '%s' "$out" | grep -q "catch-up" && ok "session start mentions the queue" || bad "session start mentions the queue" "$out"
 (cd "$V" && sh .agents/kit/queue.sh done "$(git rev-parse HEAD~2)")
-[ "$(cd "$V" && q)" = 0 ] && [ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] &&
+[ "$(cd "$V" && q)" = 0 ] && [ -z "$(cd "$V" && echo '{}' | AGENT_KIT_SKIP_STANDARD=1 sh .agents/kit/session-start.sh)" ] &&
   ok "an empty queue: session start says nothing" || bad "an empty queue: session start says nothing"
+
+# --- Coding standard -----------------------------------------------------------
+std_line='1\. \*\*Simplicity Over Cleverness (KISS):\*\*'
+[ -f "$V/.agents/kit/coding-standard.agentk.md" ] &&
+  ok "install copies the coding standard" || bad "install copies the coding standard"
+out=$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)
+printf '%s' "$out" | grep -q "coding standard" && printf '%s' "$out" | grep -q "$std_line" &&
+  printf '%s' "$out" | grep -q '^10\. \*\*Scope:\*\*' &&
+  ok "session start prints the coding standard by default" || bad "session start prints the coding standard by default" "$out"
+printf '\nCODING_STANDARD="off"\r\n' >> "$V/.agents/agent-kit.conf"
+[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] &&
+  ok "CODING_STANDARD=off: session start leaves the standard out" || bad "CODING_STANDARD=off: session start leaves the standard out"
 
 # --- Stop hook --------------------------------------------------------------
 transcript() {  # transcript <file> <tool name>
@@ -741,6 +753,8 @@ ev="{\"session_id\":\"w1\",\"cwd\":\"$(native "$WS")\"}"
 out=$(echo "$ev" | sh "$WS/.agent-workspace/kit/ws-hook.sh" session-start)
 printf '%s' "$out" | grep -q 'no answer yet about the kit for: back\.' &&
   ok "workspace: session start names repos without an answer" || bad "workspace: session start names repos without an answer" "$out"
+[ "$(printf '%s\n' "$out" | grep -c "$std_line")" = 1 ] &&
+  ok "workspace: session start prints the coding standard once" || bad "workspace: session start prints the coding standard once" "$out"
 echo 'openapi: 3' > "$WS/back/api.yaml"; echo '# x' >> "$WS/front/src/api/client.py"
 out=$(echo "$ev" | sh "$WS/.agent-workspace/kit/ws-hook.sh" stop)
 printf '%s' "$out" | grep -q 'back/api.yaml. changed, and .front/src/api. uses it' &&

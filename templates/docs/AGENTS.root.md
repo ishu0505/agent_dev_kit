@@ -18,6 +18,9 @@ Read nothing else until the task needs it.
 
 ## Code style
 
+- Before you plan, write or change code, follow
+  `.agents/kit/coding-standard.agentk.md`. The rules here win when they
+  conflict.
 - <the conventions the repo follows; match the file you are editing first>
 
 ## Invariants
