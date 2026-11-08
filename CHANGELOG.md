@@ -3,6 +3,19 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.11.1 — 2026-11-06
+
+A clearer naming rule in the coding standard.
+
+**What an upgrading repo must do:** run `agent-kit upgrade` (or
+`sh <agent_dev_kit>/install.sh .`). It overwrites the kit-owned
+`.agents/kit/coding-standard.agentk.md`; nothing else changes.
+
+- **`coding-standard.agentk.md`**, rule 4: a name says what the function
+  does or what the variable holds; several full words are fine, joined in
+  the language's casing (`snake_case` with `_`, `camelCase`, and so on);
+  new names match the terms, prefixes and patterns already in the repo.
+
 ## 0.11.0 — 2026-11-05
 
 One coding standard for every repo with the kit, loaded without a skill.
