@@ -3,6 +3,34 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.12.0 — 2026-11-08
+
+A todo list: ideas and follow-ups for a later session, kept in the repo.
+
+**What an upgrading repo must do:** run `agent-kit upgrade` (or
+`sh <agent_dev_kit>/install.sh .`). It installs `todo.sh`, its template and
+the `todo` skill. The root map is the repo's, so the upgrade agent asks
+before it adds this line to the map's `## Tasks` block: "Ideas for later go
+to the todo list (`TODO.agentk.md`, the `todo` skill), not into this task."
+`TODO.agentk.md` is made on the first item. It follows `SHARE` like every
+kit doc (pushed in `agent` and `all`, local in `learning` and `none`, always
+local in a team repo). For other categories than task, bug, chore and
+experiment, add `TODO_CATEGORIES="..."` to `.agents/agent-kit.conf`.
+
+- **`todo` skill**: add an item (the agent picks the category and fills
+  `From:` and `Refs:` with files, docs or folders that give context), list
+  them, start one (reads its refs as context, not as the limit of the work,
+  and can open a task file) and finish one (the item is deleted; a decision
+  or an experiment result goes to `lineage` first, with your yes).
+- **`todo.sh`**: `add`, `list [category|open|doing]`, `show`, `set`,
+  `done`, `refs`, `count`. IDs are `T-NNN` and never reused.
+- **Session start** prints one line when the list has items, such as
+  `3 todo(s) in TODO.agentk.md (1 experiment, 1 bug, 1 chore); doing: T-002`.
+- **`check.sh`** fails on an unknown category or status and on a repeated
+  ID, and warns when a ref path is gone.
+- **`lineage`** offers an experiment's follow-ups as todo items; **`wrap-up`**
+  asks to mark the finished item done (`Todo: T-NNN` in the task file).
+
 ## 0.11.1 — 2026-11-06
 
 A clearer naming rule in the coding standard.

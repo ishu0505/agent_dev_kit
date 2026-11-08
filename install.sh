@@ -367,6 +367,7 @@ $pointer"; done
   local_rules="$local_rules
 /DECISIONS$KIT_MD
 /PLAN$KIT_MD
+/TODO$KIT_MD
 /.agents/
 /.claude/
 /.codex/
@@ -422,7 +423,7 @@ say "wrote ignore and line-ending rules for share mode $SHARE"
 
 # Files git already tracks are not affected by ignore rules: stop tracking
 # whatever this mode keeps local (the files stay on disk).
-agent_paths="AGENTS.md :(glob)**/AGENTS.md DECISIONS$KIT_MD PLAN$KIT_MD .agents .claude .codex .githooks"
+agent_paths="AGENTS.md :(glob)**/AGENTS.md DECISIONS$KIT_MD PLAN$KIT_MD TODO$KIT_MD .agents .claude .codex .githooks"
 for pointer in $(conf POINTER_FILES); do agent_paths="$agent_paths $pointer :(glob)**/$pointer"; done
 [ -n "$LEDGER" ] && agent_paths="$agent_paths $LEDGER"
 [ -n "$DECISIONS_DIR" ] && agent_paths="$agent_paths $DECISIONS_DIR"

@@ -21,7 +21,7 @@ the folder that contains this file. The kit gives the repo:
    reason (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-   `explain-d-in`; and two that run only when the user names them:
+   `explain-d-in`, `todo`; and two that run only when the user names them:
    `interactive-docs`, `arch-emulator`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
    commit breaks blocks), after every agent turn that changed files, and in
@@ -110,6 +110,11 @@ Then look at the repo, tell me which case you see and wait for my OK:
   (or `AGENTS.beside.md`) to the root map (recommended), and run interview
   question 10 for the warning rows (recommended), or skip. Change nothing
   else in the maps.
+- **Case C from kit 0.11 or older** (no `.agents/kit/todo.sh` before the
+  install): the install adds the todo list (`todo.sh`, the `todo` skill).
+  Offer once to add the todo line from the "Tasks" block of
+  `KIT/templates/docs/AGENTS.root.md` (or `AGENTS.beside.md`) to the root
+  map. `TODO.agentk.md` is made on the first item; nothing else changes.
 - **Case C from kit 0.5 or older** (`DOC_SUFFIX` is missing from
   `.agents/agent-kit.conf`): the kit's files still have plain names. List
   them: `DECISIONS.md`, the decision files, `PLAN.md`, the ledger, the

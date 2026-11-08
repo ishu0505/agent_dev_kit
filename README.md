@@ -41,6 +41,7 @@ names keep no suffix, because agents load them only by these exact names:
 | Interactive learning docs | `learning_docs/interactive_l_docs/` | One HTML page per learning doc: clickable diagrams, step-through flows, database diagrams, a clickable quiz. Made and updated only by `interactive-docs` |
 | Architecture reviews | `learning_docs/architecture/` | Dated scale and latency reviews from `arch-emulator`, a report and a page with a load emulator. A snapshot: never synced |
 | Warning rows | Optional sections in any map: "Do not read unless asked", "Lookalikes", "Hidden links" | Short facts you confirmed: what to skip, which folder only looks right, and which change breaks a file far away in a way search does not show. `candidates.sh` proposes rows; it never writes them |
+| Todo list | `TODO.agentk.md` at the root; pushed or local by share mode, always local in a team repo | Ideas and follow-ups for a later session: `T-NNN` items with a category (task, bug, chore, experiment), a status (open, doing) and refs to files or folders as context. Written by the `todo` skill; a done item is deleted |
 | Task files | `.agents/work/<name>.agentk.md`, never committed | Notes for one long task (goal, findings, decisions, plan, next step), so a fresh session continues from the file, not the chat. `wrap-up` moves what stays true into the maps and decisions, then deletes it |
 
 ## A team repo that already has AGENTS.md or CLAUDE.md
@@ -258,9 +259,9 @@ unit gets its map, and `check.sh` stays green.
 
 ## Your skills are safe
 
-The kit brings eleven skills: `lineage`, `scaffold`, `docs-sync`,
+The kit brings twelve skills: `lineage`, `scaffold`, `docs-sync`,
 `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-`explain-d-in`, `interactive-docs`, `arch-emulator`. A skill with any
+`explain-d-in`, `todo`, `interactive-docs`, `arch-emulator`. A skill with any
 other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
@@ -370,6 +371,7 @@ mode.
 | Tidy agent and doc files | `agent-kit cleanup` | Inventory, then one question per group; nothing removed without your yes |
 | Edit a repo skill | edit it in `.agents/skills/` | In copy mode, then run `sh .agents/kit/sync-skills.sh` |
 | Work on a long task | ask for the task; the agent opens a task file | It opens one when the work spans sessions or parts, needs your OK on a plan, or is an investigation to keep; say "no task file" to skip. `sh .agents/kit/task.sh list` shows open tasks |
+| Save an idea for later | "add to todo: ..." (the `todo` skill) | Picks the category, adds where it came from and refs to files or folders. "what's in todo" lists them; "start T-007" reads its refs as context; "T-007 is done" deletes it. `sh .agents/kit/todo.sh list` works without an agent |
 | Find what agents should skip | `sh .agents/kit/candidates.sh [folder]` | No AI, read only. Test data, generated code, big data files, old copies. You confirm each row before it goes in a map |
 
 ### How to see and call skills in each agent
