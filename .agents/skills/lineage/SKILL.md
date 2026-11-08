@@ -71,6 +71,10 @@ When an experiment was involved and `LEDGER` is set, add or update its row:
 folder, question, scale (documents, questions, runs), outcome (a number, or
 `pending: not run yet`), report path, decision id.
 
+When the result suggests something to try next, offer to add it to the todo
+list (the `todo` skill), with `From:` the experiment and `Refs:` its report.
+Add only what the user says yes to.
+
 ## 5. Update the maps
 
 Check each map the change touches, from the root down to the unit: the

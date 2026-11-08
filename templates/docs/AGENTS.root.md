@@ -42,6 +42,8 @@ Read nothing else until the task needs it.
   Tell me; I can say no. Small fixes, questions, doc fixes: no task file.
 - After each step, update its Found, Decisions, Done and Next. Continue a
   task only from its file.
+- Ideas for later go to the todo list (`TODO.agentk.md`, the `todo` skill),
+  not into this task.
 
 ## Check
 

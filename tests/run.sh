@@ -232,7 +232,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|interactive-docs|arch-emulator)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -856,6 +856,54 @@ done
 out=$(cd "$B" && sh .agents/kit/task.sh new probe) && git -C "$B" check-ignore -q "$B/$out" &&
   [ -z "$(git -C "$B" status --porcelain)" ] && (cd "$B" && sh .agents/kit/task.sh close probe >/dev/null) &&
   ok "task files stay local in a team repo (beside mode)" || bad "task files stay local in a team repo (beside mode)" "$(git -C "$B" status --porcelain)"
+
+# --- Todo list -------------------------------------------------------------------
+V=$(variant todo)
+[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh | grep todo)" ] &&
+  ok "session start: no todo line when the list is empty" || bad "session start: no todo line when the list is empty"
+out=$(cd "$V" && sh .agents/kit/todo.sh add experiment "Try batch size 32" && sh .agents/kit/todo.sh add bug "Fix the login | timeout" &&
+  sh .agents/kit/todo.sh add task Third)
+[ "$out" = "T-001
+T-002
+T-003" ] && grep -q '^Next ID: 4$' "$V/TODO.agentk.md" &&
+  ok "todo.sh add: numbered items from the template" || bad "todo.sh add: numbered items from the template" "$out"
+out=$(cd "$V" && sh .agents/kit/todo.sh add idea "x" 2>&1); code=$?
+[ "$code" -eq 2 ] && printf '%s' "$out" | grep -q 'use one of: task bug chore experiment' &&
+  ok "todo.sh add: an unknown category fails with its fix" || bad "todo.sh add: an unknown category fails with its fix" "$out"
+(cd "$V" && sh .agents/kit/todo.sh set t-2 doing >/dev/null && sh .agents/kit/todo.sh done 3 >/dev/null)
+out=$(cd "$V" && sh .agents/kit/todo.sh add chore Fourth && sh .agents/kit/todo.sh list)
+[ "$out" = "T-004
+T-001	experiment	open	Try batch size 32
+T-002	bug	doing	Fix the login | timeout
+T-004	chore	open	Fourth" ] &&
+  ok "todo.sh set, done and list; a deleted ID is never reused" || bad "todo.sh set, done and list; a deleted ID is never reused" "$out"
+[ "$(cd "$V" && sh .agents/kit/todo.sh list doing | cut -f1)" = "T-002" ] && (cd "$V" && sh .agents/kit/todo.sh show T-002 | grep -q '^Status: doing$') &&
+  ok "todo.sh list <status> and show" || bad "todo.sh list <status> and show"
+out=$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)
+printf '%s' "$out" | grep -q 'agent-kit: 3 todo(s) in TODO.agentk.md (1 experiment, 1 bug, 1 chore); doing: T-002' &&
+  ok "session start counts the todo list" || bad "session start counts the todo list" "$out"
+edit 's/$/\r/' "$V/TODO.agentk.md"
+[ "$(cd "$V" && sh .agents/kit/todo.sh list | wc -l | tr -d ' ')" = 3 ] && (cd "$V" && sh .agents/kit/todo.sh set 1 doing >/dev/null) &&
+  ! grep -q "$(printf '\r')" "$V/TODO.agentk.md" &&
+  ok "todo.sh reads a CRLF file and writes it back plain" || bad "todo.sh reads a CRLF file and writes it back plain"
+git -C "$V" check-ignore -q "$V/TODO.agentk.md" && bad "the todo list is pushed in share mode agent" || ok "the todo list is pushed in share mode agent"
+expect_pass "a clean todo list passes" "$V"
+edit 's/^Refs:$/Refs: `cmd\/api\/`, `gone\/old.py`/' "$V/TODO.agentk.md"
+out=$(cd "$V" && sh .agents/kit/check.sh 2>&1) &&
+  printf '%s' "$out" | grep -q 'WARN TODO.agentk.md: T-001 refers to gone/old.py' && ! printf '%s' "$out" | grep -q 'cmd/api/,' &&
+  ok "a todo ref that no longer exists warns, never blocks" || bad "a todo ref that no longer exists warns, never blocks" "$out"
+edit 's/^Category: chore$/Category: someday/' "$V/TODO.agentk.md"
+expect_fail "a todo with an unknown category fails with its fix" "$V" 'or add it to TODO_CATEGORIES'
+for mode in none learning; do
+  R="$WORK/todo-$mode"; mkdir "$R" && git -C "$R" init -q
+  sh "$KIT/install.sh" --share "$mode" "$R" > /dev/null 2>&1
+  (cd "$R" && sh .agents/kit/todo.sh add task probe >/dev/null)
+  git -C "$R" check-ignore -q "$R/TODO.agentk.md" &&
+    ok "the todo list stays local in share mode $mode" || bad "the todo list stays local in share mode $mode"
+done
+(cd "$B" && sh .agents/kit/todo.sh add task probe >/dev/null) && git -C "$B" check-ignore -q "$B/TODO.agentk.md" &&
+  [ -z "$(git -C "$B" status --porcelain)" ] && rm -f "$B/TODO.agentk.md" &&
+  ok "the todo list stays local in a team repo (beside mode)" || bad "the todo list stays local in a team repo (beside mode)" "$(git -C "$B" status --porcelain)"
 
 # --- Explanation skills ----------------------------------------------------------
 R="$WORK/go"

@@ -73,6 +73,7 @@ MAPS="own"
 AGENTS_USED="claude codex"
 LEARNING_DIR="learning_docs"
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
+TODO_CATEGORIES="task bug chore experiment"
 CONF=".agents/agent-kit.conf"
 if [ -f "$CONF" ]; then
   . "$KIT_LIB" && load_conf "$CONF"
@@ -87,6 +88,7 @@ KIT_MD=${DOC_SUFFIX:-.md}
 UNIT_DOC="README$KIT_MD"
 DECISIONS_INDEX="DECISIONS$KIT_MD"
 PLAN_DOC="PLAN$KIT_MD"
+TODO_DOC="TODO$KIT_MD"
 # The kit's map file. MAPS="beside" (a team repo with its own AGENTS.md or
 # CLAUDE.md): the kit's maps are AGENTS.agentk.md, kept on this computer
 # only, and every AGENTS.md / CLAUDE.md / GEMINI.md is the team's.
@@ -494,7 +496,7 @@ kit_made() {  # kit_made <tracked path>: the kit wrote it (not a team file of th
 
 agent_paths() {  # pathspecs of every agent file: maps, pointers, lineage, kit folders
   if [ "$MAPS" = beside ]; then kit_local_paths; return; fi
-  printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' "$DECISIONS_INDEX" "$PLAN_DOC" .agents .claude .codex .githooks
+  printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' "$DECISIONS_INDEX" "$PLAN_DOC" "$TODO_DOC" .agents .claude .codex .githooks
   for pointer in $POINTER_FILES; do printf '%s\n' "$pointer" ":(glob)**/$pointer"; done
   [ -z "$LEDGER" ] || printf '%s\n' "$LEDGER"
   [ -z "$DECISIONS_DIR" ] || printf '%s\n' "$DECISIONS_DIR"
@@ -604,6 +606,32 @@ check_task_files() {  # task files (.agents/work/) are personal notes: never in 
   [ -d .agents/work ] || return 0
   git check-ignore -q .agents/work/probe.agentk.md || fail ".agents/work/ (task files) is not git-ignored, so a task file can be committed by mistake" \
     "run once: sh <agent_dev_kit>/install.sh  (it writes the rule to .git/info/exclude)"
+}
+
+check_todo() {  # the todo list: known categories and statuses, one block per ID, refs that exist
+  [ -f "$TODO_DOC" ] || return 0
+  todo_script="$(dirname "$KIT_LIB")/todo.sh"
+  [ -f "$todo_script" ] || return 0
+  caused=$(yes_if is_changed "$TODO_DOC")
+  sh "$todo_script" list > "$TMP/todo" || return 0
+  while IFS="$TAB" read -r id category status title; do
+    case " $TODO_CATEGORIES " in *" $category "*) ;; *)
+      report "$caused" "$TODO_DOC: $id has the category \"$category\"" \
+        "use one of: $TODO_CATEGORIES (or add it to TODO_CATEGORIES in $CONF)" ;;
+    esac
+    case "$status" in open|doing) ;; *)
+      report "$caused" "$TODO_DOC: $id has the status \"$status\"" \
+        "write Status: open or Status: doing; a done item is deleted: sh .agents/kit/todo.sh done $id" ;;
+    esac
+  done < "$TMP/todo"
+  for id in $(cut -f1 "$TMP/todo" | sort | uniq -d); do
+    report "$caused" "$TODO_DOC has more than one $id" "give the later one a new ID (the next free one is on its Next ID line)"
+  done
+  sh "$todo_script" refs > "$TMP/todo-refs"
+  while IFS="$TAB" read -r id path; do  # a ref is context: a dead one warns, never blocks
+    [ -e "${path%/}" ] || report no "$TODO_DOC: $id refers to $path, which does not exist" \
+      "update or remove that ref in $TODO_DOC"
+  done < "$TMP/todo-refs"
 }
 
 check_ledger() {  # every folder beside the ledger has a row with an outcome
@@ -759,6 +787,7 @@ check_git_setup
 check_portability
 check_learning_docs
 check_task_files
+check_todo
 check_ledger
 check_decisions
 check_fixed_names

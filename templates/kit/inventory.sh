@@ -116,11 +116,11 @@ hooks=$(find_files -path './.claude/settings*.json' -o -path './.codex/hooks.jso
 git_hooks=$(list_git_hooks)
 group "Hooks and agent settings" $hooks
 [ -n "$git_hooks" ] && echo "  (installed in .git/hooks, not versioned: $(echo $git_hooks | tr '\n' ' '))" && echo
-group "Decisions, plans and ledgers" $(find_files -name DECISIONS.md -o -name PLAN.md -o -name EXPERIMENTS.md \
+group "Decisions, plans and ledgers" $(find_files -name DECISIONS.md -o -name PLAN.md -o -name TODO.md -o -name EXPERIMENTS.md \
   -o -path './docs/adr/*' -o -path './adr/*' -o -path './doc/adr/*')
 [ -n "$LEARNING_DIR" ] && [ -d "$LEARNING_DIR" ] && group "Learning docs" $(find_files -path "./$LEARNING_DIR/*")
 
-others=$(find_files -name '*.md' | grep -v -E '(^|/)(AGENTS|CLAUDE|GEMINI|DECISIONS|PLAN|EXPERIMENTS|SKILL)\.md$' |
+others=$(find_files -name '*.md' | grep -v -E '(^|/)(AGENTS|CLAUDE|GEMINI|DECISIONS|PLAN|TODO|EXPERIMENTS|SKILL)\.md$' |
   grep -v -F "${DOC_SUFFIX:-__no_suffix__}" |
   grep -v -E "^(\.agents|\.claude|\.codex|\.cursor|\.github|${LEARNING_DIR:-__none__})/")
 others=$(for path in $others; do git check-ignore -q -- "$path" || echo "$path"; done)

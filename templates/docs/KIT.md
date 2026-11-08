@@ -31,6 +31,9 @@ and tells you when one no longer matches the code.
 | Add a service, package or experiment | `scaffold` |
 | A long task (more than one session, more than one part, or a plan to approve) | the agent opens a task file: `sh .agents/kit/task.sh new <name>`; it lives in `.agents/work/` and is never committed |
 | See open tasks | `sh .agents/kit/task.sh list` (the session start also names them) |
+| Save an idea or follow-up for later | say "add to todo: ..."; the `todo` skill writes it to `TODO.agentk.md` with a category (task, bug, chore, experiment) and refs to files or folders |
+| What is in the todo list? | say "what's in todo", or `sh .agents/kit/todo.sh list [category\|open\|doing]` (the session start counts them) |
+| Work on a todo, or finish one | say "start T-007" (the agent reads its refs as context) or "T-007 is done" (the item is deleted) |
 | Find folders agents should skip, or old copies that look like live code | `sh .agents/kit/candidates.sh [folder]` (read only); confirmed rows go in a map's "Do not read unless asked" and "Lookalikes" sections |
 | How should agents write code here? | `.agents/kit/coding-standard.agentk.md`: loaded at every Claude and Codex session start; your map's `## Code style` wins on conflict. Turn it off with `CODING_STANDARD="off"` in `.agents/agent-kit.conf` |
 | Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |

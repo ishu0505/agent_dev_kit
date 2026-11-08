@@ -68,6 +68,11 @@ to this work, read it, then:
    it paused? For paused, set `Status: paused` and make Next exact.
 4. On close, run `sh .agents/kit/task.sh close <name>`.
 
+If the task file names a todo (`Todo: T-NNN`), or `sh .agents/kit/todo.sh
+list doing` shows an item this work finished, ask: "Mark T-NNN done?" On
+yes, follow the Done steps of the `todo` skill. When the work left ideas for
+later, offer to add them as todo items.
+
 With no task file, propose a map row only when this task hit a real trap,
 at most two, each with the user's yes. Never add a row from a guess: each
 one must come from something this task saw.

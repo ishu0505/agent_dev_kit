@@ -3,10 +3,10 @@
 # only this session's changes, and tells the agent in a line or two what is
 # waiting: commits that changed code without its docs, commits other people
 # pushed that changed code since the docs were last checked, stale learning
-# docs, and open task files (.agents/work/). Then it prints the coding
-# standard (.agents/kit/coding-standard.agentk.md), unless CODING_STANDARD is
-# "off" in the config or AGENT_KIT_SKIP_STANDARD is set (the workspace hook
-# prints it once for all repos).
+# docs, open task files (.agents/work/) and the todo list (TODO.agentk.md).
+# Then it prints the coding standard (.agents/kit/coding-standard.agentk.md),
+# unless CODING_STANDARD is "off" in the config or AGENT_KIT_SKIP_STANDARD is
+# set (the workspace hook prints it once for all repos).
 # Prints nothing else when nothing waits.
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$ROOT" || exit 0
@@ -29,6 +29,9 @@ tasks=$(sh .agents/kit/task.sh list 2>/dev/null | awk -F '\t' '
   END { if (NR > 3) printf "; and %d more", NR - 3 }')
 [ -n "$tasks" ] &&
   echo "agent-kit: open task file(s) in .agents/work/: $tasks. Ask the user once whether to continue one; if yes, read its file first and work from it."
+todos=$(sh .agents/kit/todo.sh count 2>/dev/null)
+[ -n "$todos" ] &&
+  echo "agent-kit: $todos. Mention it once; list them only when the user asks (the todo skill)."
 CODING_STANDARD=on
 . ./.agents/kit/lib.sh 2>/dev/null && load_conf
 standard=.agents/kit/coding-standard.agentk.md
