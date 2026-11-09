@@ -905,6 +905,36 @@ done
   [ -z "$(git -C "$B" status --porcelain)" ] && rm -f "$B/TODO.agentk.md" &&
   ok "the todo list stays local in a team repo (beside mode)" || bad "the todo list stays local in a team repo (beside mode)" "$(git -C "$B" status --porcelain)"
 
+# --- Antigravity hooks (agy CLI, IDE, app) ----------------------------------------
+for python in python3 python; do command -v "$python" >/dev/null 2>&1 && break; done
+V=$(variant agy)
+CMD_START=$("$python" -c 'import json, sys; print(json.load(open(sys.argv[1]))["agent-kit"]["SessionStart"][0]["command"])' "$V/.agents/hooks.json" 2>/dev/null)
+CMD_STOP=$("$python" -c 'import json, sys; print(json.load(open(sys.argv[1]))["agent-kit"]["Stop"][0]["command"])' "$V/.agents/hooks.json" 2>/dev/null)
+[ -n "$CMD_START" ] && [ -n "$CMD_STOP" ] &&
+  ok "install writes .agents/hooks.json for Antigravity" || bad "install writes .agents/hooks.json for Antigravity"
+(cd "$V" && sh .agents/kit/todo.sh add bug 'a "quoted" title' >/dev/null)
+AGY_EVENT="{\"conversationId\": \"agy1\", \"workspacePaths\": [\"$(native "$V")\"]}"
+out=$(cd "$V" && printf '%s' "$AGY_EVENT" | sh -c "$CMD_START")
+printf '%s' "$out" | "$python" -c 'import json, sys; m = json.load(sys.stdin)["injectSteps"][0]["systemMessage"]["systemMessage"]; assert "1 todo(s)" in m and "coding standard" in m' 2>/dev/null &&
+  ok "Antigravity session start: the kit's lines as one valid system message" || bad "Antigravity session start: the kit's lines as one valid system message" "$out"
+printf '| `nope/` | gone | |\n' >> "$V/AGENTS.md"
+AGY_STOP="{\"conversationId\": \"agy1\", \"workspacePaths\": [\"$(native "$V")\"], \"terminationReason\": \"model_stop\", \"fullyIdle\": true}"
+first=$(cd "$V" && printf '%s' "$AGY_STOP" | sh -c "$CMD_STOP")
+second=$(cd "$V" && printf '%s' "$AGY_STOP" | sh -c "$CMD_STOP")
+printf '%s' "$first" | grep -q '"decision": "continue"' && printf '%s' "$first" | grep -q 'names a missing path: nope' && [ -z "$second" ] &&
+  ok "Antigravity stop: continue with the failing check, then let the next stop through" || bad "Antigravity stop: continue with the failing check, then let the next stop through" "$first | $second"
+out=$(cd "$V" && printf '%s' "{\"conversationId\": \"agy2\", \"workspacePaths\": [\"$(native "$V")\"], \"terminationReason\": \"error\"}" | sh -c "$CMD_STOP")
+[ -z "$out" ] && ok "Antigravity stop: never pushes on after an error" || bad "Antigravity stop: never pushes on after an error" "$out"
+V=$(variant agyown); printf '{"mine": {}}\n' > "$V/.agents/hooks.json"
+out=$(sh "$KIT/install.sh" "$V" 2>&1)
+printf '%s' "$out" | grep -q 'merge the "agent-kit" entry' && grep -q '"mine"' "$V/.agents/hooks.json" && ! grep -q agy-hook "$V/.agents/hooks.json" &&
+  ok "an existing .agents/hooks.json is kept, with a note to merge" || bad "an existing .agents/hooks.json is kept, with a note to merge" "$out"
+out=$(cd "$B" && printf '{"conversationId": "agyB", "workspacePaths": ["%s"]}' "$(native "$B")" | sh .agents/kit/agy-hook.sh session-start)
+printf '%s' "$out" | grep -q 'your map here is AGENTS.agentk.md' &&
+  ok "Antigravity session start in a team repo points to your map" || bad "Antigravity session start in a team repo points to your map" "$out"
+[ -f "$B/.agents/hooks.json" ] && git -C "$B" check-ignore -q "$B/.agents/hooks.json" &&
+  ok "Antigravity hooks stay local in a team repo (beside mode)" || bad "Antigravity hooks stay local in a team repo (beside mode)"
+
 # --- Explanation skills ----------------------------------------------------------
 R="$WORK/go"
 for skill in explain-d-ez explain-d-in; do

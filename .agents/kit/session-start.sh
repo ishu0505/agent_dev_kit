@@ -11,7 +11,7 @@
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$ROOT" || exit 0
 input=$(cat)
-printf '%s' "$input" | sh .agents/kit/stop-hook.sh --baseline --repo "$ROOT" >/dev/null 2>&1
+printf '%s' "$input" | sh .agents/kit/stop-hook.sh --baseline --repo "$ROOT" "$@" >/dev/null 2>&1  # --agy: Antigravity input
 # Beside mode (a team repo): refresh the local wiring of your maps first.
 # In a workspace, wire.sh also points Codex to the workspace map.
 sh .agents/kit/wire.sh --quiet >/dev/null 2>&1

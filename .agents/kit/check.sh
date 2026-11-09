@@ -559,7 +559,7 @@ check_git_setup() {
     fail "the pre-commit check is not active in this clone" \
       "run once: git config core.hooksPath .githooks  (or add .agents/kit/check.sh --staged to your hook manager; install.sh prints the line)"
   fi
-  for config in .claude/settings.json .claude/settings.local.json .codex/hooks.json; do
+  for config in .claude/settings.json .claude/settings.local.json .codex/hooks.json .agents/hooks.json; do
     [ -f "$config" ] || continue
     if grep -qF "$ROOT" "$config" ||
        grep -qE '(/Users/|/home/|[A-Za-z]:[\\/]+Users)' "$config"; then

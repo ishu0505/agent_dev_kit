@@ -20,6 +20,8 @@
 #                Codex reads it instead of AGENTS.md in that folder, so it
 #                is rewritten whenever either file changes.
 #   Cursor       .cursor/rules/agent-kit.mdc at the root.
+#   Antigravity  reported only; its SessionStart hook (.agents/hooks.json)
+#                points it to your map.
 #   Gemini       reported only; the agent adds your map to context.fileName
 #                in ~/.gemini/settings.json with your yes.
 # A file git tracks (the team's) is never written; it is reported instead.
@@ -254,7 +256,14 @@ if uses cursor; then
   else apply cursor "$path" "$TMP/mdc" "always-on rule that points to your maps"; fi
 fi
 
-if uses gemini || uses antigravity; then
+if uses antigravity; then
+  if grep -qs 'agents/kit/agy-hook.sh' .agents/hooks.json; then
+    say antigravity ok ".agents/hooks.json" "the kit's SessionStart hook tells Antigravity to read $MAP_FILE"
+  else
+    say antigravity todo ".agents/hooks.json" "merge the \"agent-kit\" entry from agent_dev_kit/templates/config/agy-hooks.json"
+  fi
+fi
+if uses gemini; then
   if tracked .gemini/settings.json && grep -q '"fileName"' .gemini/settings.json; then
     say gemini limit ".gemini/settings.json" "the team's context.fileName wins: Gemini cannot load $MAP_FILE here; use the ~/.gemini/GEMINI.md note"
   elif grep -qs "$MAP_FILE" "$HOME/.gemini/settings.json"; then
