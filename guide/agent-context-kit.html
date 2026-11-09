@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.13.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.13.1 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -110,7 +110,7 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Are code and docs in sync?</td><td><code>docs-sync check</code></td><td>Report only: each doc claim the code no longer supports, with evidence</td></tr>
       <tr><td>Make them agree</td><td><code>docs-sync fix</code></td><td>Rewrites stale docs. Asks first when a change breaks a decision</td></tr>
       <tr><td>Learn the system</td><td><code>learning-docs</code></td><td>Writes local <code>learning_docs/</code>; <code>learning-docs stale</code> refreshes only what changed</td></tr>
-      <tr><td>Learn the system by clicking</td><td><code>interactive-docs</code></td><td>Only when you name it. One HTML page per learning doc in <code>learning_docs/interactive_l_docs/</code>: clickable diagrams, step-through flows, database diagrams, a quiz. <code>interactive-docs sync</code> rebuilds the pages whose learning doc changed; <code>docs-sync</code> never touches them</td></tr>
+      <tr><td>Learn the system by clicking</td><td><code>interactive-docs</code></td><td>Only when you name it. One HTML page per learning doc in <code>learning_docs/interactive_l_docs/</code>: clickable diagrams, step-through flows, database diagrams, a quiz. <code>interactive-docs sync</code> rebuilds the pages whose learning doc changed; once you have pages, <code>wrap-up</code> and <code>docs-sync</code> ask whether to sync the stale ones</td></tr>
       <tr><td>See how the system scales</td><td><code>arch-emulator</code></td><td>Only when you name it. Read only: what fills up first as load grows, latency per path, pros and cons of each tool, gaps, tests, and fixes (quick, medium, long term). A dated report and a page with a load slider in <code>learning_docs/architecture/</code></td></tr>
       <tr><td>A decision or result</td><td><code>lineage</code></td><td>Asks why, alternatives, evidence; writes a decision file and its row in <code>DECISIONS.agentk.md</code></td></tr>
       <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>

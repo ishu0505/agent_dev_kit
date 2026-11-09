@@ -42,6 +42,13 @@ Refresh them now?" On yes, run the `learning-docs` skill with scope `stale`,
 then empty the stale-learning file. On no, leave the file; the next session
 start shows it.
 
+Then, if `<LEARNING_DIR>/interactive_l_docs/` has pages, run
+`sh .agents/skills/interactive-docs/status.sh`. If it lists `stale`,
+`missing` or `orphan` pages, ask once: "N interactive pages no longer match
+their learning docs. Sync them now?" On yes, run the `interactive-docs`
+skill in mode `sync`. With no pages, say nothing. When docs-sync already
+asked this in step 2, do not ask again.
+
 ## 4. Code written by hand, and other people's commits
 
 If `sh .agents/kit/queue.sh count` is above zero, tell the user and offer
@@ -88,6 +95,6 @@ second one). When the user asks for the plainer explanation, use
 ## 7. Report
 
 A short list: checks (pass or fixed), docs changed, learning docs
-refreshed or still stale, catch-up items, other people's commits waiting
+refreshed or still stale, interactive pages synced or still stale, catch-up items, other people's commits waiting
 for docs-sync, the task file (closed, paused, or none) and map rows added,
 and whether the pull request section was written.

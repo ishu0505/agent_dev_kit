@@ -22,7 +22,7 @@ and tells you when one no longer matches the code.
 | Are code and docs in sync? | `docs-sync check` |
 | Make the docs match the code | `docs-sync fix` |
 | Learn the system | `learning-docs` (writes `learning_docs/`; pushed only in share mode `all` or `learning`) |
-| Learn the system by clicking | `interactive-docs` (pages in `learning_docs/interactive_l_docs/`); `interactive-docs sync` updates them |
+| Learn the system by clicking | `interactive-docs` (pages in `learning_docs/interactive_l_docs/`); `interactive-docs sync` updates them; `wrap-up` and `docs-sync` ask when they are stale |
 | How does the system scale? | `arch-emulator`: a read-only review with gaps and fixes, in `learning_docs/architecture/` |
 | Tidy agent and doc files | `agent-kit cleanup` |
 | Record a decision or result | `lineage` |
