@@ -35,7 +35,7 @@ names keep no suffix, because agents load them only by these exact names:
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
-| Coding standard | `.agents/kit/coding-standard.agentk.md` | KISS code rules for every language: reuse first, small focused functions, full-word names, early returns, explicit errors, a security baseline, docstrings, change only what the task needs. The SessionStart hook loads it into every Claude and Codex session (and again after compaction); the root map points every other agent to it; `wrap-up` reviews the diff against it. The repo's own `## Code style` wins on conflict. Off: `CODING_STANDARD="off"` |
+| Coding standard | `.agents/kit/coding-standard.agentk.md` | KISS code rules for every language: reuse first, small focused functions, full-word names, early returns, explicit errors, a security baseline, docstrings, change only what the task needs. The SessionStart hook loads it into every Claude, Codex and Antigravity session (and again after compaction in Claude and Codex); the root map points every other agent to it; `wrap-up` reviews the diff against it. The repo's own `## Code style` wins on conflict. Off: `CODING_STANDARD="off"` |
 | Config | `.agents/agent-kit.conf` | Which folders are units, map thresholds, line limits, pointer files, interface files |
 | Learning docs | `learning_docs/` | Plain-language explanations of the architecture, each unit and each flow, with quizzes. Refreshed at the end of a task. Local or pushed, by share mode |
 | Interactive learning docs | `learning_docs/interactive_l_docs/` | One HTML page per learning doc: clickable diagrams, step-through flows, database diagrams, a clickable quiz. Made and updated only by `interactive-docs` |
@@ -61,7 +61,8 @@ ignores and the check never lets you commit:
 |---|---|---|
 | Claude Code | `CLAUDE.local.md` in each folder: `@AGENTS.agentk.md`, and `@AGENTS.md` where the team has no `CLAUDE.md` there. Claude adds it to the team's `CLAUDE.md` | A team-committed `CLAUDE.local.md` cannot be used |
 | Codex | `AGENTS.override.md` in each folder: the team's `AGENTS.md`, then your map. Codex reads it instead of `AGENTS.md` | It is a copy: refreshed after `git pull` / checkout, at session start and on each agent turn; `check.sh` fails while it is stale |
-| Gemini CLI, Antigravity | `AGENTS.agentk.md` added to `context.fileName` in your `~/.gemini/settings.json` (asked first) | A team `.gemini/settings.json` that sets the list wins; then a note in `~/.gemini/GEMINI.md` asks Gemini to read your map |
+| Antigravity (agy CLI, IDE, app) | The kit's SessionStart hook (`.agents/hooks.json`, local) tells it to read `AGENTS.agentk.md` at the start of every session | Antigravity reads only `AGENTS.md` and `GEMINI.md` by name, and none in subfolders: the hook line and the root map's "read the maps on the path" rule cover that |
+| Gemini CLI (older installs) | `AGENTS.agentk.md` added to `context.fileName` in your `~/.gemini/settings.json` (asked first) | A team `.gemini/settings.json` that sets the list wins; then a note in `~/.gemini/GEMINI.md` asks Gemini to read your map |
 | Cursor | `.cursor/rules/agent-kit.mdc` | |
 
 The team's rules always come first; your map only adds. `wire.sh --plan`
@@ -402,12 +403,13 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
   through the queue with you. It never blocks.
 - **After a pull or merge**: `.githooks/post-merge` says in one line when
   other people's commits changed code since the docs were last checked.
-- **When an agent session starts** (Claude Code and Codex): one line each
+- **When an agent session starts** (Claude Code, Codex and Antigravity): one line each
   about the queue, other people's commits since the docs were last checked
   (`pulled.sh`; it works without git hooks, so a rebase or a GUI pull counts
   too) and stale learning docs, only when there is something. The agent
   offers `docs-sync` with scope `pulled`.
-- **After every agent turn** (Claude Code; Codex if its hooks are on): the
+- **After every agent turn** (Claude Code; Codex if its hooks are on;
+  Antigravity through `.agents/hooks.json`): the
   Stop hook compares `git status` with the last turn. Nothing changed:
   nothing runs. Something changed: `check.sh` for those files only, and a
   docs reminder only when a file a map names changed, a file was added to

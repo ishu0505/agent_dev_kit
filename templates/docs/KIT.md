@@ -35,7 +35,7 @@ and tells you when one no longer matches the code.
 | What is in the todo list? | say "what's in todo", or `sh .agents/kit/todo.sh list [category\|open\|doing]` (the session start counts them) |
 | Work on a todo, or finish one | say "start T-007" (the agent reads its refs as context) or "T-007 is done" (the item is deleted) |
 | Find folders agents should skip, or old copies that look like live code | `sh .agents/kit/candidates.sh [folder]` (read only); confirmed rows go in a map's "Do not read unless asked" and "Lookalikes" sections |
-| How should agents write code here? | `.agents/kit/coding-standard.agentk.md`: loaded at every Claude and Codex session start; your map's `## Code style` wins on conflict. Turn it off with `CODING_STANDARD="off"` in `.agents/agent-kit.conf` |
+| How should agents write code here? | `.agents/kit/coding-standard.agentk.md`: loaded at every Claude, Codex and Antigravity session start; your map's `## Code style` wins on conflict. Turn it off with `CODING_STANDARD="off"` in `.agents/agent-kit.conf` |
 | Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |
 | Newer kit version | in the kit folder `git pull`, then ask the agent: `agent-kit upgrade` |
 

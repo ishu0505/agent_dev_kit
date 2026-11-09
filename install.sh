@@ -262,6 +262,12 @@ fi
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
 [ "$MAPS" = beside ] || grep -q 'agents/kit/session-start.sh' .codex/hooks.json ||
   note ".codex/hooks.json has no kit SessionStart hook (new in 0.8): merge it from $T/config/codex-hooks.json"
+# Antigravity (agy CLI, IDE, app) reads workspace hooks from .agents/hooks.json;
+# .agents/ is the kit's folder, so this holds in a team repo too.
+if ! create_if_missing "$T/config/agy-hooks.json" .agents/hooks.json; then
+  grep -q 'agents/kit/agy-hook.sh' .agents/hooks.json ||
+    note ".agents/hooks.json exists: merge the \"agent-kit\" entry from $T/config/agy-hooks.json (Antigravity's SessionStart and Stop hooks)"
+fi
 
 # Skills: replace only what the repo never edited.
 skill_sum() {  # skill_sum <folder>: one fingerprint for every file in a skill

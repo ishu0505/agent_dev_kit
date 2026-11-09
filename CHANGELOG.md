@@ -3,6 +3,33 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.13.0 — 2026-11-09
+
+Antigravity (the agy CLI, the IDE and the app) gets the same session start
+and Stop hook as Claude Code and Codex.
+
+**What an upgrading repo must do:** run `agent-kit upgrade` (or
+`sh <agent_dev_kit>/install.sh .`). It creates `.agents/hooks.json`, the
+workspace hook file Antigravity reads. If the repo already has one, the
+install keeps it and says to merge the `"agent-kit"` entry from
+`templates/config/agy-hooks.json`. Restart Antigravity, or start a new
+conversation, so it loads the hooks; `/hooks` in agy shows them.
+
+- **`agy-hook.sh`** (kit-owned): turns Antigravity's hook events into the
+  kit's own. At session start it returns the kit's lines (queue, pulled
+  commits, todo count, the coding standard) as one system message. At a stop
+  it runs the Stop hook and answers `{"decision": "continue", "reason": ...}`
+  when checks fail or the docs step is due. Antigravity has no
+  `stop_hook_active`, so the kit lets the stop right after a "continue"
+  through itself; it never continues after an error or the step limit.
+- **Team repos**: Antigravity reads only `AGENTS.md` and `GEMINI.md` by
+  name, so its session start now tells it to read `AGENTS.agentk.md`. The
+  hook file is under `.agents/`, which stays local there.
+- **`wire.sh`** reports Antigravity from `.agents/hooks.json`; the
+  `context.fileName` step is now for Gemini CLI only.
+- **`check.sh`** also checks `.agents/hooks.json` for hard-coded paths and
+  missing scripts.
+
 ## 0.12.0 — 2026-11-08
 
 A todo list: ideas and follow-ups for a later session, kept in the repo.

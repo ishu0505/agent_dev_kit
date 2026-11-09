@@ -414,7 +414,10 @@ Show three things and wait for my approval:
    - A file git tracks (the team's `CLAUDE.local.md` or
      `AGENTS.override.md`) is never written: say that the agent cannot load
      my map in that folder.
-   - Gemini / Antigravity: when `wire.sh` says `todo`, ask, then add
+   - Antigravity (agy CLI, IDE, app): nothing to wire. The kit's
+     SessionStart hook in `.agents/hooks.json` (local here) tells it to read
+     `AGENTS.agentk.md` at the start of each session.
+   - Gemini CLI (older installs): when `wire.sh` says `todo`, ask, then add
      `AGENTS.agentk.md` to `context.fileName` in my `~/.gemini/settings.json`
      (create the file, or append to the list, keeping my existing names).
      When it says `limit` (the team's `.gemini/settings.json` sets the list),
@@ -423,7 +426,7 @@ Show three things and wait for my approval:
      them after the team's AGENTS.md."
 8. **Agent configs**: `.claude/settings.json` needs both the SessionStart and
    the Stop hook (the install says what to merge into an existing file). If
-   more agents than Claude Code and Codex are used,
+   more agents than Claude Code, Codex and Antigravity are used,
    tell me where each loads hooks and skills (check its docs) and add what
    is needed. Other agents rely on the pre-commit check.
 9. **Commit-ready**: `git add` only what the share mode pushes. In a team

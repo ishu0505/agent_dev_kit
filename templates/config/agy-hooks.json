@@ -1,0 +1,18 @@
+{
+  "agent-kit": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "sh -c 'r=$(git rev-parse --show-toplevel 2>/dev/null) && [ -f \"$r/.agents/kit/agy-hook.sh\" ] && exec sh \"$r/.agents/kit/agy-hook.sh\" session-start; exit 0'",
+        "timeout": 30
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "sh -c 'r=$(git rev-parse --show-toplevel 2>/dev/null) && [ -f \"$r/.agents/kit/agy-hook.sh\" ] && exec sh \"$r/.agents/kit/agy-hook.sh\" stop; exit 0'",
+        "timeout": 90
+      }
+    ]
+  }
+}

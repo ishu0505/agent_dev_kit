@@ -488,10 +488,36 @@ def option(argv: list[str], name: str) -> str | None:
     return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else None
 
 
+def agy_event(event: dict) -> dict:
+    """Antigravity's hook input (camelCase) in the names the kit reads. Its
+    transcript has another format, so it is left out: the session-start
+    baseline already tells what a turn changed."""
+    paths = event.get("workspacePaths") or []
+    return {"session_id": event.get("conversationId"), "cwd": paths[0] if paths else None,
+            "termination": event.get("terminationReason")}
+
+
+def agy_may_continue(repo: Path, event: dict, reason: str) -> bool:
+    """Antigravity has no stop_hook_active, so the kit keeps its own: the stop
+    right after a "continue" always goes through, as in Claude Code and Codex."""
+    common = git(repo, "rev-parse", "--git-common-dir").strip()
+    marker = fresh_state_dir((repo / common / "agent-kit" / "state").resolve()) / f"{session_name(event)}-agy-continued"
+    if marker.exists() or not reason:
+        marker.unlink(missing_ok=True)
+        return False
+    marker.write_text("1")
+    return True
+
+
 def main(argv: list[str]) -> None:
     raw = sys.stdin.read()
     event = json.loads(raw) if raw.strip() else {}
     baseline = "--baseline" in argv
+    agy = "--agy" in argv
+    if agy:
+        event = agy_event(event)
+        if event["termination"] not in (None, "model_stop") and not baseline:
+            return  # an error or the step limit ended the turn: never push it on
     if event.get("stop_hook_active") and not baseline:
         return
     workspace = option(argv, "--workspace")
@@ -503,7 +529,11 @@ def main(argv: list[str]) -> None:
         if not (repo / ".agents" / "kit" / "check.sh").exists():
             return
         reason = run_repo(repo, event, baseline)[0]
-    if reason:
+        if agy and not baseline and not agy_may_continue(repo, event, reason):
+            return
+    if reason and agy:
+        print(json.dumps({"decision": "continue", "reason": reason}))
+    elif reason:
         print(json.dumps({"decision": "block", "reason": reason}))
 
 
