@@ -3,6 +3,22 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.13.1 — 2026-11-09
+
+`wrap-up` and `docs-sync` now ask whether to sync the interactive learning
+pages when they no longer match their learning docs.
+
+**What an upgrading repo must do:** run `agent-kit upgrade`. Nothing else;
+in a root map from an older kit, "only when the user names them" for
+`interactive-docs` may stay as it is.
+
+- **`wrap-up`** (step 3) and **`docs-sync`** (new step 5a): when
+  `<LEARNING_DIR>/interactive_l_docs/` has pages, they run
+  `interactive-docs/status.sh` and, if pages are stale, missing or
+  orphaned, ask once: "Sync them now?" On yes, `interactive-docs sync`
+  runs. A repo with no pages is never asked.
+- **`interactive-docs`**: may run after that yes, not only when named.
+
 ## 0.13.0 — 2026-11-09
 
 Antigravity (the agy CLI, the IDE and the app) gets the same session start

@@ -93,7 +93,8 @@ Two tables, each grouped by unit:
 |---|---|---|---|---|---|
 
 Evidence is `file:line`. End with: docs checked, docs in sync, docs with
-drift, unverified claims. In `check` mode, stop here and change nothing.
+drift, unverified claims, and the interactive pages (step 5a). In `check`
+mode, stop here and change nothing, except to ask the step 5a question.
 
 ## 5. Fix (`fix` mode only)
 
@@ -109,8 +110,7 @@ drift, unverified claims. In `check` mode, stop here and change nothing.
   docs" table for the people to fix.
 - Refresh stale learning docs with the `learning-docs` skill (it updates
   each `source_commit`).
-- Never touch `<LEARNING_DIR>/interactive_l_docs/` (only the
-  `interactive-docs` skill updates those pages, when the user names it) or
+- Never edit `<LEARNING_DIR>/interactive_l_docs/` yourself (step 5a) or
   `<LEARNING_DIR>/architecture/` (dated `arch-emulator` reviews; a
   snapshot, never synced).
 - **Scope `pulled`: who fixes what.** Other people wrote these commits, so
@@ -121,6 +121,15 @@ drift, unverified claims. In `check` mode, stop here and change nothing.
   | Kit docs that stay on this computer: learning docs that are not shared, every kit doc with `SHARE="none"` or `MAPS="beside"` | Yours. Offer the fix; apply it after the user's yes |
   | Kit docs the repo shares (`SHARE="agent"` or `"all"`: maps, decisions; learning docs with `"all"` or `"learning"`) | The other person's pull request should have updated them. Report the drift. Offer the fix on a new branch (`docs/sync-<date>`) for a pull request; never commit it to the default branch |
   | Docs people wrote (`README.md` and the rest) | Report only, with a sentence to paste, as above |
+
+## 5a. Interactive pages (check and fix mode)
+
+If `<LEARNING_DIR>/interactive_l_docs/` has pages, run
+`sh .agents/skills/interactive-docs/status.sh` after any learning-doc
+refresh. If it lists `stale`, `missing` or `orphan` pages, ask once: "N
+interactive pages no longer match their learning docs. Sync them now?" On
+yes, run the `interactive-docs` skill in mode `sync`. On no, list them in
+the report. With no pages, say nothing: the user never built them.
 
 ## 6. Mark the docs as checked
 

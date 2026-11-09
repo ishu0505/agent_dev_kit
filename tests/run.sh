@@ -963,8 +963,8 @@ for skill in interactive-docs arch-emulator; do
   [ -f "$R/.agents/skills/$skill/SKILL.md" ] && [ -f "$R/.claude/skills/$skill/SKILL.md" ] &&
     grep -q "^name: $skill\$" "$R/.agents/skills/$skill/SKILL.md" &&
     ok "$skill: installed for every agent, name matches its folder" || bad "$skill: installed for every agent, name matches its folder"
-  grep '^description:' "$KIT/templates/skills/$skill/SKILL.md" | grep -q 'ONLY when the user names it' &&
-    ok "$skill runs only when the user names it" || bad "$skill runs only when the user names it"
+  grep '^description:' "$KIT/templates/skills/$skill/SKILL.md" | grep -q "ONLY when the user names it\|never start it without the user's yes" &&
+    ok "$skill runs only on the user's request" || bad "$skill runs only on the user's request"
   grep -q 'explain-standard.agentk.md' "$KIT/templates/skills/$skill/SKILL.md" &&
     ok "$skill follows the explanation standard" || bad "$skill follows the explanation standard"
   SKEL="$KIT/templates/skills/$skill/page-skeleton.html"
@@ -979,8 +979,10 @@ for skill in interactive-docs arch-emulator; do
 done
 ! ls "$KIT/templates/skills/arch-emulator" | grep -v -E '^(SKILL\.md|.*\.agentk\.md|.*\.html)$' | grep -q '\.md$' &&
   ok "arch-emulator: its Markdown files end in .agentk.md" || bad "arch-emulator: its Markdown files end in .agentk.md"
-grep -q 'interactive_l_docs' "$KIT/templates/skills/docs-sync/SKILL.md" &&
-  ok "docs-sync leaves the interactive pages alone" || bad "docs-sync leaves the interactive pages alone"
+for skill in docs-sync wrap-up; do
+  grep -q 'interactive-docs/status.sh' "$KIT/templates/skills/$skill/SKILL.md" &&
+    ok "$skill asks to sync stale interactive pages" || bad "$skill asks to sync stale interactive pages"
+done
 
 new_repo ix
 I="$WORK/ix"
