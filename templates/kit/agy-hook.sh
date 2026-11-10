@@ -5,6 +5,8 @@
 # into the kit's own hooks:
 #   session-start  runs session-start.sh and returns its lines as a system
 #                  message: {"injectSteps": [{"systemMessage": {...}}]}
+#   turn           (PreInvocation) the per-prompt ask for the session line
+#                  and the "used" line, as {"injectSteps": [{"ephemeralMessage": ...}]}
 #   stop           runs stop-hook.sh --agy, which prints
 #                  {"decision": "continue", "reason": ...} when the docs
 #                  step or the checks need the agent to go on
@@ -34,6 +36,13 @@ $lines"
     fi
     [ -n "$lines" ] || exit 0
     printf '{"injectSteps": [{"systemMessage": {"systemMessage": "%s"}}]}\n' "$(printf '%s\n' "$lines" | json_string)"
+    ;;
+  turn)
+    # PreInvocation fires before each model call, so the ask goes in as an
+    # ephemeral message: seen for this call, not kept in the history.
+    ask=$(sh .agents/kit/sessions.sh turn antigravity 2>/dev/null)
+    [ -n "$ask" ] || exit 0
+    printf '{"injectSteps": [{"ephemeralMessage": "%s"}]}\n' "$(printf '%s\n' "$ask" | json_string)"
     ;;
   stop)
     printf '%s' "$input" | sh .agents/kit/stop-hook.sh --agy 2>/dev/null

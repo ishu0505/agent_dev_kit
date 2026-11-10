@@ -5,4 +5,5 @@
 .agents/** text eol=lf
 .claude/settings.json text eol=lf
 .codex/hooks.json text eol=lf
+.gemini/settings.json text eol=lf
 .claude/skills/** text eol=lf

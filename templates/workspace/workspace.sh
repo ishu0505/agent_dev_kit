@@ -299,9 +299,9 @@ cmd_init() {
   fi
   rm -f .agent-workspace/p.tmp
   write_new .claude/settings.json "$T/workspace/claude-settings.json" && made="$made .claude/settings.json" ||
-    grep -q 'ws-hook.sh' .claude/settings.json || echo "NOTE .claude/settings.json exists: merge the hooks from $T/workspace/claude-settings.json"
+    grep -q 'ws-hook.sh\\" turn' .claude/settings.json || echo "NOTE .claude/settings.json exists: merge the hooks from $T/workspace/claude-settings.json"
   write_new .codex/hooks.json "$T/workspace/codex-hooks.json" && made="$made .codex/hooks.json" ||
-    grep -q 'ws-hook.sh' .codex/hooks.json || echo "NOTE .codex/hooks.json exists: merge the hooks from $T/workspace/codex-hooks.json"
+    grep -q 'ws-hook.sh\\" turn' .codex/hooks.json || echo "NOTE .codex/hooks.json exists: merge the hooks from $T/workspace/codex-hooks.json"
   if [ "$meta" = yes ]; then
     exclude=$(git rev-parse --git-path info/exclude)
     mkdir -p "$(dirname "$exclude")"

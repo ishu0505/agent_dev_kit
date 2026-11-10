@@ -16,9 +16,11 @@ team's file and tell me. This file is local: it is never committed.
 Before you work in a folder, read the `AGENTS.agentk.md` maps on the path to
 it, after the team's `AGENTS.md` there.
 
-Start your first reply in each session with one line, once: `agent-kit
-<.agents/kit/VERSION> · repo: <this folder's name> · level: repo · map:
-AGENTS.agentk.md`, unless the session start already gave you that line.
+Start every reply with one line: `agent-kit <.agents/kit/VERSION> · repo:
+<this folder's name> · level: repo · map: AGENTS.agentk.md` (add each other
+map you read for the prompt). End every reply with one line: `agent-kit used:
+maps <maps read, or none> · skills <skills run, or none> · tools <tool ×count,
+or none>`. When a kit hook gives you these lines, use its words.
 
 ## My rules
 

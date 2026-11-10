@@ -498,6 +498,8 @@ agent_paths() {  # pathspecs of every agent file: maps, pointers, lineage, kit f
   if [ "$MAPS" = beside ]; then kit_local_paths; return; fi
   printf '%s\n' AGENTS.md ':(glob)**/AGENTS.md' "$DECISIONS_INDEX" "$PLAN_DOC" "$TODO_DOC" .agents .claude .codex .githooks
   for pointer in $POINTER_FILES; do printf '%s\n' "$pointer" ":(glob)**/$pointer"; done
+  # Gemini's settings count only when the kit's hook is in them.
+  grep -qs 'kit/sessions.sh' .gemini/settings.json && printf '%s\n' .gemini/settings.json
   [ -z "$LEDGER" ] || printf '%s\n' "$LEDGER"
   [ -z "$DECISIONS_DIR" ] || printf '%s\n' "$DECISIONS_DIR"
   if [ -n "$DOC_SUFFIX" ]; then  # every kit doc, wherever it is
@@ -559,7 +561,7 @@ check_git_setup() {
     fail "the pre-commit check is not active in this clone" \
       "run once: git config core.hooksPath .githooks  (or add .agents/kit/check.sh --staged to your hook manager; install.sh prints the line)"
   fi
-  for config in .claude/settings.json .claude/settings.local.json .codex/hooks.json .agents/hooks.json; do
+  for config in .claude/settings.json .claude/settings.local.json .codex/hooks.json .agents/hooks.json .gemini/settings.json; do
     [ -f "$config" ] || continue
     if grep -qF "$ROOT" "$config" ||
        grep -qE '(/Users/|/home/|[A-Za-z]:[\\/]+Users)' "$config"; then

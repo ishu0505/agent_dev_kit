@@ -3,7 +3,8 @@
 # line the agent says first, and a report of each agent's wiring.
 #
 # Usage: sh .agents/kit/sessions.sh record <agent>   (the SessionStart hook)
-#        sh .agents/kit/sessions.sh banner <agent>   (the line to say first)
+#        sh .agents/kit/sessions.sh banner <agent>   (the session line ask)
+#        sh .agents/kit/sessions.sh turn <agent>     (the per-prompt reminder)
 #        sh .agents/kit/sessions.sh report           (agent, wiring, last session)
 #
 # The log is <git common dir>/agent-kit/sessions.log, one line per session
@@ -15,10 +16,14 @@
 # otherwise its sign is the first-reply line its rule or the root map asks for. The banner names the level: repo,
 # repo + workspace (Claude, which also loads the workspace CLAUDE.md), or
 # repo with the workspace map read on demand (the other agents).
-# SESSION_BANNER="off" in .agents/agent-kit.conf stops the banner line.
+# SESSION_BANNER in .agents/agent-kit.conf: "every" (or the older "on", the
+# default) asks for the line at the start of every reply and a "used" line
+# (maps, skills, tools) at the end; the per-prompt hooks repeat the ask so it
+# does not fade in a long chat. "first": the line in the first reply only.
+# "off": no line.
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$ROOT" || exit 0
-SESSION_BANNER=on
+SESSION_BANNER=every
 MAPS=own
 DOC_SUFFIX=".agentk.md"
 [ -f .agents/kit/lib.sh ] && . ./.agents/kit/lib.sh && load_conf
@@ -41,8 +46,7 @@ workspace_map() {  # the workspace map when this repo sits in a multi-repo works
     fi
   done
 }
-banner() {  # banner <agent>: the instruction with the line to say first
-  [ "$SESSION_BANNER" = off ] && return 0
+session_line() {  # session_line <agent>: "agent-kit <version> · repo: ... · map: ..."
   if [ "$MAPS" = beside ]; then
     maps="AGENTS${DOC_SUFFIX:-.agentk.md} beside the team's AGENTS.md"
   elif [ "${1:-}" = claude ]; then
@@ -57,7 +61,28 @@ banner() {  # banner <agent>: the instruction with the line to say first
   elif [ -n "$ws" ]; then
     level="repo: $(basename "$ROOT") · level: repo (workspace map $ws read when a change crosses repos)"
   fi
-  echo "agent-kit: start your first reply in this session with this one line, then never again: \"agent-kit ${VERSION:-unknown} · $level · map: $maps\". Later, the first time you read the map of another folder, say one line: \"agent-kit: now also using <its path>\"."
+  echo "agent-kit ${VERSION:-unknown} · $level · map: $maps"
+}
+every_reply() {  # every_reply <line>: the ask for the header and the footer
+  echo "agent-kit: start every reply with this one line: \"$1\", with the path of each other folder's map you read for this prompt added after \"map:\". End every reply with one line: \"agent-kit used: maps <the maps you read for this prompt, or none> · skills <the skills you ran, or none> · tools <each tool you called with its count, such as Read ×3, Bash ×2, or none>\"."
+}
+banner() {  # banner <agent>: the instruction with the line to say first
+  [ "$SESSION_BANNER" = off ] && return 0
+  line=$(session_line "$1")
+  if [ "$SESSION_BANNER" = first ]; then
+    echo "agent-kit: start your first reply in this session with this one line, then never again: \"$line\". Later, the first time you read the map of another folder, say one line: \"agent-kit: now also using <its path>\"."
+    return 0
+  fi
+  every_reply "$line"
+}
+turn() {  # turn <agent> [--json]: the per-prompt reminder; --json for Gemini's BeforeAgent
+  case "$SESSION_BANNER" in off|first) return 0 ;; esac
+  ask=$(every_reply "$(session_line "$1")")
+  if [ "${2:-}" = --json ]; then  # the ask holds quotes but no backslash, tab or newline
+    printf '{"hookSpecificOutput": {"hookEventName": "BeforeAgent", "additionalContext": "%s"}}\n' "$(printf '%s' "$ask" | sed 's/"/\\"/g')"
+    return 0
+  fi
+  echo "$ask"
 }
 hooked() {  # hooked <file> <text>: wired when the file holds the text
   [ -f "$1" ] && grep -q "$2" "$1"
@@ -74,9 +99,11 @@ report() {  # one line per agent: agent TAB wiring TAB last session start
   printf 'codex\t%s\t%s\n' "$wiring" "$(last_of codex)"
   wiring=no; hooked .agents/hooks.json agy-hook.sh && wiring=hooks
   printf 'antigravity\t%s\t%s\n' "$wiring" "$(last_of antigravity)"
+  wiring=no; { hooked .gemini/settings.json sessions.sh || hooked "$HOME/.gemini/settings.json" sessions.sh; } && wiring="prompt hook"
+  printf 'gemini\t%s\t%s\n' "$wiring" 'not logged (prompt hook only): its replies start with "agent-kit"'
   wiring="map only"; [ -f .cursor/rules/agent-kit.mdc ] && wiring="local rule"
   last=$(last_of cursor)
-  [ "$last" = never ] && last='not logged (no kit hooks): its first reply must start with "agent-kit"; /use-adkit logs it'
+  [ "$last" = never ] && last='not logged (no kit hooks): its replies must start with "agent-kit"; /use-adkit logs it'
   printf 'cursor\t%s\t%s\n' "$wiring" "$last"
   other=$(last_of other)
   [ "$other" = never ] || printf 'other\t-\t%s\n' "$other"
@@ -85,7 +112,8 @@ report() {  # one line per agent: agent TAB wiring TAB last session start
 case "${1:-}" in
   record) record "${2:-other}" ;;
   banner) banner "${2:-other}" ;;
+  turn) turn "${2:-other}" "${3:-}" ;;
   report) report ;;
-  *) echo "usage: sessions.sh record <agent> | banner <agent> | report"; exit 2 ;;
+  *) echo "usage: sessions.sh record <agent> | banner <agent> | turn <agent> | report"; exit 2 ;;
 esac
 exit 0

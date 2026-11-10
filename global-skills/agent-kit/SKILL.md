@@ -50,7 +50,7 @@ Then:
   level (repo, or in a workspace), and per agent its wiring and last session.
   For each agent that says "never" or "no", say what wires it (for Claude,
   Codex and Antigravity: `agent-kit upgrade` in that repo; for Cursor: no
-  kit hooks, so check its first-reply line, or type `/use-adkit`). Change nothing.
+  kit hooks, so check that its replies start with the agent-kit line, or type `/use-adkit`). Change nothing.
 - **wire** (team repo, `MAPS="beside"`): show `sh .agents/kit/wire.sh --plan`,
   then apply it after the user's yes (`sh .agents/kit/wire.sh`), including
   the Gemini step from `KIT/BOOTSTRAP.md` phase 4, step 7.

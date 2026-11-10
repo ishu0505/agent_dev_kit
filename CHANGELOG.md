@@ -3,6 +3,46 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.15.0 — 2026-11-10
+
+The agent-kit line now starts **every** reply, not just the first, and every
+reply ends with a line that says what the agent used for that prompt:
+`agent-kit used: maps ... · skills ... · tools Read ×3, Bash ×2`. A
+per-prompt hook repeats the ask, so it does not fade in a long chat, and no
+one has to type `/use-adkit`.
+
+**What an upgrading repo must do:** run `agent-kit upgrade`, then merge the
+hooks it names (the upgrade prints a NOTE for each file that exists):
+
+- `.claude/settings.json` (team repo: `.claude/settings.local.json`) and
+  `.codex/hooks.json`: the new `UserPromptSubmit` hook
+  (`sessions.sh turn <agent>`).
+- `.agents/hooks.json`: the new `PreInvocation` entry (Antigravity has no
+  per-prompt event; it fires before each model call and adds a short
+  ephemeral message).
+- Gemini CLI: `.gemini/settings.json` gets a `BeforeAgent` hook (created when
+  the file is missing; in a team repo, merge it into `~/.gemini/settings.json`
+  instead).
+- The root map (`AGENTS.md`, or `AGENTS.agentk.md` in a team repo): replace
+  the "Start your first reply" sentence with the "Start every reply" one from
+  the map template. Cursor has no per-prompt hook that can add context, so it
+  reads the ask there (team repos: the local Cursor rule is rewritten for you).
+- Workspaces: merge the `UserPromptSubmit` hook from the workspace hook files
+  into the workspace's `.claude/settings.json` and `.codex/hooks.json`.
+
+Details:
+- **`SESSION_BANNER`** (`.agents/agent-kit.conf`, `workspace.conf`):
+  `"every"` (the new default; the older `"on"` means the same), `"first"`
+  (the 0.14 behavior: the first reply only) or `"off"`.
+- **`sessions.sh turn <agent> [--json]`**: the per-prompt ask; `--json` for
+  Gemini. `agy-hook.sh turn` and `ws-hook.sh turn` wrap it for Antigravity
+  and workspaces.
+- The tool counts in the "used" line are the agent's own report, not a
+  measured count.
+- `check.sh`, `inventory.sh` and `sessions.sh report` know
+  `.gemini/settings.json`; `SHARE="none"` keeps it local when it holds the
+  kit's hook.
+
 ## 0.14.1 — 2026-11-10
 
 A new skill, `use-adkit`, loads the kit's context into a chat by hand:

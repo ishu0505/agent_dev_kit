@@ -18,11 +18,12 @@ consumer folder, and what must stay the same. Put each one in LINKS in
 
 ## Rules
 
-- Start your first reply in each session with one line, once: `agent-kit
+- Start every reply with one line: `agent-kit
   <.agent-workspace/kit/VERSION> · level: workspace · map:
-  WORKSPACE.agentk.md`, unless the session start already gave you that line.
-  When you first read a repo's map, say `agent-kit: now also using <path>
-  (repo level)`.
+  WORKSPACE.agentk.md` (add each repo map you read for the prompt). End
+  every reply with one line: `agent-kit used: maps <maps read, or none> ·
+  skills <skills run, or none> · tools <tool ×count, or none>`. When a kit
+  hook gives you these lines, use its words.
 - For a change in one repo, start the agent inside that repo. For a change
   that spans repos, start it in this folder.
 - Inside a repo, that repo's own `AGENTS.md` and `CLAUDE.md` come first.

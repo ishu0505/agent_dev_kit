@@ -1,6 +1,6 @@
 ---
 name: use-adkit
-description: Load this repo's agent-kit context into the current chat by hand - the kit version, the root map (and the team's AGENTS.md first in a team repo), the maps on the path to the files of the task, what waits (catch-up, pulled commits, todos) and the coding standard - then say the session line and go on with the prompt. Use when the user types use-adkit (/use-adkit, $use-adkit) before or inside a prompt, says "use the agent kit", or when the first reply of a chat had no "agent-kit" line (Cursor, or an agent whose hooks did not run). Arguments - the rest of the prompt, or files and folders to load the maps for.
+description: Load this repo's agent-kit context into the current chat by hand - the kit version, the root map (and the team's AGENTS.md first in a team repo), the maps on the path to the files of the task, what waits (catch-up, pulled commits, todos) and the coding standard - then say the session line and go on with the prompt. Use when the user types use-adkit (/use-adkit, $use-adkit) before or inside a prompt, says "use the agent kit", or when a reply had no "agent-kit" line (Cursor, or an agent whose hooks did not run). Arguments - the rest of the prompt, or files and folders to load the maps for.
 ---
 
 # Use the agent kit in this chat
@@ -34,5 +34,8 @@ Start the reply with the session line from step 2, with every map you read
 in step 3 to 5 after `map:`. Then go on with the rest of the prompt; with
 no prompt, stop after the line and one line on what waits.
 
-Later in the chat, the first time you read another folder's map, say one
-line: "agent-kit: now also using <its path>".
+Follow what the session start printed: with "every reply" (the default),
+start each later reply with the line too, add the maps you read for that
+prompt, and end each reply with the "agent-kit used:" line. With "first
+reply" only, say "agent-kit: now also using <its path>" the first time you
+read another folder's map.
