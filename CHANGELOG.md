@@ -3,6 +3,23 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.14.1 — 2026-11-10
+
+A new skill, `use-adkit`, loads the kit's context into a chat by hand:
+`/use-adkit` (Codex: `$use-adkit`) before or inside a prompt.
+
+**What an upgrading repo must do:** run `agent-kit upgrade`. Nothing else.
+
+- **`use-adkit`** (kit-owned): runs the session start by hand
+  (`session-start.sh --load`, which keeps the Stop hook's baseline), reads
+  the root map (the team's `AGENTS.md` first in a team repo) and the maps on
+  the path to the files the prompt names, says the session line, then goes
+  on with the prompt. Use it when a first reply has no "agent-kit" line.
+  Cursor finds it in `.claude/skills/`, which the kit already links.
+- **Session log**: `AGENT_KIT_AGENT` names the agent, so Cursor sessions
+  started with `use-adkit` are logged; `sessions.sh report` and `doctor`
+  show them.
+
 ## 0.14.0 — 2026-11-10
 
 A new skill, `repo-md-sync`, updates the repo's own Markdown files

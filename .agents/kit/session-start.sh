@@ -10,12 +10,15 @@
 # First it logs the session start and prints the line the agent says first
 # (sessions.sh; AGENT_KIT_SKIP_BANNER skips that line, SESSION_BANNER="off"
 # in the config stops it). Prints nothing else when nothing waits.
+# The use-adkit skill runs it by hand: --load keeps the Stop hook's baseline,
+# AGENT_KIT_AGENT names the agent for the log.
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$ROOT" || exit 0
 input=$(cat)
 # Which agent started: Antigravity passes --agy; Claude and Codex name their
 # own folders in the transcript path of the event JSON.
-agent=other
+# The use-adkit skill names the agent (AGENT_KIT_AGENT) and passes --load.
+agent=${AGENT_KIT_AGENT:-other}
 case " $* " in *" --agy "*) agent=antigravity ;; esac
 if [ "$agent" = other ]; then
   case "$input" in
@@ -26,7 +29,11 @@ if [ "$agent" = other ]; then
 fi
 sh .agents/kit/sessions.sh record "$agent" >/dev/null 2>&1
 [ -z "${AGENT_KIT_SKIP_BANNER:-}" ] && sh .agents/kit/sessions.sh banner "$agent" 2>/dev/null
-printf '%s' "$input" | sh .agents/kit/stop-hook.sh --baseline --repo "$ROOT" "$@" >/dev/null 2>&1  # --agy: Antigravity input
+# --load (the use-adkit skill, mid-session): keep the Stop hook's baseline.
+case " $* " in
+  *" --load "*) ;;
+  *) printf '%s' "$input" | sh .agents/kit/stop-hook.sh --baseline --repo "$ROOT" "$@" >/dev/null 2>&1 ;;  # --agy: Antigravity input
+esac
 # Beside mode (a team repo): refresh the local wiring of your maps first.
 # In a workspace, wire.sh also points Codex to the workspace map.
 sh .agents/kit/wire.sh --quiet >/dev/null 2>&1

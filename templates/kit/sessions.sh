@@ -11,8 +11,8 @@
 # level is "workspace" when the workspace hook started it (AGENT_KIT_LEVEL),
 # else "repo". It stays on this
 # computer and keeps the last 200 lines. Agents: claude, codex, antigravity,
-# other. Cursor has no kit hooks, so it never writes a line: its sign is the
-# first-reply line the root map asks for. The banner names the level: repo,
+# cursor, other. Cursor has no kit hooks: only the use-adkit skill logs it;
+# otherwise its sign is the first-reply line its rule or the root map asks for. The banner names the level: repo,
 # repo + workspace (Claude, which also loads the workspace CLAUDE.md), or
 # repo with the workspace map read on demand (the other agents).
 # SESSION_BANNER="off" in .agents/agent-kit.conf stops the banner line.
@@ -74,7 +74,10 @@ report() {  # one line per agent: agent TAB wiring TAB last session start
   printf 'codex\t%s\t%s\n' "$wiring" "$(last_of codex)"
   wiring=no; hooked .agents/hooks.json agy-hook.sh && wiring=hooks
   printf 'antigravity\t%s\t%s\n' "$wiring" "$(last_of antigravity)"
-  printf 'cursor\tmap only (no kit hooks)\tnot logged: check that its first reply starts with "agent-kit"\n'
+  wiring="map only"; [ -f .cursor/rules/agent-kit.mdc ] && wiring="local rule"
+  last=$(last_of cursor)
+  [ "$last" = never ] && last='not logged (no kit hooks): its first reply must start with "agent-kit"; /use-adkit logs it'
+  printf 'cursor\t%s\t%s\n' "$wiring" "$last"
   other=$(last_of other)
   [ "$other" = never ] || printf 'other\t-\t%s\n' "$other"
 }

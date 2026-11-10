@@ -21,7 +21,7 @@ the folder that contains this file. The kit gives the repo:
    reason (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-   `explain-d-in`, `todo`; and three that run only when the user asks:
+   `explain-d-in`, `todo`, `use-adkit`; and three that run only when the user asks:
    `interactive-docs`, `arch-emulator`, `repo-md-sync` (edits the repo's own
    Markdown, file by file, after the user's yes).
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
