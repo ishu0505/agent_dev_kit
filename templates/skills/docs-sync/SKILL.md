@@ -107,7 +107,8 @@ mode, stop here and change nothing, except to ask the step 5a question.
   `.agents/kit/writing-style.agentk.md`. Keep maps within their line limits.
 - **Never edit a `yours` doc** (`README.md`, `CONTRIBUTING.md`, `docs/*.md`
   and other Markdown the kit did not write). Leave its rows in the "Your
-  docs" table for the people to fix.
+  docs" table. End it with one line: "To have these edited, run
+  repo-md-sync." Never offer, ask about or start that skill yourself.
 - Refresh stale learning docs with the `learning-docs` skill (it updates
   each `source_commit`).
 - Never edit `<LEARNING_DIR>/interactive_l_docs/` yourself (step 5a) or

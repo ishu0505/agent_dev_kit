@@ -16,6 +16,10 @@ Priorities, in this order when they conflict: **<first>**, **<second>**,
 Before you work in a folder, read the `AGENTS.md` maps on the path to it.
 Read nothing else until the task needs it.
 
+Start your first reply in each session with one line, once:
+`agent-kit <.agents/kit/VERSION> · repo: <this folder's name> · level: repo ·
+map: AGENTS.md`, unless the session start already gave you that line.
+
 ## Code style
 
 - Before you plan, write or change code, follow
@@ -56,7 +60,7 @@ Read nothing else until the task needs it.
 - A map points to detail; it does not hold it. Keep it short.
 - Write only kit docs: `AGENTS.md`, pointer files, and files ending in
   `.agentk.md`. Every other Markdown file belongs to the people here: read
-  it, report drift in it, never edit it.
+  it, report drift in it, edit it only through `repo-md-sync` when I start it.
 - At the end of every task, and before a pull request, run the `wrap-up`
   skill. Other skills (`lineage`, `scaffold`, `catch-up`, `explain-diff`,
   `explain-d-ez`, `explain-d-in`) are in `.agents/skills/`. Run

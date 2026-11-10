@@ -21,6 +21,7 @@ and tells you when one no longer matches the code.
 | Check the docs after a pull of other people's work | `docs-sync` with scope `pulled` |
 | Are code and docs in sync? | `docs-sync check` |
 | Make the docs match the code | `docs-sync fix` |
+| Update the README and other docs people wrote | `repo-md-sync` (only when you ask): lists them, you pick the files, you approve each file's edits; it never commits |
 | Learn the system | `learning-docs` (writes `learning_docs/`; pushed only in share mode `all` or `learning`) |
 | Learn the system by clicking | `interactive-docs` (pages in `learning_docs/interactive_l_docs/`); `interactive-docs sync` updates them; `wrap-up` and `docs-sync` ask when they are stale |
 | How does the system scale? | `arch-emulator`: a read-only review with gaps and fixes, in `learning_docs/architecture/` |
@@ -36,6 +37,8 @@ and tells you when one no longer matches the code.
 | Work on a todo, or finish one | say "start T-007" (the agent reads its refs as context) or "T-007 is done" (the item is deleted) |
 | Find folders agents should skip, or old copies that look like live code | `sh .agents/kit/candidates.sh [folder]` (read only); confirmed rows go in a map's "Do not read unless asked" and "Lookalikes" sections |
 | How should agents write code here? | `.agents/kit/coding-standard.agentk.md`: loaded at every Claude, Codex and Antigravity session start; your map's `## Code style` wins on conflict. Turn it off with `CODING_STANDARD="off"` in `.agents/agent-kit.conf` |
+| Is the kit in use in this session? | the agent's first reply starts with `agent-kit <version> · level: <repo\|workspace> · map: ...`; turn it off with `SESSION_BANNER="off"` in `.agents/agent-kit.conf` |
+| Which agents use the kit here? | `sh .agents/kit/sessions.sh report` (each agent's wiring and last session); for a folder of repos: `agent-kit doctor` |
 | Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |
 | Newer kit version | in the kit folder `git pull`, then ask the agent: `agent-kit upgrade` |
 

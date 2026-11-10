@@ -21,8 +21,9 @@ the folder that contains this file. The kit gives the repo:
    reason (one file per decision); an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-   `explain-d-in`, `todo`; and two that run only when the user names them:
-   `interactive-docs`, `arch-emulator`.
+   `explain-d-in`, `todo`; and three that run only when the user asks:
+   `interactive-docs`, `arch-emulator`, `repo-md-sync` (edits the repo's own
+   Markdown, file by file, after the user's yes).
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
    commit breaks blocks), after every agent turn that changed files, and in
    CI, so the docs stay true.
@@ -110,6 +111,10 @@ Then look at the repo, tell me which case you see and wait for my OK:
   (or `AGENTS.beside.md`) to the root map (recommended), and run interview
   question 10 for the warning rows (recommended), or skip. Change nothing
   else in the maps.
+- **Case C from kit 0.13 or older** (no `.agents/kit/sessions.sh` before the
+  install): offer once to add the session-line sentence from "Where things
+  are" in `KIT/templates/docs/AGENTS.root.md` (or `AGENTS.beside.md`) to the
+  root map, so agents without kit hooks (Cursor) say which kit they use.
 - **Case C from kit 0.11 or older** (no `.agents/kit/todo.sh` before the
   install): the install adds the todo list (`todo.sh`, the `todo` skill).
   Offer once to add the todo line from the "Tasks" block of

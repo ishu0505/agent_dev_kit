@@ -19,7 +19,9 @@
 #   Codex        AGENTS.override.md: the team's AGENTS.md, then your map.
 #                Codex reads it instead of AGENTS.md in that folder, so it
 #                is rewritten whenever either file changes.
-#   Cursor       .cursor/rules/agent-kit.mdc at the root.
+#   Cursor       .cursor/rules/agent-kit.mdc at the root: always applied, it
+#                loads the root map (@AGENTS.agentk.md) and asks for the
+#                session line with the repo name (unless SESSION_BANNER=off).
 #   Antigravity  reported only; its SessionStart hook (.agents/hooks.json)
 #                points it to your map.
 #   Gemini       reported only; the agent adds your map to context.fileName
@@ -251,6 +253,10 @@ if uses cursor; then
     echo "<!-- $MARK; local only, never committed -->"
     echo "Before you work in a folder, read the $MAP_FILE files on the path to it."
     echo "The team's AGENTS.md rules come first; mine add to them."
+    echo "My root map, loaded with this rule: @$MAP_FILE"
+    if [ "${SESSION_BANNER:-on}" != off ]; then
+      echo "Start your first reply in each chat with one line, once: \"agent-kit $(tr -d '\r\n' < .agents/kit/VERSION 2>/dev/null) · repo: $(basename "$(pwd)") · level: repo · map: $MAP_FILE (with the team's AGENTS.md)\". The first time you read another folder's $MAP_FILE, say one line: \"agent-kit: now also using <its path>\"."
+    fi
   } > "$TMP/mdc"
   if [ -f "$path" ] && tracked "$path"; then say cursor skip "$path" "tracked by git"
   else apply cursor "$path" "$TMP/mdc" "always-on rule that points to your maps"; fi

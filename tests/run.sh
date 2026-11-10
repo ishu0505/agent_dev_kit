@@ -232,7 +232,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -468,7 +468,7 @@ echo "// trivial" >> "$V/internal/store/store.go"; git_quiet -C "$V" commit -am 
 out=$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)
 printf '%s' "$out" | grep -q "catch-up" && ok "session start mentions the queue" || bad "session start mentions the queue" "$out"
 (cd "$V" && sh .agents/kit/queue.sh done "$(git rev-parse HEAD~2)")
-[ "$(cd "$V" && q)" = 0 ] && [ -z "$(cd "$V" && echo '{}' | AGENT_KIT_SKIP_STANDARD=1 sh .agents/kit/session-start.sh)" ] &&
+[ "$(cd "$V" && q)" = 0 ] && [ -z "$(cd "$V" && echo '{}' | AGENT_KIT_SKIP_STANDARD=1 AGENT_KIT_SKIP_BANNER=1 sh .agents/kit/session-start.sh)" ] &&
   ok "an empty queue: session start says nothing" || bad "an empty queue: session start says nothing"
 
 # --- Coding standard -----------------------------------------------------------
@@ -480,8 +480,29 @@ printf '%s' "$out" | grep -q "coding standard" && printf '%s' "$out" | grep -q "
   printf '%s' "$out" | grep -q '^10\. \*\*Scope:\*\*' &&
   ok "session start prints the coding standard by default" || bad "session start prints the coding standard by default" "$out"
 printf '\nCODING_STANDARD="off"\r\n' >> "$V/.agents/agent-kit.conf"
-[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] &&
+[ -z "$(cd "$V" && echo '{}' | AGENT_KIT_SKIP_BANNER=1 sh .agents/kit/session-start.sh)" ] &&
   ok "CODING_STANDARD=off: session start leaves the standard out" || bad "CODING_STANDARD=off: session start leaves the standard out"
+
+# --- Session line and session log ---------------------------------------------
+LOGF="$(git -C "$V" rev-parse --absolute-git-dir)/agent-kit/sessions.log"
+rm -f "$LOGF"
+ver=$(cat "$KIT/VERSION")
+out=$(cd "$V" && printf '{"transcript_path":"/home/u/.claude/projects/x/s.jsonl"}' | sh .agents/kit/session-start.sh)
+printf '%s\n' "$out" | head -1 | grep -q "\"agent-kit $ver · repo: $(basename "$V") · level: repo · map: AGENTS.md (via CLAUDE.md)\"" &&
+  ok "session line: first, with the kit version, the level and the map" || bad "session line: first, with the kit version, the level and the map" "$out"
+(cd "$V" && printf '{"transcript_path":"C:\\\\Users\\\\u\\\\.codex\\\\sessions\\\\s.jsonl"}' | sh .agents/kit/session-start.sh >/dev/null)
+(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh --agy >/dev/null)
+awk -F '\t' '{ print $2 "/" $3 "/" $5 }' "$LOGF" | tr '\n' ' ' | grep -q "^claude/$ver/repo codex/$ver/repo antigravity/$ver/repo $" &&
+  ok "session log: one line per start, with the agent (Claude, Codex on Windows paths, Antigravity)" || bad "session log: one line per start, with the agent (Claude, Codex on Windows paths, Antigravity)" "$(cat "$LOGF")"
+out=$(cd "$V" && sh .agents/kit/sessions.sh report)
+printf '%s\n' "$out" | grep -q "^claude	hooks	[0-9-]* [0-9:]* (kit $ver, repo level)$" && printf '%s\n' "$out" | grep -q '^cursor	map only' &&
+  ok "sessions report: wiring and last session per agent; Cursor is not logged" || bad "sessions report: wiring and last session per agent; Cursor is not logged" "$out"
+printf 'SESSION_BANNER="off"\n' >> "$V/.agents/agent-kit.conf"
+[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] && [ "$(wc -l < "$LOGF" | tr -d ' ')" = 4 ] &&
+  ok "SESSION_BANNER=off: no session line, the start is still logged" || bad "SESSION_BANNER=off: no session line, the start is still logged"
+grep -q 'agent-kit <.agents/kit/VERSION> · repo: <this' "$KIT/templates/docs/AGENTS.root.md" &&
+  grep -q 'agent-kit$' "$KIT/templates/docs/AGENTS.beside.md" && grep -q 'level: workspace' "$KIT/templates/workspace/WORKSPACE.md" &&
+  ok "maps ask agents without kit hooks (Cursor) for the session line" || bad "maps ask agents without kit hooks (Cursor) for the session line"
 
 # --- Stop hook --------------------------------------------------------------
 transcript() {  # transcript <file> <tool name>
@@ -623,6 +644,13 @@ HOME="$WORK/ghome" sh -c "cd '$B' && sh .agents/kit/wire.sh --plan" | grep -q "g
 mkdir -p "$B/.gemini"; echo '{"context": {"fileName": ["AGENTS.md"]}}' > "$B/.gemini/settings.json"; git -C "$B" add -f .gemini/settings.json
 HOME="$WORK/ghome" sh -c "cd '$B' && sh .agents/kit/wire.sh --plan" | grep -q "gemini  limit" && ok "beside: a team Gemini setting is reported as a limit" || bad "beside: a team Gemini setting is reported as a limit"
 git -C "$B" rm -q --cached .gemini/settings.json; rm -rf "$B/.gemini"
+edit 's/^AGENTS_USED=.*/AGENTS_USED="claude codex cursor"/' "$B/.agents/agent-kit.conf"
+(cd "$B" && sh .agents/kit/wire.sh >/dev/null 2>&1)
+MDC="$B/.cursor/rules/agent-kit.mdc"
+grep -q '^alwaysApply: true$' "$MDC" && grep -q '@AGENTS.agentk.md$' "$MDC" &&
+  grep -q "agent-kit $(cat "$KIT/VERSION") · repo: $(basename "$B") · level: repo · map: AGENTS.agentk.md (with the team's AGENTS.md)" "$MDC" &&
+  [ -z "$(git -C "$B" status --porcelain)" ] &&
+  ok "beside: the local Cursor rule loads my root map and asks for the session line; nothing to commit" || bad "beside: the local Cursor rule loads my root map and asks for the session line; nothing to commit" "$(cat "$MDC"; git -C "$B" status --porcelain)"
 edit 's/^AGENTS_USED=.*/AGENTS_USED="claude codex"/' "$B/.agents/agent-kit.conf"
 
 mkdir -p "$B/cmd"; hook "$B" "$WORK/read.jsonl" t1 --baseline
@@ -755,6 +783,18 @@ printf '%s' "$out" | grep -q 'no answer yet about the kit for: back\.' &&
   ok "workspace: session start names repos without an answer" || bad "workspace: session start names repos without an answer" "$out"
 [ "$(printf '%s\n' "$out" | grep -c "$std_line")" = 1 ] &&
   ok "workspace: session start prints the coding standard once" || bad "workspace: session start prints the coding standard once" "$out"
+[ "$(printf '%s\n' "$out" | grep -c 'level: ')" = 1 ] && printf '%s\n' "$out" | head -1 | grep -q 'level: workspace · map: WORKSPACE.agentk.md · repos with the kit: front ' &&
+  ok "workspace: one session line, at the workspace level, with each repo's kit version" || bad "workspace: one session line, at the workspace level, with each repo's kit version" "$out"
+out=$(cd "$WS/front" && printf '{"transcript_path":"/u/.claude/p/s.jsonl"}' | sh .agents/kit/session-start.sh | head -1)
+printf '%s' "$out" | grep -q 'repo: front · level: repo + workspace · map: AGENTS.md (via CLAUDE.md), \.\./WORKSPACE.agentk.md' &&
+  ok "workspace: Claude inside a repo loads both levels" || bad "workspace: Claude inside a repo loads both levels" "$out"
+out=$(cd "$WS/front" && echo '{}' | sh .agents/kit/session-start.sh --agy | head -1)
+printf '%s' "$out" | grep -q 'level: repo (workspace map \.\./WORKSPACE.agentk.md read when a change crosses repos)' &&
+  ok "workspace: other agents inside a repo name the workspace map as read on demand" || bad "workspace: other agents inside a repo name the workspace map as read on demand" "$out"
+out=$(sh "$KIT/doctor.sh" "$WS")
+printf '%s\n' "$out" | grep -q '^Workspace: ' && printf '%s\n' "$out" | grep -q "^front: kit $(cat "$KIT/VERSION"); level: repo, in a workspace$" &&
+  printf '%s\n' "$out" | grep -q '^back: no kit$' && printf '%s\n' "$out" | grep -q '^  other .*last session: [0-9-]* .*workspace level' &&
+  ok "doctor: each repo's kit, level and agents, with workspace-level sessions" || bad "doctor: each repo's kit, level and agents, with workspace-level sessions" "$out"
 echo 'openapi: 3' > "$WS/back/api.yaml"; echo '# x' >> "$WS/front/src/api/client.py"
 out=$(echo "$ev" | sh "$WS/.agent-workspace/kit/ws-hook.sh" stop)
 printf '%s' "$out" | grep -q 'back/api.yaml. changed, and .front/src/api. uses it' &&
@@ -859,7 +899,7 @@ out=$(cd "$B" && sh .agents/kit/task.sh new probe) && git -C "$B" check-ignore -
 
 # --- Todo list -------------------------------------------------------------------
 V=$(variant todo)
-[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh | grep todo)" ] &&
+[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh | grep 'TODO\.agentk')" ] &&
   ok "session start: no todo line when the list is empty" || bad "session start: no todo line when the list is empty"
 out=$(cd "$V" && sh .agents/kit/todo.sh add experiment "Try batch size 32" && sh .agents/kit/todo.sh add bug "Fix the login | timeout" &&
   sh .agents/kit/todo.sh add task Third)
@@ -1020,6 +1060,38 @@ printf '%s' "$out" | grep -q '^orphan	learning_docs/interactive_l_docs/01-api.ht
   ok "interactive-docs status: a page whose learning doc is gone is an orphan" || bad "interactive-docs status: a page whose learning doc is gone is an orphan" "$out"
 [ -z "$(git -C "$I" status --porcelain -- learning_docs)" ] &&
   ok "interactive pages and architecture reviews stay local in share mode agent" || bad "interactive pages and architecture reviews stay local in share mode agent" "$(git -C "$I" status --porcelain)"
+
+# --- repo-md-sync: the people's own Markdown, edited only after a yes ---------
+[ -f "$R/.agents/skills/repo-md-sync/SKILL.md" ] && [ -f "$R/.claude/skills/repo-md-sync/SKILL.md" ] &&
+  grep -q '^name: repo-md-sync$' "$R/.agents/skills/repo-md-sync/SKILL.md" &&
+  ok "repo-md-sync: installed for every agent, name matches its folder" || bad "repo-md-sync: installed for every agent, name matches its folder"
+grep '^description:' "$KIT/templates/skills/repo-md-sync/SKILL.md" | grep -q "ONLY when the user names it" &&
+  ok "repo-md-sync runs only on the user's request" || bad "repo-md-sync runs only on the user's request"
+for skill in docs-sync wrap-up catch-up; do
+  grep -q 'Never offer, ask about or start that skill yourself\|Never start `repo-md-sync`' "$KIT/templates/skills/$skill/SKILL.md" &&
+    ok "$skill never starts repo-md-sync itself" || bad "$skill never starts repo-md-sync itself"
+done
+new_repo rmd
+M="$WORK/rmd"
+mkdir -p "$M/src" "$M/docs" "$M/svc" "$M/node_modules/x"
+printf 'x = 1\n' > "$M/src/app.py"; printf 'y = 1\n' > "$M/svc/main.py"
+printf '# App\r\n' > "$M/README.md"; printf '# Guide\n' > "$M/docs/guide.md"
+printf '# Svc\n<!-- agent-kit: source_paths main.py -->\n' > "$M/svc/README.md"
+printf '# Kit\n' > "$M/svc/README.agentk.md"; printf '# Dep\n' > "$M/node_modules/x/README.md"
+git_quiet -C "$M" add -A && git_quiet -C "$M" commit --no-verify -m "docs [no-docs]"
+printf 'y = 2\n' > "$M/svc/main.py"; printf 'z = 1\n' > "$M/svc/other.py"; printf '# New\n' > "$M/docs/new.md"
+LIST=".agents/skills/repo-md-sync/list.sh"
+out=$(cd "$M" && sh "$LIST")
+printf '%s\n' "$out" | grep -q "^README.md	[0-9-]*	2	\.$" &&
+  ok "repo-md-sync list: the root README counts every other file changed since (CRLF too)" || bad "repo-md-sync list: the root README counts every other file changed since (CRLF too)" "$out"
+printf '%s\n' "$out" | grep -q "^svc/README.md	[0-9-]*	1	svc/main.py $" &&
+  ok "repo-md-sync list: a source_paths line narrows the scope" || bad "repo-md-sync list: a source_paths line narrows the scope" "$out"
+printf '%s\n' "$out" | grep -q "^docs/guide.md	[0-9-]*	0	docs$" && printf '%s\n' "$out" | grep -q "^docs/new.md	uncommitted	-	docs$" &&
+  ok "repo-md-sync list: an unchanged doc shows 0, a new one is uncommitted" || bad "repo-md-sync list: an unchanged doc shows 0, a new one is uncommitted" "$out"
+printf '%s\n' "$out" | grep -q 'agentk\|AGENTS\|CLAUDE\|SKILL\|node_modules\|^\.agents\|KIT' &&
+  bad "repo-md-sync list: leaves out kit docs, agent files and skipped folders" "$out" || ok "repo-md-sync list: leaves out kit docs, agent files and skipped folders"
+[ "$(git -C "$M" status --porcelain -- README.md docs/guide.md)" = "" ] &&
+  ok "repo-md-sync list: changes no file" || bad "repo-md-sync list: changes no file"
 
 echo
 echo "$PASSED passed, $FAILED failed"
