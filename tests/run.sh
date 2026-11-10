@@ -232,7 +232,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync|use-adkit)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -495,10 +495,15 @@ printf '%s\n' "$out" | head -1 | grep -q "\"agent-kit $ver · repo: $(basename "
 awk -F '\t' '{ print $2 "/" $3 "/" $5 }' "$LOGF" | tr '\n' ' ' | grep -q "^claude/$ver/repo codex/$ver/repo antigravity/$ver/repo $" &&
   ok "session log: one line per start, with the agent (Claude, Codex on Windows paths, Antigravity)" || bad "session log: one line per start, with the agent (Claude, Codex on Windows paths, Antigravity)" "$(cat "$LOGF")"
 out=$(cd "$V" && sh .agents/kit/sessions.sh report)
-printf '%s\n' "$out" | grep -q "^claude	hooks	[0-9-]* [0-9:]* (kit $ver, repo level)$" && printf '%s\n' "$out" | grep -q '^cursor	map only' &&
+printf '%s\n' "$out" | grep -q "^claude	hooks	[0-9-]* [0-9:]* (kit $ver, repo level)$" && printf '%s\n' "$out" | grep -q '^cursor	map only	not logged' &&
   ok "sessions report: wiring and last session per agent; Cursor is not logged" || bad "sessions report: wiring and last session per agent; Cursor is not logged" "$out"
+out=$(cd "$V" && AGENT_KIT_AGENT=cursor sh .agents/kit/session-start.sh --load </dev/null | head -1)
+printf '%s' "$out" | grep -q "agent-kit $ver · repo: " && (cd "$V" && sh .agents/kit/sessions.sh report) | grep -q "^cursor	map only	[0-9-]* [0-9:]* (kit $ver, repo level)$" &&
+  ok "use-adkit: a session start by hand says the line and logs the named agent (Cursor)" || bad "use-adkit: a session start by hand says the line and logs the named agent (Cursor)" "$out"
+[ -f "$R/.claude/skills/use-adkit/SKILL.md" ] && grep -q 'session-start.sh --load' "$KIT/templates/skills/use-adkit/SKILL.md" &&
+  ok "use-adkit: installed where Cursor and Claude find it (.claude/skills)" || bad "use-adkit: installed where Cursor and Claude find it (.claude/skills)"
 printf 'SESSION_BANNER="off"\n' >> "$V/.agents/agent-kit.conf"
-[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] && [ "$(wc -l < "$LOGF" | tr -d ' ')" = 4 ] &&
+[ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] && [ "$(wc -l < "$LOGF" | tr -d ' ')" = 5 ] &&
   ok "SESSION_BANNER=off: no session line, the start is still logged" || bad "SESSION_BANNER=off: no session line, the start is still logged"
 grep -q 'agent-kit <.agents/kit/VERSION> · repo: <this' "$KIT/templates/docs/AGENTS.root.md" &&
   grep -q 'agent-kit$' "$KIT/templates/docs/AGENTS.beside.md" && grep -q 'level: workspace' "$KIT/templates/workspace/WORKSPACE.md" &&

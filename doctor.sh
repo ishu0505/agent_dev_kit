@@ -46,4 +46,4 @@ for repo in $repos; do
 done
 echo
 echo "A repo where an agent says never or no: that agent does not get the kit there."
-echo "Cursor: open a chat in each repo; its first reply must start with \"agent-kit\"."
+echo "Cursor: open a chat in each repo; its first reply must start with \"agent-kit\". If not, type /use-adkit."
