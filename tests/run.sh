@@ -215,7 +215,7 @@ git -C "$V" config user.email test@example.com  # the only author
 sh "$KIT/install.sh" --share none "$V" > "$WORK/switch.log" 2>&1
 grep -q "git rm -r --cached" "$WORK/switch.log" && ok "switch to none: install says how to untrack" || bad "switch to none: install says how to untrack" "$(cat "$WORK/switch.log")"
 expect_fail "switch to none: tracked agent files are caught" "$V" "keeps agent files local"
-(cd "$V" && set -f && git rm -r --cached -q --ignore-unmatch -- AGENTS.md ':(glob)**/AGENTS.md' CLAUDE.md ':(glob)**/CLAUDE.md' DECISIONS.agentk.md PLAN.agentk.md ':(glob)**/*.agentk.md' .agents .claude .codex .githooks .gitattributes 2>/dev/null; true)
+(cd "$V" && set -f && git rm -r --cached -q --ignore-unmatch -- AGENTS.md ':(glob)**/AGENTS.md' CLAUDE.md ':(glob)**/CLAUDE.md' DECISIONS.agentk.md PLAN.agentk.md ':(glob)**/*.agentk.md' .agents .claude .codex .gemini .githooks .gitattributes 2>/dev/null; true)
 expect_pass "switch to none: passes once untracked" "$V"
 
 # --- Skills the repo edited or owns are never lost ---------------------------
@@ -502,11 +502,28 @@ printf '%s' "$out" | grep -q "agent-kit $ver · repo: " && (cd "$V" && sh .agent
   ok "use-adkit: a session start by hand says the line and logs the named agent (Cursor)" || bad "use-adkit: a session start by hand says the line and logs the named agent (Cursor)" "$out"
 [ -f "$R/.claude/skills/use-adkit/SKILL.md" ] && grep -q 'session-start.sh --load' "$KIT/templates/skills/use-adkit/SKILL.md" &&
   ok "use-adkit: installed where Cursor and Claude find it (.claude/skills)" || bad "use-adkit: installed where Cursor and Claude find it (.claude/skills)"
+out=$(cd "$V" && sh .agents/kit/sessions.sh turn claude)
+printf '%s' "$out" | grep -q "start every reply with this one line: \"agent-kit $ver · repo: " && printf '%s' "$out" | grep -q 'agent-kit used: maps ' &&
+  ok "session line: the per-prompt hook asks for it in every reply, with a used line" || bad "session line: the per-prompt hook asks for it in every reply, with a used line" "$out"
+grep -q 'sessions.sh\\" turn claude' "$V/.claude/settings.json" && grep -q 'sessions.sh\\" turn codex' "$V/.codex/hooks.json" &&
+  grep -q 'BeforeAgent' "$V/.gemini/settings.json" && grep -q 'PreInvocation' "$V/.agents/hooks.json" &&
+  ok "per-prompt hooks wired: Claude, Codex, Gemini, Antigravity" || bad "per-prompt hooks wired: Claude, Codex, Gemini, Antigravity"
+python=$(command -v python3 || command -v python || true)
+if [ -n "$python" ]; then
+  ctx=$(cd "$V" && sh .agents/kit/sessions.sh turn gemini --json | "$python" -c 'import json,sys; print(json.load(sys.stdin)["hookSpecificOutput"]["additionalContext"])')
+  step=$(cd "$V" && echo '{}' | sh .agents/kit/agy-hook.sh turn | "$python" -c 'import json,sys; print(json.load(sys.stdin)["injectSteps"][0]["ephemeralMessage"])')
+  printf '%s' "$ctx" | grep -q "agent-kit $ver · repo: " && printf '%s' "$step" | grep -q "agent-kit $ver · repo: " &&
+    ok "per-prompt hooks: valid JSON for Gemini and Antigravity" || bad "per-prompt hooks: valid JSON for Gemini and Antigravity" "$ctx / $step"
+fi
+printf 'SESSION_BANNER="first"\n' >> "$V/.agents/agent-kit.conf"
+[ -z "$(cd "$V" && sh .agents/kit/sessions.sh turn claude)" ] && (cd "$V" && sh .agents/kit/sessions.sh banner claude) | grep -q 'first reply in this session' &&
+  ok "SESSION_BANNER=first: the line in the first reply only, no per-prompt ask" || bad "SESSION_BANNER=first: the line in the first reply only, no per-prompt ask"
 printf 'SESSION_BANNER="off"\n' >> "$V/.agents/agent-kit.conf"
 [ -z "$(cd "$V" && echo '{}' | sh .agents/kit/session-start.sh)" ] && [ "$(wc -l < "$LOGF" | tr -d ' ')" = 5 ] &&
   ok "SESSION_BANNER=off: no session line, the start is still logged" || bad "SESSION_BANNER=off: no session line, the start is still logged"
-grep -q 'agent-kit <.agents/kit/VERSION> · repo: <this' "$KIT/templates/docs/AGENTS.root.md" &&
-  grep -q 'agent-kit$' "$KIT/templates/docs/AGENTS.beside.md" && grep -q 'level: workspace' "$KIT/templates/workspace/WORKSPACE.md" &&
+grep -q 'Start every reply with one line: `agent-kit <.agents/kit/VERSION> · repo:' "$KIT/templates/docs/AGENTS.root.md" &&
+  grep -q 'Start every reply with one line: `agent-kit <.agents/kit/VERSION> · repo:' "$KIT/templates/docs/AGENTS.beside.md" &&
+  grep -q 'level: workspace' "$KIT/templates/workspace/WORKSPACE.md" && grep -q 'agent-kit used:' "$KIT/templates/docs/AGENTS.root.md" &&
   ok "maps ask agents without kit hooks (Cursor) for the session line" || bad "maps ask agents without kit hooks (Cursor) for the session line"
 
 # --- Stop hook --------------------------------------------------------------
@@ -594,6 +611,8 @@ sh "$KIT/install.sh" --maps beside "$B" > "$WORK/beside.log" 2>&1
   ok "beside: install leaves team files untouched and git status clean" || bad "beside: install leaves team files untouched and git status clean" "$(git -C "$B" status --porcelain; cat "$WORK/beside.log")"
 grep -q '^MAPS="beside"' "$B/.agents/agent-kit.conf" && grep -q '^SHARE="none"' "$B/.agents/agent-kit.conf" &&
   ok "beside: forces SHARE=none" || bad "beside: forces SHARE=none"
+[ ! -e "$B/.gemini/settings.json" ] && grep -q 'UserPromptSubmit' "$B/.claude/settings.local.json" &&
+  ok "beside: the per-prompt hook goes in settings.local.json; the team's .gemini is not touched" || bad "beside: the per-prompt hook goes in settings.local.json; the team's .gemini is not touched"
 [ -f "$B/.claude/skills/deploy/SKILL.md" ] && [ -f "$B/.claude/skills/lineage/.agent-kit" ] && [ -f "$B/.claude/settings.local.json" ] && [ ! -e "$B/.claude/settings.json" ] &&
   ok "beside: kit skills sit beside the team's; hooks go in settings.local.json" || bad "beside: kit skills sit beside the team's; hooks go in settings.local.json"
 
@@ -790,6 +809,10 @@ printf '%s' "$out" | grep -q 'no answer yet about the kit for: back\.' &&
   ok "workspace: session start prints the coding standard once" || bad "workspace: session start prints the coding standard once" "$out"
 [ "$(printf '%s\n' "$out" | grep -c 'level: ')" = 1 ] && printf '%s\n' "$out" | head -1 | grep -q 'level: workspace · map: WORKSPACE.agentk.md · repos with the kit: front ' &&
   ok "workspace: one session line, at the workspace level, with each repo's kit version" || bad "workspace: one session line, at the workspace level, with each repo's kit version" "$out"
+out=$(echo "$ev" | sh "$WS/.agent-workspace/kit/ws-hook.sh" turn)
+printf '%s' "$out" | grep -q 'start every reply with this one line: "agent-kit .* · level: workspace' && printf '%s' "$out" | grep -q 'agent-kit used: maps' &&
+  grep -q 'ws-hook.sh\\" turn' "$WS/.claude/settings.json" &&
+  ok "workspace: the per-prompt hook asks for the line in every reply" || bad "workspace: the per-prompt hook asks for the line in every reply" "$out"
 out=$(cd "$WS/front" && printf '{"transcript_path":"/u/.claude/p/s.jsonl"}' | sh .agents/kit/session-start.sh | head -1)
 printf '%s' "$out" | grep -q 'repo: front · level: repo + workspace · map: AGENTS.md (via CLAUDE.md), \.\./WORKSPACE.agentk.md' &&
   ok "workspace: Claude inside a repo loads both levels" || bad "workspace: Claude inside a repo loads both levels" "$out"

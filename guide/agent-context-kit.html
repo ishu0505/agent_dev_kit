@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.14.1 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.15.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -109,8 +109,8 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>Quick check, no AI</td><td><code>sh .agents/kit/check.sh</code></td><td>Map sizes, dead paths, pointer files, setup plumbing. Seconds</td></tr>
       <tr><td>Are code and docs in sync?</td><td><code>docs-sync check</code></td><td>Report only: each doc claim the code no longer supports, with evidence</td></tr>
       <tr><td>Make them agree</td><td><code>docs-sync fix</code></td><td>Rewrites stale docs. Asks first when a change breaks a decision</td></tr>
-      <tr><td>See that the kit is in use</td><td>the first reply</td><td>Every session, the agent's first reply starts with <code>agent-kit 0.14.0 · level: repo · map: AGENTS.md</code>. The level says repo, workspace, or both. Off: <code>SESSION_BANNER="off"</code></td></tr>
-      <tr><td>Load the kit by hand in a chat</td><td><code>/use-adkit</code></td><td>When the first reply had no <code>agent-kit</code> line (Cursor, or hooks that did not run): reads the maps, says the line, then does the prompt. Codex: <code>$use-adkit</code></td></tr>
+      <tr><td>See that the kit is in use, and what the agent used</td><td>every reply</td><td>Every reply starts with <code>agent-kit 0.15.0 · level: repo · map: AGENTS.md</code> and ends with <code>agent-kit used: maps ... · skills ... · tools Read ×3, Bash ×2</code>. A per-prompt hook asks for it in Claude, Codex, Gemini and Antigravity; Cursor reads the ask in the root map. First reply only: <code>SESSION_BANNER="first"</code>; off: <code>"off"</code></td></tr>
+      <tr><td>Load the kit by hand in a chat</td><td><code>/use-adkit</code></td><td>When a reply had no <code>agent-kit</code> line (Cursor, or hooks that did not run): reads the maps, says the line, then does the prompt. Codex: <code>$use-adkit</code></td></tr>
       <tr><td>Which repos and agents use the kit</td><td><code>agent-kit doctor [folder]</code></td><td>Read only. Each repo in a folder: kit version, level, and per agent its wiring and last session</td></tr>
       <tr><td>Update your README and other docs</td><td><code>repo-md-sync</code></td><td>Only when you ask. Lists the Markdown files people wrote with how much code changed since each; you pick the files, then approve each file's edits. Never commits</td></tr>
       <tr><td>Learn the system</td><td><code>learning-docs</code></td><td>Writes local <code>learning_docs/</code>; <code>learning-docs stale</code> refreshes only what changed</td></tr>

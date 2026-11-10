@@ -37,8 +37,8 @@ and tells you when one no longer matches the code.
 | Work on a todo, or finish one | say "start T-007" (the agent reads its refs as context) or "T-007 is done" (the item is deleted) |
 | Find folders agents should skip, or old copies that look like live code | `sh .agents/kit/candidates.sh [folder]` (read only); confirmed rows go in a map's "Do not read unless asked" and "Lookalikes" sections |
 | How should agents write code here? | `.agents/kit/coding-standard.agentk.md`: loaded at every Claude, Codex and Antigravity session start; your map's `## Code style` wins on conflict. Turn it off with `CODING_STANDARD="off"` in `.agents/agent-kit.conf` |
-| Is the kit in use in this session? | the agent's first reply starts with `agent-kit <version> · level: <repo\|workspace> · map: ...`; turn it off with `SESSION_BANNER="off"` in `.agents/agent-kit.conf` |
-| A first reply with no `agent-kit` line (Cursor, or hooks that did not run) | type `/use-adkit` (Codex: `$use-adkit`) before or inside the prompt: the agent reads the maps and says the line |
+| Is the kit in use, and what did the agent use? | every reply starts with `agent-kit <version> · level: <repo\|workspace> · map: ...` and ends with `agent-kit used: maps ... · skills ... · tools ...`; `SESSION_BANNER="first"` in `.agents/agent-kit.conf` keeps only the first reply's line, `"off"` stops it |
+| A reply with no `agent-kit` line (Cursor, or hooks that did not run) | type `/use-adkit` (Codex: `$use-adkit`) before or inside the prompt: the agent reads the maps and says the line |
 | Which agents use the kit here? | `sh .agents/kit/sessions.sh report` (each agent's wiring and last session); for a folder of repos: `agent-kit doctor` |
 | Edited a skill (copy mode) | `sh .agents/kit/sync-skills.sh` |
 | Newer kit version | in the kit folder `git pull`, then ask the agent: `agent-kit upgrade` |

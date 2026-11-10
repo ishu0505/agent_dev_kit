@@ -111,7 +111,7 @@ if [ -n "$skills" ]; then
 fi
 
 group "Commands and prompts" $(find_files -path './.claude/commands/*' -o -path './.cursor/commands/*' -o -path './.codex/prompts/*')
-hooks=$(find_files -path './.claude/settings*.json' -o -path './.codex/hooks.json' -o -path './.codex/config.toml' \
+hooks=$(find_files -path './.claude/settings*.json' -o -path './.codex/hooks.json' -o -path './.codex/config.toml' -o -path './.gemini/settings.json' \
   -o -path './.githooks/*' -o -path './.husky/*' -o -name .pre-commit-config.yaml)
 git_hooks=$(list_git_hooks)
 group "Hooks and agent settings" $hooks

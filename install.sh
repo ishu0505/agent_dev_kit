@@ -258,15 +258,40 @@ elif ! create_if_missing "$T/config/claude-settings.json" .claude/settings.json;
   grep -q 'agents/kit/session-start.sh' .claude/settings.json ||
     note ".claude/settings.json exists: merge the SessionStart hook from $T/config/claude-settings.json"
 fi
+# 0.15: the UserPromptSubmit hook repeats the session line ask every prompt.
+# The root map holds the same ask for agents without that hook (Cursor).
+suffix=$(conf DOC_SUFFIX)
+if [ "$MAPS" = beside ]; then root_map="AGENTS${suffix:-.agentk.md}"; map_template=AGENTS.beside.md
+else root_map=AGENTS.md; map_template=AGENTS.root.md; fi
+grep -qs 'Start your first reply in each session with one line' "$root_map" &&
+  note "$root_map still asks for the agent-kit line in the first reply only: replace that sentence with the \"Start every reply\" one from $T/docs/$map_template (Cursor reads it there)"
+for settings in .claude/settings.json .claude/settings.local.json; do
+  [ -f "$settings" ] && grep -q 'agents/kit/stop-hook.sh' "$settings" && ! grep -q 'kit/sessions.sh' "$settings" &&
+    note "$settings has no kit UserPromptSubmit hook (new in 0.15): merge it from $T/config/claude-settings.json"
+done
 [ "$MAPS" = beside ] || grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
 [ "$MAPS" = beside ] || grep -q 'agents/kit/session-start.sh' .codex/hooks.json ||
   note ".codex/hooks.json has no kit SessionStart hook (new in 0.8): merge it from $T/config/codex-hooks.json"
+[ "$MAPS" = beside ] || grep -q 'kit/sessions.sh' .codex/hooks.json ||
+  note ".codex/hooks.json has no kit UserPromptSubmit hook (new in 0.15): merge it from $T/config/codex-hooks.json"
+# Gemini CLI: a BeforeAgent hook asks for the session line every prompt.
+# In a team repo .gemini/settings.json is the team's: the user-level file
+# holds the hook instead (it does nothing in repos without the kit).
+if [ "$MAPS" = beside ]; then
+  grep -qs 'kit/sessions.sh' "$HOME/.gemini/settings.json" ||
+    note "Gemini CLI: to get the session line in every reply, merge the BeforeAgent hook from $T/config/gemini-settings.json into ~/.gemini/settings.json (never into the team's .gemini/settings.json)"
+elif ! create_if_missing "$T/config/gemini-settings.json" .gemini/settings.json; then
+  grep -q 'kit/sessions.sh' .gemini/settings.json ||
+    note ".gemini/settings.json exists: merge the BeforeAgent hook from $T/config/gemini-settings.json into it"
+fi
 # Antigravity (agy CLI, IDE, app) reads workspace hooks from .agents/hooks.json;
 # .agents/ is the kit's folder, so this holds in a team repo too.
 if ! create_if_missing "$T/config/agy-hooks.json" .agents/hooks.json; then
   grep -q 'agents/kit/agy-hook.sh' .agents/hooks.json ||
     note ".agents/hooks.json exists: merge the \"agent-kit\" entry from $T/config/agy-hooks.json (Antigravity's SessionStart and Stop hooks)"
+  grep -q 'agents/kit/agy-hook.sh' .agents/hooks.json && ! grep -q 'agy-hook.sh\\" turn' .agents/hooks.json &&
+    note ".agents/hooks.json has no kit PreInvocation hook (new in 0.15): merge it from the \"agent-kit\" entry of $T/config/agy-hooks.json"
 fi
 
 # Skills: replace only what the repo never edited.
@@ -377,6 +402,7 @@ $pointer"; done
 /.agents/
 /.claude/
 /.codex/
+/.gemini/settings.json
 /.githooks/"
   [ -n "$LEDGER" ] && local_rules="$local_rules
 /$LEDGER"
@@ -431,6 +457,7 @@ say "wrote ignore and line-ending rules for share mode $SHARE"
 # whatever this mode keeps local (the files stay on disk).
 agent_paths="AGENTS.md :(glob)**/AGENTS.md DECISIONS$KIT_MD PLAN$KIT_MD TODO$KIT_MD .agents .claude .codex .githooks"
 for pointer in $(conf POINTER_FILES); do agent_paths="$agent_paths $pointer :(glob)**/$pointer"; done
+grep -qs 'kit/sessions.sh' .gemini/settings.json && agent_paths="$agent_paths .gemini/settings.json"
 [ -n "$LEDGER" ] && agent_paths="$agent_paths $LEDGER"
 [ -n "$DECISIONS_DIR" ] && agent_paths="$agent_paths $DECISIONS_DIR"
 [ -n "$DOC_SUFFIX" ] && agent_paths="$agent_paths :(glob)**/*$DOC_SUFFIX"

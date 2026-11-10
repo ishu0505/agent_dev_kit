@@ -16,9 +16,11 @@ Priorities, in this order when they conflict: **<first>**, **<second>**,
 Before you work in a folder, read the `AGENTS.md` maps on the path to it.
 Read nothing else until the task needs it.
 
-Start your first reply in each session with one line, once:
-`agent-kit <.agents/kit/VERSION> · repo: <this folder's name> · level: repo ·
-map: AGENTS.md`, unless the session start already gave you that line.
+Start every reply with one line: `agent-kit <.agents/kit/VERSION> · repo:
+<this folder's name> · level: repo · map: AGENTS.md` (add each other map you
+read for the prompt). End every reply with one line: `agent-kit used: maps
+<maps read, or none> · skills <skills run, or none> · tools <tool ×count, or
+none>`. When a kit hook gives you these lines, use its words.
 
 ## Code style
 

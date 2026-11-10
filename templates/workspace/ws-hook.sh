@@ -3,6 +3,7 @@
 # workspace folder (an agent started inside one repo uses that repo's hooks).
 #
 # Usage: sh .agent-workspace/kit/ws-hook.sh session-start   (the hook event JSON on stdin)
+#        sh .agent-workspace/kit/ws-hook.sh turn   (UserPromptSubmit: the session line ask)
 #        sh .agent-workspace/kit/ws-hook.sh stop
 #
 # session-start: each repo with the kit runs its own session start (the
@@ -35,13 +36,26 @@ EOF
   printf '%s' "$input" | "$python" .agent-workspace/kit/docs_reminder.py "$@" 2>/dev/null
 }
 
-banner() {  # the line the agent says first, at the workspace level
-  grep -qs '^SESSION_BANNER="\{0,1\}off' .agent-workspace/workspace.conf && return 0
+banner_setting() {  # every (also "on", the default), first or off
+  setting=$(sed -n 's/^SESSION_BANNER="\{0,1\}\([a-z]*\).*/\1/p' .agent-workspace/workspace.conf 2>/dev/null | tail -1)
+  case "$setting" in off|first) echo "$setting" ;; *) echo every ;; esac
+}
+workspace_line() {  # "agent-kit <version> · level: workspace · ..."
   version=$(tr -d '\r\n' < .agent-workspace/kit/VERSION 2>/dev/null)
   versions=$(printf '%s\n' "$kit_repos" | while IFS= read -r repo; do
     [ -n "$repo" ] && printf '%s %s, ' "$repo" "$(tr -d '\r\n' < "$repo/.agents/kit/VERSION" 2>/dev/null)"
   done | sed 's/, $//')
-  echo "agent-kit workspace: start your first reply in this session with this one line, then never again: \"agent-kit ${version:-unknown} · level: workspace · map: WORKSPACE.agentk.md · repos with the kit: ${versions:-none}\". Later, the first time you read a repo's map, say one line: \"agent-kit: now also using <its path> (repo level)\"."
+  echo "agent-kit ${version:-unknown} · level: workspace · map: WORKSPACE.agentk.md · repos with the kit: ${versions:-none}"
+}
+banner() {  # banner [turn]: the session line ask; "turn" for the per-prompt hook
+  setting=$(banner_setting)
+  [ "$setting" = off ] && return 0
+  if [ "$setting" = first ]; then
+    [ "${1:-}" = turn ] && return 0
+    echo "agent-kit workspace: start your first reply in this session with this one line, then never again: \"$(workspace_line)\". Later, the first time you read a repo's map, say one line: \"agent-kit: now also using <its path> (repo level)\"."
+    return 0
+  fi
+  echo "agent-kit workspace: start every reply with this one line: \"$(workspace_line)\", with the path of each repo map you read for this prompt added after \"map:\". End every reply with one line: \"agent-kit used: maps <the maps you read for this prompt, or none> · skills <the skills you ran, or none> · tools <each tool you called with its count, such as Read ×3, Bash ×2, or none>\"."
 }
 
 case "${1:-}" in
@@ -70,7 +84,8 @@ case "${1:-}" in
     [ -n "$linked" ] &&
       echo "agent-kit workspace: symlinked repos are not supported: $linked (run workspace.sh scan for the fix)"
     ;;
+  turn) banner turn ;;
   stop) reminder ;;
-  *) echo "usage: ws-hook.sh session-start|stop"; exit 2 ;;
+  *) echo "usage: ws-hook.sh session-start|turn|stop"; exit 2 ;;
 esac
 exit 0
