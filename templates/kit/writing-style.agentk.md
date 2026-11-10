@@ -22,7 +22,9 @@ Installed by agent_dev_kit; do not edit here.
   `CONTRIBUTING.md`, `docs/*.md` and the rest. Read them; they are good
   sources. Never edit, rename or delete them. When one no longer matches
   the code, report it: the file, the line, what the code does now, and a
-  sentence the people can paste in.
+  sentence the people can paste in. The one exception is the
+  `repo-md-sync` skill, which runs only when the user starts it: it edits
+  such a file only after the user picks the file and approves each change.
 - **In a team repo** (`MAPS="beside"` in the config), `AGENTS.md`,
   `CLAUDE.md`, `GEMINI.md` and `.claude/CLAUDE.md` are the team's too: read
   and follow them, never edit them. Your map is `AGENTS.agentk.md`. The

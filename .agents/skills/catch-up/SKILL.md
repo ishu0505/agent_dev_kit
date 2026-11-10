@@ -52,6 +52,7 @@ Show the proposal as a diff, in these parts:
 5. **Notes on your docs** (never part of the patch). When a `README.md` or
    other Markdown file the kit did not write now says something false, name
    the file and line and give a sentence the user can paste in.
+   Never start `repo-md-sync` yourself; only the user does.
 
 Ask with choices, as the writing style says: apply all (recommended), apply
 some (name them), change something, skip, or "something else: type it".

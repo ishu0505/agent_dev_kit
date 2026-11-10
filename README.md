@@ -31,7 +31,7 @@ names keep no suffix, because agents load them only by these exact names:
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
 | Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Every decision with why, alternatives, evidence, and what would reverse it |
 | Plan | `PLAN.agentk.md` (new projects) | The goal, the first milestone, the planned units |
-| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, and two that run only when you name them: `interactive-docs`, `arch-emulator` |
+| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, and three that run only when you ask: `interactive-docs`, `arch-emulator`, `repo-md-sync` |
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
@@ -260,9 +260,9 @@ unit gets its map, and `check.sh` stays green.
 
 ## Your skills are safe
 
-The kit brings twelve skills: `lineage`, `scaffold`, `docs-sync`,
+The kit brings thirteen skills: `lineage`, `scaffold`, `docs-sync`,
 `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-`explain-d-in`, `todo`, `interactive-docs`, `arch-emulator`. A skill with any
+`explain-d-in`, `todo`, `interactive-docs`, `arch-emulator`, `repo-md-sync`. A skill with any
 other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
@@ -360,6 +360,9 @@ mode.
 | Know if code and docs agree | `docs-sync check` | Report only. Reads only docs whose anchors changed (`since main` by default) |
 | See what may be stale | `sh .agents/kit/stale.sh` | No AI. Each doc whose code changed since the doc did |
 | Make the docs match the code | `docs-sync fix` | Never changes code. Asks you when a change breaks a decision |
+| See that the kit is in use | the first reply | Every session, the agent's first reply starts with `agent-kit 0.14.0 · level: repo · map: AGENTS.md`. The level says repo, workspace, or both. No line in Cursor means it did not read the map. Off: `SESSION_BANNER="off"` |
+| Which repos and agents use the kit | `agent-kit doctor [folder]` | Read only. For each repo in a folder (a Cursor workspace too): kit version or "no kit", level, and per agent its wiring and last session from the local session log |
+| Update your README and other docs | `repo-md-sync` | Only when you ask. Lists the Markdown files people wrote (never `.agentk.md` or agent files) with how much code changed since each; you pick the files, then approve each file's edits. Never commits. No other skill starts it; `docs-sync` only names it under its "Your docs" table |
 | Learn the system | `learning-docs` | First time: all, or overview only. Later: `learning-docs stale` |
 | Learn the system by clicking | `interactive-docs` | Only when you name it. One page per learning doc in `learning_docs/interactive_l_docs/`. `interactive-docs sync` rebuilds the pages whose learning doc changed; once you have pages, `wrap-up` and `docs-sync` ask whether to sync the stale ones |
 | See how the system scales | `arch-emulator` | Only when you name it. Read only: what fills up first as load grows, latency per request path, pros and cons of each tool (queues, HTTP, databases), gaps, tests to run, fixes (quick, medium, long term). A dated report and a page with a load slider in `learning_docs/architecture/` |

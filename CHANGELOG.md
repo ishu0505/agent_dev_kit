@@ -3,6 +3,64 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.14.0 — 2026-11-10
+
+A new skill, `repo-md-sync`, updates the repo's own Markdown files
+(`README.md`, `CONTRIBUTING.md`, `docs/*.md`: the ones people wrote) to
+match the code, but only the files the user picks and only the lines the
+user approves. And you can now see that the kit is in use: the agent's
+first reply names the kit version, the level (repo, workspace or both) and
+the maps; every session start is logged; `agent-kit doctor` reports each
+repo and agent in a folder.
+
+**What an upgrading repo must do:** run `agent-kit upgrade`. The agent then
+offers to add the session-line sentence (under "Where things are" in
+`templates/docs/AGENTS.root.md`, or `AGENTS.beside.md`) to the root map:
+agents without kit hooks, such as Cursor, read it only there. Claude, Codex
+and Antigravity get the line from the session start without it. To turn
+the line off, set `SESSION_BANNER="off"` in `.agents/agent-kit.conf`. The
+"Docs" line of an older root map may keep "never edit it".
+
+- **Session line**: the session start (`sessions.sh banner`) asks the agent
+  to begin its first reply with "agent-kit 0.14.0 · level: repo · map:
+  AGENTS.md (via CLAUDE.md)", once, and later "agent-kit: now also using
+  <path>" when it first reads another folder's map. The level is `repo`,
+  `repo + workspace` (Claude inside a repo of a workspace: it loads the
+  workspace `CLAUDE.md` too), `repo (workspace map ... read when a change
+  crosses repos)` (the other agents there), or `workspace` (an agent started
+  in the workspace folder: one line for the workspace, with each repo's kit
+  version). `SESSION_BANNER="off"` (repo config or `workspace.conf`) stops
+  it.
+- **Session log** (`sessions.sh`, kit-owned): each session start adds a line
+  to `.git/agent-kit/sessions.log` (time, agent, kit version, branch,
+  level); it stays on this computer. `sessions.sh report` shows each agent's
+  wiring and last session; `agent-kit status` includes it.
+- **Cursor in a team repo**: the local `.cursor/rules/agent-kit.mdc`
+  (written by `wire.sh`, never committed) now loads the root map with
+  `@AGENTS.agentk.md` and asks for the session line with the repo name, so
+  in a multi-repo Cursor window each repo says it is loaded. The session
+  line names the repo everywhere (`repo: <folder>`).
+- **`agent-kit doctor [folder]`** (`doctor.sh` in the kit): for a repo, a
+  workspace or any folder of repos (a Cursor workspace), lists each repo's
+  kit version or "no kit", its level, and per agent the wiring and last
+  session. Cursor has no kit hooks, so it is never logged: its sign is the
+  first-reply line.
+
+- **`repo-md-sync`** (kit-owned, on request only): `list.sh` lists the
+  people's Markdown files with the date each was last updated and how many
+  other files changed in its scope since. Kit docs (`.agentk.md`), the agent
+  files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `SKILL.md`), `.agents/`,
+  `.claude/` and `LEARNING_DIR` are left out. The user picks files, then
+  approves each file's edits. It keeps the file's voice and format and never
+  commits. In a team repo, the edits go to the team in the user's pull
+  request.
+- **It never starts on its own**: only when the user names it or asks to
+  update those docs. `docs-sync` still only reports drift in the people's
+  docs and names the skill in one line; `wrap-up` and `catch-up` never
+  start it.
+- **Maps and writing style**: the people's Markdown is edited only through
+  `repo-md-sync`, when the user starts it.
+
 ## 0.13.1 — 2026-11-09
 
 `wrap-up` and `docs-sync` now ask whether to sync the interactive learning

@@ -35,11 +35,21 @@ EOF
   printf '%s' "$input" | "$python" .agent-workspace/kit/docs_reminder.py "$@" 2>/dev/null
 }
 
+banner() {  # the line the agent says first, at the workspace level
+  grep -qs '^SESSION_BANNER="\{0,1\}off' .agent-workspace/workspace.conf && return 0
+  version=$(tr -d '\r\n' < .agent-workspace/kit/VERSION 2>/dev/null)
+  versions=$(printf '%s\n' "$kit_repos" | while IFS= read -r repo; do
+    [ -n "$repo" ] && printf '%s %s, ' "$repo" "$(tr -d '\r\n' < "$repo/.agents/kit/VERSION" 2>/dev/null)"
+  done | sed 's/, $//')
+  echo "agent-kit workspace: start your first reply in this session with this one line, then never again: \"agent-kit ${version:-unknown} · level: workspace · map: WORKSPACE.agentk.md · repos with the kit: ${versions:-none}\". Later, the first time you read a repo's map, say one line: \"agent-kit: now also using <its path> (repo level)\"."
+}
+
 case "${1:-}" in
   session-start)
+    banner
     printf '%s\n' "$kit_repos" | while IFS= read -r repo; do
       [ -n "$repo" ] && [ -f "$repo/.agents/kit/session-start.sh" ] || continue
-      (cd "$repo" && printf '%s' "$input" | AGENT_KIT_SKIP_STANDARD=1 sh .agents/kit/session-start.sh 2>/dev/null) |
+      (cd "$repo" && printf '%s' "$input" | AGENT_KIT_SKIP_STANDARD=1 AGENT_KIT_SKIP_BANNER=1 AGENT_KIT_LEVEL=workspace sh .agents/kit/session-start.sh 2>/dev/null) |
         sed "s|^agent-kit: |agent-kit [$repo]: |"
     done
     # The coding standard once, from the first repo that has it on.

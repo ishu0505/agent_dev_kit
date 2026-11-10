@@ -16,6 +16,10 @@ team's file and tell me. This file is local: it is never committed.
 Before you work in a folder, read the `AGENTS.agentk.md` maps on the path to
 it, after the team's `AGENTS.md` there.
 
+Start your first reply in each session with one line, once: `agent-kit
+<.agents/kit/VERSION> · repo: <this folder's name> · level: repo · map:
+AGENTS.agentk.md`, unless the session start already gave you that line.
+
 ## My rules
 
 - Before you plan, write or change code, follow
@@ -51,6 +55,7 @@ it, after the team's `AGENTS.md` there.
 
 - Write only kit docs: `AGENTS.agentk.md`, and files ending in `.agentk.md`.
   The team's `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `README.md` and every
-  other Markdown file are theirs: read them, report drift, never edit them.
+  other Markdown file are theirs: read them, report drift. Edit a README or
+  other doc only through `repo-md-sync` when I start it; never agent files.
 - At the end of every task, and before a pull request, run the `wrap-up`
   skill. Never commit a kit file: nothing of mine goes to the team's repo.
