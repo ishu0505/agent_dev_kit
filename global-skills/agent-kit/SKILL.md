@@ -38,7 +38,7 @@ Then:
   (`sh .agents/kit/queue.sh list`, offer `catch-up`); commits from other
   people since the docs were last checked (`sh .agents/kit/pulled.sh status`,
   offer `docs-sync` with scope `pulled`); stale learning docs
-  (`$(git rev-parse --git-common-dir)/agent-kit/stale-learning`); docs
+  (`$(git rev-parse --git-dir)/agent-kit/stale-learning`); docs
   whose code changed (`sh .agents/kit/stale.sh`); open task files
   (`sh .agents/kit/task.sh list`); the todo list
   (`sh .agents/kit/todo.sh count`); which agents started sessions here

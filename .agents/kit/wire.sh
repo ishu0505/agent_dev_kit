@@ -254,9 +254,12 @@ if uses cursor; then
     echo "Before you work in a folder, read the $MAP_FILE files on the path to it."
     echo "The team's AGENTS.md rules come first; mine add to them."
     echo "My root map, loaded with this rule: @$MAP_FILE"
-    if [ "${SESSION_BANNER:-on}" != off ]; then
-      echo "Start your first reply in each chat with one line, once: \"agent-kit $(tr -d '\r\n' < .agents/kit/VERSION 2>/dev/null) · repo: $(basename "$(pwd)") · level: repo · map: $MAP_FILE (with the team's AGENTS.md)\". The first time you read another folder's $MAP_FILE, say one line: \"agent-kit: now also using <its path>\"."
-    fi
+    line="agent-kit $(tr -d '\r\n' < .agents/kit/VERSION 2>/dev/null) · repo: $(basename "$(pwd)") · level: repo · map: $MAP_FILE (with the team's AGENTS.md)"
+    case "${SESSION_BANNER:-every}" in
+      off) ;;
+      first) echo "Start your first reply in each chat with one line, once: \"$line\". The first time you read another folder's $MAP_FILE, say one line: \"agent-kit: now also using <its path>\"." ;;
+      *) echo "Start every reply with one line: \"$line\", with each other $MAP_FILE you read for the prompt added after \"map:\". End every reply with one line: \"agent-kit used: maps <maps read, or none> · skills <skills run, or none> · tools <tool ×count, or none>\"." ;;
+    esac
   } > "$TMP/mdc"
   if [ -f "$path" ] && tracked "$path"; then say cursor skip "$path" "tracked by git"
   else apply cursor "$path" "$TMP/mdc" "always-on rule that points to your maps"; fi

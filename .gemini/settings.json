@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "name": "agent-kit",
+            "command": "sh -c 'r=$(git rev-parse --show-toplevel 2>/dev/null) && [ -f \"$r/.agents/kit/sessions.sh\" ] && exec sh \"$r/.agents/kit/sessions.sh\" turn gemini --json; exit 0'",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

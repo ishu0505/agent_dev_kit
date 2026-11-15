@@ -60,8 +60,11 @@ MAP_REQUIRED=""
 MAP_EXEMPT=""
 SKILLS_LINK="symlink"
 SHARE="agent"
-TOP_MAP_MAX=70
-UNIT_MAP_MAX=40
+TOP_MAP_MAX=80
+UNIT_MAP_MAX=50
+PULLED_MAX_COMMITS=500
+SESSIONS_LOG_MAX_LINES=200
+INVENTORY_OLD_DAYS=180
 POINTER_FILES="CLAUDE.md"
 CODE_EXTENSIONS="py js ts tsx jsx go rs c cc cpp h hpp java kt cs rb php swift sql sh"
 CHECK_ENV=""
@@ -508,6 +511,18 @@ agent_paths() {  # pathspecs of every agent file: maps, pointers, lineage, kit f
   fi
 }
 
+check_numbers() {  # every number setting is a whole number; a bad one falls back to its default
+  for setting in TOP_MAP_MAX:80 UNIT_MAP_MAX:50 PULLED_MAX_COMMITS:500 SESSIONS_LOG_MAX_LINES:200 INVENTORY_OLD_DAYS:180; do
+    key=${setting%%:*}; default=${setting#*:}
+    eval "value=\$$key"  # key is one of the fixed names above
+    case "$value" in
+      ""|*[!0-9]*)
+        fail "$key=\"$value\" is not a whole number" "set $key to a whole number (default $default) in $CONF"
+        eval "$key=$default" ;;  # so the checks after this one still run
+    esac
+  done
+}
+
 check_share_mode() {  # files reach the remote only when SHARE allows it
   case "$SHARE" in
     agent|all|learning|none) ;;
@@ -782,6 +797,7 @@ notes() {  # hints that never fail: a newer kit, code written without its docs
 TMP=$(mktemp -d) || exit 1
 trap 'rm -rf "$TMP"' EXIT
 TMP_MAPS="$TMP/maps" TMP_TOKENS="$TMP/tokens" TMP_ENV="$TMP/env" TMP_SIZES="$TMP/sizes" TMP_CMDS="$TMP/cmds"
+check_numbers
 check_maps
 check_skills
 check_share_mode

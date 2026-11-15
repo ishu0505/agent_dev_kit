@@ -178,7 +178,8 @@ cmd_status() {
     if [ "$(status_of "$repo")" = kit ]; then
       q=$(cd "$repo" && sh .agents/kit/queue.sh count 2>/dev/null)
       [ -f "$repo/.agents/kit/pulled.sh" ] && p=$(cd "$repo" && sh .agents/kit/pulled.sh count 2>/dev/null)
-      f="$(common_dir "$repo")/agent-kit/stale-learning"; s=0; [ -s "$f" ] && s=$(wc -l < "$f" | tr -d ' ')
+      f="$(cd "$repo" && cd "$(git rev-parse --git-dir)" && pwd -P)/agent-kit/stale-learning"  # per worktree
+      s=0; [ -s "$f" ] && s=$(wc -l < "$f" | tr -d ' ')
     fi
     printf '%-24s %-24s %-8s %-8s %s\n' "$repo" "$(kit_label "$repo")" "${q:--}" "${p:--}" "$s"
   done

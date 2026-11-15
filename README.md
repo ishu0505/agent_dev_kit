@@ -411,7 +411,8 @@ up, check the link: `ls -L ~/.claude/skills/agent-kit`.
 - **When an agent session starts** (Claude Code, Codex and Antigravity): one line each
   about the queue, other people's commits since the docs were last checked
   (`pulled.sh`; it works without git hooks, so a rebase or a GUI pull counts
-  too) and stale learning docs, only when there is something. The agent
+  too; your other commit emails go in `SELF_EMAILS`) and stale learning
+  docs (kept per worktree), only when there is something. The agent
   offers `docs-sync` with scope `pulled`.
 - **After every agent turn** (Claude Code; Codex if its hooks are on;
   Antigravity through `.agents/hooks.json`): the

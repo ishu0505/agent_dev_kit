@@ -27,6 +27,9 @@ multi-repo workspaces. Every Markdown file it writes into a repo ends in
 | `guide/` | The HTML guide: `template.html` + `build.py` |
 | `tests/run.sh` | End-to-end tests in throwaway repos |
 | `.github/workflows/test.yml` | CI: the tests on macOS, Ubuntu, Fedora and Windows |
+| `PLAN.agentk.md` | High-level roadmap linking all independent gap tracks (`T-001`..`T-008`) |
+| `TODO.agentk.md` | Open todo list of independent tasks and bugs (`sh .agents/kit/todo.sh list`) |
+| `docs/plans/` | Detailed self-contained plan files, one `.agentk.md` per todo track |
 
 ## Rules
 
@@ -53,6 +56,8 @@ multi-repo workspaces. Every Markdown file it writes into a repo ends in
 - **Map warning rows are confirmed facts.** "Do not read unless asked",
   "Lookalikes" and "Hidden links" rows are written only after the user says
   yes; scripts may propose them, never write them.
+
+- **`.agents/`, `.githooks/` are copies of `templates/`**: edit the template, then `sh install.sh .`
 
 ## Before calling a change done
 

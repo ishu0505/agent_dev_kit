@@ -21,7 +21,7 @@ DOC_SUFFIX=""
 . "$KIT_LIB" && load_conf
 UNIT_DOC="README${DOC_SUFFIX:-.md}"
 if [ "${MAPS:-own}" = beside ]; then MAP_FILE="AGENTS${DOC_SUFFIX:-.agentk.md}"; else MAP_FILE="AGENTS.md"; fi
-DIR="$(git rev-parse --git-common-dir)/agent-kit"
+DIR="$(git rev-parse --git-common-dir)/agent-kit"  # shared by all worktrees: a commit SHA is the same in each
 PENDING="$DIR/pending"
 
 covering_docs() {  # covering_docs <path>: the docs in the nearest folder above it that has any, one per line

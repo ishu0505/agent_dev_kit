@@ -26,17 +26,19 @@ cd "$ROOT" || exit 0
 SESSION_BANNER=every
 MAPS=own
 DOC_SUFFIX=".agentk.md"
+SESSIONS_LOG_MAX_LINES=200
 [ -f .agents/kit/lib.sh ] && . ./.agents/kit/lib.sh && load_conf
+case "$SESSIONS_LOG_MAX_LINES" in ""|*[!0-9]*) SESSIONS_LOG_MAX_LINES=200 ;; esac
 LOG="$(git rev-parse --git-common-dir)/agent-kit/sessions.log"
 VERSION=$(tr -d '\r\n' < .agents/kit/VERSION 2>/dev/null)
 TAB=$(printf '\t')
 
-record() {  # record <agent>: one log line, the log cut to its last 200 lines
+record() {  # record <agent>: one log line, the log cut to its last SESSIONS_LOG_MAX_LINES lines
   mkdir -p "$(dirname "$LOG")" || return 0
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
   printf '%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "${1:-other}" "${VERSION:-unknown}" "$branch" "${AGENT_KIT_LEVEL:-repo}" >> "$LOG"
-  if [ "$(wc -l < "$LOG")" -gt 200 ]; then
-    tail -n 200 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+  if [ "$(wc -l < "$LOG")" -gt "$SESSIONS_LOG_MAX_LINES" ]; then
+    tail -n "$SESSIONS_LOG_MAX_LINES" "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
   fi
 }
 workspace_map() {  # the workspace map when this repo sits in a multi-repo workspace
