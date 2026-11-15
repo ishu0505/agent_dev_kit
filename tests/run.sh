@@ -315,6 +315,11 @@ expect_fail "an env var no code uses is caught" "$V" "SHOP_DB_URL"
 printf 'package store\n\nconst env = "SHOP_DB_URL"\n' > "$V/internal/store/store.go"
 expect_pass "an env var the code uses passes" "$V"
 
+V=$(variant nocommands)
+out=$(cd "$V" && sh .agents/kit/check.sh --run-commands 2>&1)
+if [ $? -eq 0 ] && printf '%s' "$out" | grep -q "run-commands ran nothing: RUN_COMMANDS_MAPS is empty"; then
+  ok "--run-commands with no maps set says so and passes"; else bad "--run-commands with no maps set says so and passes" "$out"; fi
+
 V=$(variant commands); edit 's#^RUN_COMMANDS_MAPS=.*#RUN_COMMANDS_MAPS="cmd/api/AGENTS.md"#' "$V/.agents/agent-kit.conf"
 printf '\n## Run\n\n```bash\ntest -f main.go\nfalse\n```\n' >> "$V/cmd/api/AGENTS.md"
 expect_pass "map commands run only with --run-commands" "$V"
@@ -462,6 +467,15 @@ V=$(variant stale); echo "go 1.23" >> "$V/go.mod"; git_quiet -C "$V" commit --no
 out=$(cd "$V" && sh .agents/kit/stale.sh)
 printf '%s' "$out" | grep -q "^AGENTS.md.*go.mod" && ok "stale.sh: a map whose named file changed" || bad "stale.sh: a map whose named file changed" "$out"
 printf '%s' "$out" | grep -q "^cmd/api/AGENTS.md" && bad "stale.sh: a map whose code did not change stays quiet" "$out" || ok "stale.sh: a map whose code did not change stays quiet"
+SCAN="$WORK/scan"; mkdir -p "$SCAN/notes"; cp -R "$WORK/go" "$SCAN/clean"; cp -R "$V" "$SCAN/drift"
+mkdir "$SCAN/plain"; git -C "$SCAN/plain" init -q
+out=$(sh "$KIT/doctor.sh" --stale "$SCAN")
+printf '%s\n' "$out" | grep -A8 '^clean: ' | grep -q '^  docs: up to date$' &&
+  printf '%s\n' "$out" | grep -A8 '^drift: ' | grep -q '^  stale docs: 1 (AGENTS.md)$' &&
+  printf '%s\n' "$out" | grep -q '^plain: no kit$' && ! printf '%s\n' "$out" | grep -q 'notes' &&
+  printf '%s\n' "$out" | grep -q '^Stale docs: run docs-sync' &&
+  ok "doctor --stale: stale docs per repo, no kit and plain folders skipped" || bad "doctor --stale: stale docs per repo, no kit and plain folders skipped" "$out"
+sh "$KIT/doctor.sh" "$SCAN" | grep -q 'stale docs' && bad "doctor without --stale stays as it was" || ok "doctor without --stale stays as it was"
 out=$(cd "$WORK/go" && sh .agents/kit/map-rows.sh .)
 printf '%s' "$out" | grep -q '| `internal/` |' && ! printf '%s' "$out" | grep -q 'go.mod' &&
   ok "map-rows.sh suggests only what the map lacks" || bad "map-rows.sh suggests only what the map lacks" "$out"
@@ -660,6 +674,33 @@ git -C "$B" add -f AGENTS.agentk.md
 expect_fail "beside: a force-added map is caught" "$B" "would reach the team's repo"
 if git -C "$B" commit -qm leak >/dev/null 2>&1; then bad "beside: the commit of your map is blocked"; else ok "beside: the commit of your map is blocked"; fi
 git -C "$B" rm -q --cached AGENTS.agentk.md
+
+# PreToolUse guard: edits to the team's agent files are refused before they run.
+guard() {  # guard <repo> <agent> <hook JSON>: deny, or pass when nothing printed
+  out=$(cd "$1" && printf '%s' "$3" | sh .agents/kit/pre-edit.sh "$2" 2>&1)
+  case "$out" in *'"deny"'*) echo deny ;; "") echo pass ;; *) echo "odd: $out" ;; esac
+}
+expect_guard() {  # expect_guard <name> <deny|pass> <repo> <agent> <hook JSON>
+  got=$(guard "$3" "$4" "$5"); [ "$got" = "$2" ] && ok "$1" || bad "$1" "expected $2, got $got"
+}
+expect_guard "pre-edit: Claude edit of the team AGENTS.md is refused" deny "$B" claude "{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"$(native "$B")/AGENTS.md\"}}"
+expect_guard "pre-edit: Claude write of a nested team AGENTS.md is refused" deny "$B" claude '{"tool_name":"Write","tool_input":{"file_path":"svc/api/AGENTS.md"}}'
+expect_guard "pre-edit: Claude edit of code passes" pass "$B" claude '{"tool_name":"Edit","tool_input":{"file_path":"svc/api/app.py"}}'
+expect_guard "pre-edit: Claude edit of your own map passes" pass "$B" claude '{"tool_name":"Edit","tool_input":{"file_path":"AGENTS.agentk.md"}}'
+expect_guard "pre-edit: an untracked GEMINI.md passes" pass "$B" claude '{"tool_name":"Write","tool_input":{"file_path":"GEMINI.md"}}'
+expect_guard "pre-edit: a shell append to CLAUDE.md is refused" deny "$B" claude '{"tool_name":"Bash","tool_input":{"command":"echo x >> CLAUDE.md"}}'
+expect_guard "pre-edit: a shell read of AGENTS.md passes" pass "$B" claude '{"tool_name":"Bash","tool_input":{"command":"cat AGENTS.md 2>/dev/null | head"}}'
+expect_guard "pre-edit: Codex apply_patch on AGENTS.md is refused" deny "$B" codex '{"tool_name":"apply_patch","tool_input":{"command":"*** Begin Patch\n*** Update File: AGENTS.md\n@@\n-a\n+b\n*** End Patch"}}'
+expect_guard "pre-edit: Codex shell sed -i on CLAUDE.md is refused" deny "$B" codex '{"tool_name":"shell","tool_input":{"command":["bash","-lc","sed -i s/a/b/ CLAUDE.md"]}}'
+expect_guard "pre-edit: Antigravity write_to_file on AGENTS.md is refused" deny "$B" agy '{"toolCall":{"id":"1","name":"write_to_file","args":{"TargetFile":"AGENTS.md"}}}'
+expect_guard "pre-edit: Antigravity rm of CLAUDE.md is refused" deny "$B" agy '{"toolCall":{"name":"run_command","args":{"CommandLine":"rm CLAUDE.md"}}}'
+expect_guard "pre-edit: Antigravity: the user's own words never trigger it" pass "$B" agy '{"toolCall":{"name":"run_command","args":{"CommandLine":"ls"}},"lastUserInput":"echo x > AGENTS.md"}'
+expect_guard "pre-edit: empty input passes" pass "$B" claude ''
+expect_guard "pre-edit: own-mode repos are not guarded" pass "$WORK/go" claude '{"tool_name":"Edit","tool_input":{"file_path":"AGENTS.md"}}'
+out=$(cd "$B" && printf '%s' '{"toolCall":{"name":"write_to_file","args":{"TargetFile":"AGENTS.md"}}}' | sh .agents/kit/agy-hook.sh pre-tool)
+printf '%s' "$out" | grep -q '"decision": "deny"' && ok "pre-edit: agy-hook.sh pre-tool passes the refusal on" || bad "pre-edit: agy-hook.sh pre-tool passes the refusal on" "$out"
+grep -q 'kit/pre-edit.sh' "$B/.claude/settings.local.json" && grep -q 'pre-tool' "$B/.agents/hooks.json" &&
+  ok "pre-edit: beside install wires Claude and Antigravity" || bad "pre-edit: beside install wires Claude and Antigravity"
 
 edit 's/^SHARE=.*/SHARE="agent"/' "$B/.agents/agent-kit.conf"
 expect_fail "beside: a shared mode is refused" "$B" "MAPS=beside keeps your setup on this computer"

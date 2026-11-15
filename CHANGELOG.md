@@ -3,6 +3,36 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.16.0 — 2026-11-15
+
+Three changes that make agents work better.
+
+- **Team files are guarded before the edit, not after.** In a team repo
+  (`MAPS="beside"`) a new PreToolUse hook, `.agents/kit/pre-edit.sh`,
+  refuses any agent edit or shell write (`>`, `tee`, `rm`, `mv`, `sed -i`,
+  `cp` onto it, ...) to a git-tracked `AGENTS.md`, `CLAUDE.md` or
+  `GEMINI.md`, and tells the agent to use `AGENTS.agentk.md`. Reads pass.
+  Claude, Codex (`apply_patch` and shell) and Antigravity
+  (`write_to_file`, `replace_file_content`, `run_command`, ...) are all
+  covered. The Stop-hook warning stays for agents without the hook.
+  Upgrade: the setup notes which files lack it. Team repos: merge the
+  `PreToolUse` entry from `templates/config/claude-settings.json` into
+  `.claude/settings.local.json`, and from `codex-hooks.json` into
+  `~/.codex/hooks.json`. Every repo: merge the `PreToolUse` entry of
+  `templates/config/agy-hooks.json` into `.agents/hooks.json`. Own-mode
+  repos may merge it too; it does nothing there.
+- **`wrap-up` runs the code.** Step 1 now runs `check.sh --run-commands`,
+  so the `## Run` and `## Check` blocks (build, tests) of the maps in
+  `RUN_COMMANDS_MAPS` run before the agent says "done". With
+  `RUN_COMMANDS_MAPS` empty, `check.sh --run-commands` says so (a note,
+  not a failure) and `wrap-up` offers to set it. Upgrade: set
+  `RUN_COMMANDS_MAPS` in `.agents/agent-kit.conf` to the maps with quick
+  commands.
+- **`agent-kit doctor --stale [folder]`**: one repo, a workspace or any
+  folder of repos; per repo, the docs behind their code (`stale.sh`) and
+  the stale or missing interactive pages. No agent runs, so no tokens.
+  Nothing to do on upgrade.
+
 ## 0.15.1 — 2026-11-15
 
 Two fixes.

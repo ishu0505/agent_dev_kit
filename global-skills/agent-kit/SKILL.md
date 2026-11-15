@@ -1,6 +1,6 @@
 ---
 name: agent-kit
-description: Set up, upgrade, clean up or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version, or see what waits (stale docs, code written without its docs). In a team repo it works beside the team's own AGENTS.md / CLAUDE.md and keeps everything local. Also sets up a multi-repo workspace (a folder holding several repos, such as a frontend and a backend). Also says which repos in a folder use the kit and which agents (Claude, Codex, Antigravity, Cursor) get it there. Arguments - setup (default), upgrade, cleanup, check, status, doctor [folder], wire, unwire, workspace [init|add|scan|where|status].
+description: Set up, upgrade, clean up or check the agent context kit (AGENTS.md maps, DECISIONS.md lineage, repo skills, docs checks, local learning docs) in the current repository, for any language and OS. Use when the user says agent-kit, asks to set up agent context, AGENTS.md maps or docs checks in a repo, to start a new repo from a goal with this setup, or to upgrade a repo to a newer kit version, or see what waits (stale docs, code written without its docs). In a team repo it works beside the team's own AGENTS.md / CLAUDE.md and keeps everything local. Also sets up a multi-repo workspace (a folder holding several repos, such as a frontend and a backend). Also says which repos in a folder use the kit and which agents (Claude, Codex, Antigravity, Cursor) get it there. Arguments - setup (default), upgrade, cleanup, check, status, doctor [--stale] [folder], wire, unwire, workspace [init|add|scan|where|status].
 ---
 
 # agent-kit
@@ -51,6 +51,9 @@ Then:
   For each agent that says "never" or "no", say what wires it (for Claude,
   Codex and Antigravity: `agent-kit upgrade` in that repo; for Cursor: no
   kit hooks, so check that its replies start with the agent-kit line, or type `/use-adkit`). Change nothing.
+  With `--stale` (`doctor --stale [folder]`), run `sh KIT/doctor.sh --stale <folder>`:
+  each repo also lists its stale docs and stale or missing interactive pages
+  (no agent runs). Offer `docs-sync` in each repo it lists.
 - **wire** (team repo, `MAPS="beside"`): show `sh .agents/kit/wire.sh --plan`,
   then apply it after the user's yes (`sh .agents/kit/wire.sh`), including
   the Gemini step from `KIT/BOOTSTRAP.md` phase 4, step 7.

@@ -269,6 +269,15 @@ for settings in .claude/settings.json .claude/settings.local.json; do
   [ -f "$settings" ] && grep -q 'agents/kit/stop-hook.sh' "$settings" && ! grep -q 'kit/sessions.sh' "$settings" &&
     note "$settings has no kit UserPromptSubmit hook (new in 0.15): merge it from $T/config/claude-settings.json"
 done
+# 0.16: the PreToolUse hook refuses agent edits to the team's files (beside).
+for settings in .claude/settings.json .claude/settings.local.json .codex/hooks.json; do
+  source=claude-settings.json; [ "$settings" = .codex/hooks.json ] && source=codex-hooks.json
+  [ -f "$settings" ] && grep -q 'agents/kit/stop-hook.sh' "$settings" && ! grep -q 'kit/pre-edit.sh' "$settings" &&
+    note "$settings has no kit PreToolUse hook (new in 0.16): merge it from $T/config/$source"
+done
+if [ "$MAPS" = beside ] && ! grep -qs 'kit/pre-edit.sh' "$HOME/.codex/hooks.json"; then
+  note "Codex: to stop edits to the team's files before they happen, merge the PreToolUse hook from $T/config/codex-hooks.json into ~/.codex/hooks.json (never into a team .codex/ file; it does nothing in repos without the kit)"
+fi
 [ "$MAPS" = beside ] || grep -q 'agents/kit/stop-hook.sh' .codex/hooks.json ||
   note ".codex/hooks.json exists: merge the Stop hook from $T/config/codex-hooks.json"
 [ "$MAPS" = beside ] || grep -q 'agents/kit/session-start.sh' .codex/hooks.json ||
@@ -290,6 +299,8 @@ fi
 if ! create_if_missing "$T/config/agy-hooks.json" .agents/hooks.json; then
   grep -q 'agents/kit/agy-hook.sh' .agents/hooks.json ||
     note ".agents/hooks.json exists: merge the \"agent-kit\" entry from $T/config/agy-hooks.json (Antigravity's SessionStart and Stop hooks)"
+  grep -q 'agents/kit/agy-hook.sh' .agents/hooks.json && ! grep -q 'agy-hook.sh\\" pre-tool' .agents/hooks.json &&
+    note ".agents/hooks.json has no kit PreToolUse hook (new in 0.16): merge it from the \"agent-kit\" entry of $T/config/agy-hooks.json"
   grep -q 'agents/kit/agy-hook.sh' .agents/hooks.json && ! grep -q 'agy-hook.sh\\" turn' .agents/hooks.json &&
     note ".agents/hooks.json has no kit PreInvocation hook (new in 0.15): merge it from the \"agent-kit\" entry of $T/config/agy-hooks.json"
 fi

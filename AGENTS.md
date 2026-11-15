@@ -15,9 +15,9 @@ multi-repo workspaces. Every Markdown file it writes into a repo ends in
 | `WORKSPACE.md` | The setup prompt for a folder that holds several repos |
 | `install.sh` | Copies kit files into a target repo; also the upgrade |
 | `install-global.sh` | Links the `agent-kit` skill into each agent's skill folder |
-| `doctor.sh` | Read only: each repo in a folder, its kit version and level, and each agent's wiring and last session (`agent-kit doctor`) |
+| `doctor.sh` | Read only: each repo in a folder, its kit version and level, and each agent's wiring and last session (`agent-kit doctor`); `--stale` adds each repo's stale docs and interactive pages |
 | `global-skills/agent-kit/` | The one global skill: setup, upgrade, check, workspace |
-| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `pulled.sh` (other people's commits since the docs were checked), `lib.sh` (config reader, shared helpers), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `agent-files.sh` (who owns each agent file), `wire.sh` (team repos: local wiring of the kit's maps), `writing-style.agentk.md`, `explain-standard.agentk.md` (80% STE, quiz ladder), `coding-standard.agentk.md` (KISS code rules the SessionStart hook prints), `agy-hook.sh` (Antigravity hook adapter), `sessions.sh` (session log, the line every reply starts with and the per-prompt hook, per-agent report), `task.sh` + `task.agentk.md` (task files a target repo keeps in .agents/work/, never committed), `todo.sh` + `todo.agentk.md` (the todo list a target repo keeps at its root), `candidates.sh` (read-only candidates for a map's "Do not read" and "Lookalikes" rows); copied to `.agents/kit/` |
+| `templates/kit/` | `check.sh`, the Stop and SessionStart hooks, `queue.sh` (catch-up queue), `pulled.sh` (other people's commits since the docs were checked), `lib.sh` (config reader, shared helpers), `stale.sh`, `map-rows.sh`, `inventory.sh` (house cleaning), `agent-files.sh` (who owns each agent file), `wire.sh` (team repos: local wiring of the kit's maps), `writing-style.agentk.md`, `explain-standard.agentk.md` (80% STE, quiz ladder), `coding-standard.agentk.md` (KISS code rules the SessionStart hook prints), `agy-hook.sh` (Antigravity hook adapter), `pre-edit.sh` (PreToolUse: refuses agent edits to team files in team repos), `sessions.sh` (session log, the line every reply starts with and the per-prompt hook, per-agent report), `task.sh` + `task.agentk.md` (task files a target repo keeps in .agents/work/, never committed), `todo.sh` + `todo.agentk.md` (the todo list a target repo keeps at its root), `candidates.sh` (read-only candidates for a map's "Do not read" and "Lookalikes" rows); copied to `.agents/kit/` |
 | `templates/workspace/` | `workspace.sh` (init, add, scan, where, status, decline), `ws-hook.sh`, the workspace map and config; copied to `<workspace>/.agent-workspace/` |
 | `templates/skills/` | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit` (loads the kit's context into a chat by hand); on request only: `interactive-docs` (pages in `<LEARNING_DIR>/interactive_l_docs/`, `status.sh`), `arch-emulator` (reviews in `<LEARNING_DIR>/architecture/`), `repo-md-sync` (edits the repo's own Markdown after the user's yes, `list.sh`) |
 | `templates/config/` | `agent-kit.conf`, Claude, Codex, Gemini (`gemini-settings.json`, the target repo's Gemini settings) and Antigravity (`agy-hooks.json`, installed as `.agents/hooks.json`) hook configs |
@@ -27,9 +27,9 @@ multi-repo workspaces. Every Markdown file it writes into a repo ends in
 | `guide/` | The HTML guide: `template.html` + `build.py` |
 | `tests/run.sh` | End-to-end tests in throwaway repos |
 | `.github/workflows/test.yml` | CI: the tests on macOS, Ubuntu, Fedora and Windows |
-| `PLAN.agentk.md` | High-level roadmap linking all independent gap tracks (`T-001`..`T-008`) |
+| `PLAN.agentk.md` | The one plan for every open todo: a section per `T-NNN`, what was dropped, what waits |
 | `TODO.agentk.md` | Open todo list of independent tasks and bugs (`sh .agents/kit/todo.sh list`) |
-| `docs/plans/` | Detailed self-contained plan files, one `.agentk.md` per todo track |
+| `docs/plans/` | Past release plans and deferred plans (not on the todo list); open todos are planned in `PLAN.agentk.md` |
 
 ## Rules
 

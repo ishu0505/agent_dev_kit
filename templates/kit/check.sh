@@ -745,6 +745,10 @@ check_fixed_names() {  # maps, pointers and skills keep their exact names
 
 run_commands() {  # the ## Run and ## Check blocks of RUN_COMMANDS_MAPS succeed
   [ "$RUN_COMMANDS" = 1 ] || return
+  if [ -z "$RUN_COMMANDS_MAPS" ]; then
+    echo "NOTE --run-commands ran nothing: RUN_COMMANDS_MAPS is empty. Fix: list the maps whose ## Run / ## Check blocks to run in $CONF"
+    return
+  fi
   for map in $RUN_COMMANDS_MAPS; do
     if [ ! -f "$map" ]; then
       fail "RUN_COMMANDS_MAPS names $map, which does not exist" "fix RUN_COMMANDS_MAPS in $CONF"; continue

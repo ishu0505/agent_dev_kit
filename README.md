@@ -70,6 +70,15 @@ shows each agent's state, `agent-kit wire` applies it, `agent-kit unwire`
 removes it. In a team repo with its own git hooks the kit adds none, so run
 `sh .agents/kit/check.sh` before you push.
 
+Agents cannot change the team's files by mistake: a PreToolUse hook
+(`.agents/kit/pre-edit.sh`) refuses, before it runs, any agent edit or
+shell write to a git-tracked `AGENTS.md`, `CLAUDE.md` or `GEMINI.md`, and
+tells the agent to put the change in `AGENTS.agentk.md`. It works in Claude
+Code (`.claude/settings.local.json`), Antigravity (`.agents/hooks.json`)
+and Codex (`~/.codex/hooks.json`: a team repo has no local Codex hook file,
+so the setup asks you to merge it there; it does nothing in repos without
+the kit). Cursor has no kit hooks. To change a team file, edit it yourself.
+
 ## Share modes: what reaches GitHub
 
 You pick one when you set a repo up. The agent asks.
@@ -352,7 +361,7 @@ mode.
 | You want to | Type | Notes |
 |---|---|---|
 | Check fast, no AI | `sh .agents/kit/check.sh` | Seconds. The pre-commit runs it with `--staged`, which blocks only what the commit breaks |
-| Finish a task | `wrap-up` | Checks, docs of this branch, asks before refreshing stale learning docs, writes the PR section |
+| Finish a task | `wrap-up` | Checks (and the maps' `## Run` / `## Check` commands in `RUN_COMMANDS_MAPS`), docs of this branch, asks before refreshing stale learning docs, writes the PR section |
 | Document code you wrote yourself | `catch-up` | Explains each change, asks what it is for, proposes docs and docstrings; applies only what you approve |
 | Understand a branch or PR | `explain-diff` | Background, intuition, code walkthrough, five-question quiz. `--post` puts it in the PR |
 | The same, in plain words | `explain-d-ez` | About 80% of ASD-STE100; six questions from easy to hard. `--post` puts it in the PR |
@@ -364,6 +373,7 @@ mode.
 | See that the kit is in use, and what the agent used | every reply | Every reply starts with `agent-kit 0.15.0 · level: repo · map: AGENTS.md` and ends with `agent-kit used: maps ... · skills ... · tools Read ×3, Bash ×2`. The level says repo, workspace, or both. A per-prompt hook asks for it in Claude, Codex, Gemini and Antigravity; Cursor reads the ask in the root map. The tools count is the agent's own. First reply only: `SESSION_BANNER="first"`; off: `"off"` |
 | Load the kit by hand in a chat | `/use-adkit` (Codex: `$use-adkit`) | Before or inside a prompt, when a reply had no `agent-kit` line (Cursor, or hooks that did not run). Reads the maps, says the session line, then does the prompt |
 | Which repos and agents use the kit | `agent-kit doctor [folder]` | Read only. For each repo in a folder (a Cursor workspace too): kit version or "no kit", level, and per agent its wiring and last session from the local session log |
+| Which repos have stale docs | `agent-kit doctor --stale [folder]` | Read only, no tokens. Adds, per repo, the docs behind their code and the interactive pages that are stale or missing; run `docs-sync` in the repos it lists |
 | Update your README and other docs | `repo-md-sync` | Only when you ask. Lists the Markdown files people wrote (never `.agentk.md` or agent files) with how much code changed since each; you pick the files, then approve each file's edits. Never commits. No other skill starts it; `docs-sync` only names it under its "Your docs" table |
 | Learn the system | `learning-docs` | First time: all, or overview only. Later: `learning-docs stale` |
 | Learn the system by clicking | `interactive-docs` | Only when you name it. One page per learning doc in `learning_docs/interactive_l_docs/`. `interactive-docs sync` rebuilds the pages whose learning doc changed; once you have pages, `wrap-up` and `docs-sync` ask whether to sync the stale ones |

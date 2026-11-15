@@ -20,6 +20,17 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'r=$(git rev-parse --show-toplevel 2>/dev/null) && [ -f \"$r/.agents/kit/pre-edit.sh\" ] && exec sh \"$r/.agents/kit/pre-edit.sh\" claude; exit 0'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
