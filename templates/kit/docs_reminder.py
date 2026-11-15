@@ -54,7 +54,7 @@ TEAM_FILE = (
     "These files belong to the team (this repo works beside them): {files}. Put your change in "
     "{map_file} instead, unless the user asked you to edit the team's file. If they did, say so in one line."
 )
-TEAM_NAMES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
+TEAM_NAMES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")  # same list as TEAM_FILES in lib.sh
 HIDDEN_LINKS = (
     "Hidden links: this turn changed files that other code depends on in a way search does not show:\n"
     "{items}\nCheck that each named file still matches, in this task. If it does, say so in one line."

@@ -7,6 +7,8 @@
 #                  message: {"injectSteps": [{"systemMessage": {...}}]}
 #   turn           (PreInvocation) the per-prompt ask for the session line
 #                  and the "used" line, as {"injectSteps": [{"ephemeralMessage": ...}]}
+#   pre-tool       (PreToolUse) runs pre-edit.sh agy, which prints
+#                  {"decision": "deny", ...} for an edit to a team file
 #   stop           runs stop-hook.sh --agy, which prints
 #                  {"decision": "continue", "reason": ...} when the docs
 #                  step or the checks need the agent to go on
@@ -43,6 +45,9 @@ $lines"
     ask=$(sh .agents/kit/sessions.sh turn antigravity 2>/dev/null)
     [ -n "$ask" ] || exit 0
     printf '{"injectSteps": [{"ephemeralMessage": "%s"}]}\n' "$(printf '%s\n' "$ask" | json_string)"
+    ;;
+  pre-tool)
+    printf '%s' "$input" | sh .agents/kit/pre-edit.sh agy 2>/dev/null
     ;;
   stop)
     printf '%s' "$input" | sh .agents/kit/stop-hook.sh --agy 2>/dev/null

@@ -11,7 +11,12 @@ user asks.
 
 ## 1. Checks
 
-Run `sh .agents/kit/check.sh`. Fix what fails, and report what you fixed.
+Run `sh .agents/kit/check.sh --run-commands`: the docs checks, then the
+`## Run` and `## Check` blocks of the maps in `RUN_COMMANDS_MAPS` (the
+build and the tests). Fix what fails, and report what you fixed. When it
+prints `run-commands ran nothing`, ask the user once whether to set
+`RUN_COMMANDS_MAPS` in `.agents/agent-kit.conf`, and propose the maps that
+have a `## Run` or `## Check` block; never set it without a yes.
 In a team repo (`MAPS="beside"`), a stale-wiring failure is fixed with
 `sh .agents/kit/wire.sh`; never stage or commit a kit file there.
 Problems marked `WARN` are not part of this task: list them, do not fix

@@ -3,14 +3,19 @@
 # Read only. Run it from the kit, at a folder that holds repos (a Cursor or
 # VS Code workspace, a multi-repo workspace) or inside one repo.
 #
-# Usage: sh <agent_dev_kit>/doctor.sh [folder]   (default: the current folder)
+# Usage: sh <agent_dev_kit>/doctor.sh [--stale] [folder]   (default: the current folder)
 #
 # For each git repo (the folder itself and its subfolders, two levels down):
 # the kit version (or "no kit"), the level (repo, or part of a workspace), and
 # per agent its wiring and its last session start from that repo's
 # sessions.log. Cursor has no kit hooks: its sign is the first-reply line.
+# --stale also lists, per repo, the docs behind their code (stale.sh) and
+# the interactive pages that are stale or missing (interactive-docs
+# status.sh). No agent runs: it costs no tokens.
 KIT=$(cd "$(dirname "$0")" && pwd)
 LATEST=$(tr -d '\r\n' < "$KIT/VERSION")
+STALE=0
+if [ "${1:-}" = --stale ]; then STALE=1; shift; fi
 FOLDER=${1:-.}
 cd "$FOLDER" || { echo "doctor: no folder $FOLDER"; exit 1; }
 FOLDER=$(pwd)
@@ -19,6 +24,31 @@ if [ -f .agent-workspace/workspace.conf ]; then
   echo "Workspace: $FOLDER (kit $(tr -d '\r\n' < .agent-workspace/kit/VERSION 2>/dev/null), map WORKSPACE.agentk.md)"
   echo
 fi
+
+STALE_FOUND=0
+stale_report() {  # stale_report <repo>: its stale docs and interactive pages, two lines at most
+  if [ ! -f "$1/.agents/kit/stale.sh" ]; then
+    echo "  (this kit has no stale.sh: upgrade to see stale docs)"; return
+  fi
+  docs=$(cd "$1" && sh .agents/kit/stale.sh 2>/dev/null | cut -f1)
+  pages=""
+  if [ -f "$1/.agents/skills/interactive-docs/status.sh" ]; then
+    pages=$(cd "$1" && sh .agents/skills/interactive-docs/status.sh 2>/dev/null | cut -f1 |
+      awk '$1 == "current" || $1 == "stale" { built = 1 }
+           $1 == "stale" || $1 == "orphan" || $1 == "missing" { count[$1]++ }
+           END { if (!built) delete count["missing"]  # no page was ever built: not wanted here
+                 for (state in count) printf "%s%d %s", (n++ ? ", " : ""), count[state], state }')
+  fi
+  if [ -z "$docs" ] && [ -z "$pages" ]; then echo "  docs: up to date"; return; fi
+  STALE_FOUND=1
+  if [ -n "$docs" ]; then
+    count=$(printf '%s\n' "$docs" | grep -c .)
+    first=$(printf '%s\n' "$docs" | head -3 | tr '\n' ' ' | sed 's/ $//; s/ /, /g')
+    more=""; [ "$count" -gt 3 ] && more=", ..."
+    echo "  stale docs: $count ($first$more)"
+  fi
+  [ -z "$pages" ] || echo "  interactive pages: $pages"
+}
 
 repos=$( { [ -e .git ] && echo .
   find . -mindepth 2 -maxdepth 3 -name .git -prune -print 2>/dev/null | sed 's|/\.git$||'
@@ -43,7 +73,10 @@ for repo in $repos; do
   else
     echo "  (this kit has no session log: upgrade to 0.14.0 or later to see each agent)"
   fi
+  [ "$STALE" = 1 ] && stale_report "$repo"
 done
 echo
+[ "$STALE_FOUND" = 1 ] &&
+  echo "Stale docs: run docs-sync in each repo listed (and interactive-docs sync for stale pages)."
 echo "A repo where an agent says never or no: that agent does not get the kit there."
 echo "Cursor: open a chat in each repo; its first reply must start with \"agent-kit\". If not, type /use-adkit."

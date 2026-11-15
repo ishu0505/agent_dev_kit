@@ -41,3 +41,8 @@ is_code() {
   case " ${CODE_EXTENSIONS:-} " in *" $_code_ext "*) return 0 ;; esac
   return 1
 }
+
+# The team's own agent files: in a team repo (MAPS="beside") the kit never
+# edits them. pre-edit.sh refuses agent edits to them; docs_reminder.py
+# keeps the same list in TEAM_NAMES.
+TEAM_FILES="AGENTS.md CLAUDE.md GEMINI.md"
