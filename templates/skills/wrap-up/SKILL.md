@@ -36,7 +36,7 @@ yourself; only the user does.
 
 ## 3. Learning docs
 
-Read `$(git rev-parse --git-common-dir)/agent-kit/stale-learning` (the Stop
+Read `$(git rev-parse --git-dir)/agent-kit/stale-learning` (the Stop
 hook writes it) and `sh .agents/kit/stale.sh since <base>`. If learning docs
 are stale, ask once: "N learning docs describe code this task changed.
 Refresh them now?" On yes, run the `learning-docs` skill with scope `stale`,

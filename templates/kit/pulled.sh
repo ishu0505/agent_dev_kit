@@ -15,16 +15,18 @@
 # On a branch without a mark, the mark is set to HEAD and nothing is
 # reported: the kit starts counting from now. When nothing from other
 # people arrived, the mark moves to HEAD by itself. A commit counts when its
-# author email differs from git config user.email and it changes a code file
-# (CODE_EXTENSIONS). Merge commits do not count; the commits they bring do.
+# author email is not git config user.email or one of SELF_EMAILS, and it
+# changes a code file (CODE_EXTENSIONS). Merge commits do not count; the
+# commits they bring do.
 KIT_LIB="$(cd "$(dirname "$0")" && pwd)/lib.sh"  # before cd: $0 may be relative
 cd "$(git rev-parse --show-toplevel)" || exit 1
 CODE_EXTENSIONS="py js ts tsx jsx go rs c cc cpp h hpp java kt cs rb php swift sql sh"
 SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 LEARNING_DIR="learning_docs"
-. "$KIT_LIB" && load_conf
 DIR="$(git rev-parse --git-common-dir)/agent-kit/synced"
-MAX=500  # look at most at this many commits
+PULLED_MAX_COMMITS=500  # look at most at this many commits (config)
+. "$KIT_LIB" && load_conf
+case "$PULLED_MAX_COMMITS" in ""|*[!0-9]*) PULLED_MAX_COMMITS=500 ;; esac
 
 branch=$(git symbolic-ref -q --short HEAD) || exit 0  # detached HEAD: nothing to say
 head=$(git rev-parse -q --verify HEAD) || exit 0      # no commit yet
@@ -43,10 +45,12 @@ base() {  # base: the mark, made valid (set to HEAD when missing or gone)
 }
 
 arrived() {  # arrived <base>: "<sha> <author> <subject>" for each teammate commit that changed code
-  me=$(git config user.email || echo "<none>")
-  git log --no-merges -n "$MAX" --format='%H%x09%ae%x09%an%x09%s' "$1..$head" |
+  # Your emails: user.email plus SELF_EMAILS, so a commit made under a second email is not a teammate's.
+  mine=$(printf ' %s %s ' "$(git config user.email)" "${SELF_EMAILS:-}" | tr '[:upper:]' '[:lower:]')
+  git log --no-merges -n "$PULLED_MAX_COMMITS" --format='%H%x09%ae%x09%an%x09%s' "$1..$head" |
   while IFS="$(printf '\t')" read -r sha email name subject; do
-    [ "$email" = "$me" ] && continue
+    email=$(printf '%s' "$email" | tr '[:upper:]' '[:lower:]')
+    case "$mine" in *" ${email:-<none>} "*) continue ;; esac
     code=no
     while IFS= read -r file; do
       [ -n "$file" ] && is_code "$file" && { code=yes; break; }

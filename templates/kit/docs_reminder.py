@@ -366,8 +366,8 @@ def fresh_state_dir(state_dir: Path) -> Path:
 def run_repo(repo: Path, event: dict, baseline: bool) -> tuple[str, dict[str, str]]:
     """The docs step for one repo with the kit: the reason to block (empty: let
     the stop through), and the files this turn changed there."""
-    common = git(repo, "rev-parse", "--git-common-dir").strip()
-    state_dir = fresh_state_dir((repo / common / "agent-kit" / "state").resolve())
+    git_dir = git(repo, "rev-parse", "--git-dir").strip()  # per worktree: worktrees share the common dir
+    state_dir = fresh_state_dir((repo / git_dir / "agent-kit" / "state").resolve())
     state_file = state_dir / f"{session_name(event)}.json"
     now = snapshot(repo)
 
@@ -500,8 +500,8 @@ def agy_event(event: dict) -> dict:
 def agy_may_continue(repo: Path, event: dict, reason: str) -> bool:
     """Antigravity has no stop_hook_active, so the kit keeps its own: the stop
     right after a "continue" always goes through, as in Claude Code and Codex."""
-    common = git(repo, "rev-parse", "--git-common-dir").strip()
-    marker = fresh_state_dir((repo / common / "agent-kit" / "state").resolve()) / f"{session_name(event)}-agy-continued"
+    git_dir = git(repo, "rev-parse", "--git-dir").strip()  # per worktree: worktrees share the common dir
+    marker = fresh_state_dir((repo / git_dir / "agent-kit" / "state").resolve()) / f"{session_name(event)}-agy-continued"
     if marker.exists() or not reason:
         marker.unlink(missing_ok=True)
         return False

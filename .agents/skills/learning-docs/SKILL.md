@@ -119,7 +119,7 @@ time it is refreshed.
 A learning doc is stale when
 `git diff --stat <source_commit> -- <source_paths>` lists changes. The Stop
 hook also lists the docs a session made stale in
-`$(git rev-parse --git-common-dir)/agent-kit/stale-learning`; `wrap-up` asks
+`$(git rev-parse --git-dir)/agent-kit/stale-learning`; `wrap-up` asks
 the user to refresh them at the end of the task. With scope `stale`, take
 both lists, rewrite only the affected sections, update `source_commit`,
 remove the refreshed docs from the stale-learning file, and report what

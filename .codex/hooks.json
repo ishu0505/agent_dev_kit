@@ -10,6 +10,16 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'r=$(git rev-parse --show-toplevel 2>/dev/null) && [ -f \"$r/.agents/kit/sessions.sh\" ] && exec sh \"$r/.agents/kit/sessions.sh\" turn codex; exit 0'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

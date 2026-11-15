@@ -3,6 +3,39 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.15.1 — 2026-11-15
+
+Two fixes.
+
+- **Worktrees no longer share the stale learning-doc list.** The Stop hook's
+  `stale-learning` list and its per-session `state/` now live in each
+  worktree's own git folder (`git rev-parse --git-dir`), not the shared one,
+  so one worktree's wrap-up no longer clears another's list. The catch-up
+  queue, the pulled-commit marks and the session log stay shared: they mean
+  the same in every worktree. A normal checkout sees no change.
+- **`SELF_EMAILS`**: list the other emails you commit with, separated by
+  spaces, in `.agents/agent-kit.conf`, and `pulled.sh` stops reporting
+  those commits as other people's work. Case does not matter.
+- **Map limits raised**: top-level maps 70 → 80 lines (`TOP_MAP_MAX`), unit
+  maps 40 → 50 (`UNIT_MAP_MAX`).
+- **Limits are settings, in one "Limits" section of `agent-kit.conf`**:
+  `TOP_MAP_MAX`, `UNIT_MAP_MAX`, and three that were fixed in the scripts:
+  `PULLED_MAX_COMMITS` (500), `SESSIONS_LOG_MAX_LINES` (200) and
+  `INVENTORY_OLD_DAYS` (180). `check.sh` fails, with its fix, when one is
+  not a whole number.
+- **Coding standard**: no dense one-liners that hide a loop or several
+  checks in one `return`; functions are about 5–40 lines of executable body,
+  and docstring, comment and blank lines do not count; look in the parent
+  and shared helper folders before writing a helper; docstrings are a
+  summary plus inputs, output, errors and the why.
+
+**What an upgrading repo must do:** run `agent-kit upgrade`. Optionally add
+`SELF_EMAILS="..."` to `.agents/agent-kit.conf` (repo-owned, so the upgrade
+does not add it), and change `TOP_MAP_MAX=70` to `80` and `UNIT_MAP_MAX=40` to
+`50` there to get the new limits (the upgrade keeps your value). To change the new limits, copy
+the "Limits" section from `templates/config/agent-kit.conf`; without it the
+defaults apply. No hook changes.
+
 ## 0.15.0 — 2026-11-10
 
 The agent-kit line now starts **every** reply, not just the first, and every

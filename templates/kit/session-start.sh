@@ -43,7 +43,7 @@ pending=$(sh .agents/kit/queue.sh count 2>/dev/null)
 pulled=$(sh .agents/kit/pulled.sh status 2>/dev/null | head -1)
 [ -n "$pulled" ] &&
   echo "agent-kit: $pulled Tell the user once, and offer the docs-sync skill with scope pulled (it checks the docs and learning docs against those commits)."
-stale="$(git rev-parse --git-common-dir)/agent-kit/stale-learning"
+stale="$(git rev-parse --git-dir)/agent-kit/stale-learning"  # per worktree
 [ -s "$stale" ] &&
   echo "agent-kit: $(wc -l < "$stale" | tr -d ' ') learning doc(s) are stale; the wrap-up skill refreshes them at the end of the task."
 tasks=$(sh .agents/kit/task.sh list 2>/dev/null | awk -F '\t' '

@@ -81,8 +81,17 @@ variant() {  # variant <name>: a copy of the passing Go repo to break
 V=$(variant dead); printf '| `nope/` | gone | |\n' >> "$V/AGENTS.md"
 expect_fail "dead path in a map" "$V" "names a missing path: nope"
 
-V=$(variant long); i=0; while [ $i -lt 41 ]; do echo "line" >> "$V/cmd/api/AGENTS.md"; i=$((i + 1)); done
-expect_fail "unit map over its limit" "$V" "(max 40)"
+V=$(variant badnumber); echo 'TOP_MAP_MAX="eighty"' >> "$V/.agents/agent-kit.conf"
+expect_fail "a limit that is not a whole number names its fix" "$V" 'set TOP_MAP_MAX to a whole number (default 80)'
+
+V=$(variant shortlog); echo 'SESSIONS_LOG_MAX_LINES=2' >> "$V/.agents/agent-kit.conf"
+for agent in a b c d; do (cd "$V" && sh .agents/kit/sessions.sh record "$agent" > /dev/null 2>&1 || true); done
+log="$(git -C "$V" rev-parse --git-common-dir)/agent-kit/sessions.log"
+case "$log" in /*) ;; *) log="$V/$log" ;; esac
+[ "$(wc -l < "$log" | tr -d ' ')" = 2 ] && ok "SESSIONS_LOG_MAX_LINES caps the session log" || bad "SESSIONS_LOG_MAX_LINES caps the session log" "$(cat "$log" 2>&1)"
+
+V=$(variant long); i=0; while [ $i -lt 51 ]; do echo "line" >> "$V/cmd/api/AGENTS.md"; i=$((i + 1)); done
+expect_fail "unit map over its limit" "$V" "(max 50)"
 
 V=$(variant nomap); rm "$V/internal/store/AGENTS.md"
 expect_fail "unit without a map" "$V" "internal/store has no AGENTS.md"
@@ -354,13 +363,13 @@ V=$(variant removal); git_quiet -C "$V" rm -q go.mod
 out=$(cd "$V" && sh .agents/kit/check.sh --staged --quiet 2>&1)
 [ $? -ne 0 ] && printf '%s' "$out" | grep -q "missing path: go.mod" && ok "staged: deleting a mapped file blocks" || bad "staged: deleting a mapped file blocks" "$out"
 
-V=$(variant longmap); i=0; while [ $i -lt 41 ]; do echo "line" >> "$V/cmd/api/AGENTS.md"; i=$((i + 1)); done
+V=$(variant longmap); i=0; while [ $i -lt 51 ]; do echo "line" >> "$V/cmd/api/AGENTS.md"; i=$((i + 1)); done
 git_quiet -C "$V" commit --no-verify -am "long map"
 echo "// more" >> "$V/internal/store/store.go"; git_quiet -C "$V" add -A
 (cd "$V" && sh .agents/kit/check.sh --staged --quiet >/dev/null 2>&1) && ok "staged: a long map elsewhere does not block" || bad "staged: a long map elsewhere does not block"
 echo "line" >> "$V/cmd/api/AGENTS.md"; git_quiet -C "$V" add -A
 out=$(cd "$V" && sh .agents/kit/check.sh --staged --quiet 2>&1)
-[ $? -ne 0 ] && printf '%s' "$out" | grep -q "(max 40)" && ok "staged: editing the long map blocks" || bad "staged: editing the long map blocks" "$out"
+[ $? -ne 0 ] && printf '%s' "$out" | grep -q "(max 50)" && ok "staged: editing the long map blocks" || bad "staged: editing the long map blocks" "$out"
 
 V=$(variant branch); git -C "$V" branch -q -M main; printf '| `nope/` | gone | |\n' >> "$V/AGENTS.md"
 git_quiet -C "$V" commit --no-verify -am "broken on main"; git -C "$V" checkout -q -b feature
@@ -580,6 +589,12 @@ echo "// x" >> "$V/cmd/api/main.go"
 out=$(hook "$V" "$WORK/bash.jsonl" s4)
 [ -z "$out" ] && grep -q "learning_docs/01-api.md" "$V/.git/agent-kit/stale-learning" &&
   ok "stop hook: stale learning docs are noted, never blocking" || bad "stop hook: stale learning docs are noted, never blocking" "$out"
+WT="$WORK/learnhook-wt"; git -C "$V" worktree add -q --detach "$WT" 2>/dev/null
+out=$(cd "$WT" && echo '{}' | sh "$V/.agents/kit/session-start.sh" 2>&1)
+! printf '%s' "$out" | grep -q 'learning doc(s) are stale' && [ ! -e "$(cd "$WT" && git rev-parse --git-dir)/agent-kit/stale-learning" ] &&
+  ok "worktrees: stale learning docs stay with the worktree that made them" || bad "worktrees: stale learning docs stay with the worktree that made them" "$out"
+[ "$(cd "$WT" && sh "$V/.agents/kit/queue.sh" count)" = "$(cd "$V" && sh .agents/kit/queue.sh count)" ] &&
+  ok "worktrees: the catch-up queue is shared" || bad "worktrees: the catch-up queue is shared"
 
 # --- Team repos: work beside the team's AGENTS.md / CLAUDE.md, locally -------
 TR="$WORK/teamrepo"; mkdir -p "$TR"; git init -q --bare "$TR/remote.git"
@@ -754,6 +769,10 @@ base=$(cd "$P2" && sh .agents/kit/pulled.sh base)
 [ "$(cd "$P2" && sh .agents/kit/pulled.sh count)" = 0 ] && ok "pulls: done clears it" || bad "pulls: done clears it"
 echo 'z = 3' >> "$P2/app.py"; git_quiet -C "$P2" -c user.email=me@me.com commit --no-verify -am mine
 [ "$(cd "$P2" && sh .agents/kit/pulled.sh count)" = 0 ] && ok "pulls: your own commits never count" || bad "pulls: your own commits never count"
+echo 'w = 4' >> "$P2/app.py"; git_quiet -C "$P2" -c user.email=Alt@Me.com commit --no-verify -am "mine, second email"
+[ "$(cd "$P2" && sh .agents/kit/pulled.sh count)" = 1 ] && ok "pulls: another email counts by default" || bad "pulls: another email counts by default"
+echo 'SELF_EMAILS="other@x.com alt@me.com"' >> "$P2/.agents/agent-kit.conf"
+[ "$(cd "$P2" && sh .agents/kit/pulled.sh count)" = 0 ] && ok "pulls: SELF_EMAILS marks your other emails (any case)" || bad "pulls: SELF_EMAILS marks your other emails (any case)"
 
 # --- Multi-repo workspaces ------------------------------------------------------
 export AGENT_KIT_STATE="$WORK/kit-state"
@@ -1120,6 +1139,30 @@ printf '%s\n' "$out" | grep -q 'agentk\|AGENTS\|CLAUDE\|SKILL\|node_modules\|^\.
   bad "repo-md-sync list: leaves out kit docs, agent files and skipped folders" "$out" || ok "repo-md-sync list: leaves out kit docs, agent files and skipped folders"
 [ "$(git -C "$M" status --porcelain -- README.md docs/guide.md)" = "" ] &&
   ok "repo-md-sync list: changes no file" || bad "repo-md-sync list: changes no file"
+
+# --- The kit's own install ----------------------------------------------------
+# This repo uses the kit on itself: .agents/kit/, .agents/skills/ and .githooks/
+# are copies of templates/. A fix made only in the copy is lost on the next
+# upgrade and never ships, and a copy left behind after a version bump tests
+# old code. Each mismatch names the template to edit.
+drift=""
+compare_tree() {  # compare_tree <template folder> <installed folder>
+  # post-checkout is installed only in team repos (MAPS="beside").
+  for template_file in $(cd "$KIT/$1" && find . -type f ! -name post-checkout | sed 's|^\./||'); do
+    installed_file="$KIT/$2/$template_file"
+    [ -f "$installed_file" ] && [ "$(cksum < "$KIT/$1/$template_file")" = "$(cksum < "$installed_file")" ] ||
+      drift="$drift$2/$template_file (template: $1/$template_file)
+"
+  done
+}
+compare_tree templates/kit .agents/kit
+compare_tree templates/skills .agents/skills
+compare_tree templates/githooks .githooks
+[ "$(cat "$KIT/VERSION")" = "$(cat "$KIT/.agents/kit/VERSION")" ] ||
+  drift="${drift}.agents/kit/VERSION (kit: $(cat "$KIT/VERSION"), installed: $(cat "$KIT/.agents/kit/VERSION"))
+"
+[ -z "$drift" ] && ok "the kit's own install matches templates/ and VERSION" ||
+  bad "the kit's own install matches templates/ and VERSION" "${drift}Fix: make each change in templates/, never in the installed copy, then run: sh install.sh ."
 
 echo
 echo "$PASSED passed, $FAILED failed"

@@ -16,7 +16,9 @@ SKIP_DIRS="node_modules .venv venv vendor target build dist out bin obj"
 LEARNING_DIR="learning_docs"
 DOC_SUFFIX=""
 OWN_SKILLS=""
+INVENTORY_OLD_DAYS=180
 . "$KIT_LIB" && load_conf
+case "$INVENTORY_OLD_DAYS" in ""|*[!0-9]*) INVENTORY_OLD_DAYS=180 ;; esac
 KIT_SKILLS="lineage scaffold docs-sync learning-docs catch-up wrap-up explain-diff"
 TODAY=$(date +%s)
 SEEN=$(mktemp) || exit 1
@@ -39,7 +41,7 @@ describe() {  # describe <path>: state, last change, size, and notes
   if [ -d "$path" ]; then size="$(find "$path" -type f | wc -l | tr -d ' ') files"
   else size="$(wc -l < "$path" | tr -d ' ') lines"; fi
   note=""
-  if [ -n "$stamp" ] && [ $(( (TODAY - stamp) / 86400 )) -gt 180 ]; then
+  if [ -n "$stamp" ] && [ $(( (TODAY - stamp) / 86400 )) -gt "$INVENTORY_OLD_DAYS" ]; then
     note="not changed in $(( (TODAY - stamp) / 86400 )) days"
   fi
   [ "$state" = tracked ] && [ -z "$day" ] && state="staged"

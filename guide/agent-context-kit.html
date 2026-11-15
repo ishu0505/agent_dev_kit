@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.15.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.15.1 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -257,7 +257,7 @@ footer { color: var(--muted); font-size: 14px; }
   <div class="table-wrap"><table>
     <thead><tr><th>Check</th><th>Fails when</th></tr></thead>
     <tbody>
-      <tr><td>Map size</td><td>An <code>AGENTS.md</code> is over 70 lines (top level) or 40 (unit)</td></tr>
+      <tr><td>Map size</td><td>An <code>AGENTS.md</code> is over 80 lines (top level) or 50 (unit)</td></tr>
       <tr><td>Dead paths</td><td>A map names a path that does not exist</td></tr>
       <tr><td>Unit context</td><td>A big unit has no <code>README.agentk.md</code>, <code>AGENTS.md</code> or pointer file; a map or pointer file carries the <code>.agentk.md</code> suffix, or a pointer does not import <code>@AGENTS.md</code></td></tr>
       <tr><td>One skill copy</td><td><code>.claude/skills</code> and <code>.agents/skills</code> are separate folders, which drift apart</td></tr>
@@ -323,7 +323,7 @@ footer { color: var(--muted); font-size: 14px; }
 </section>
 
 <section>
-  <div class="note"><p><strong>Line limits apply only to <code>AGENTS.md</code> maps</strong> (70 at the top, 40 per unit, set in the config). Detail docs, <code>DECISIONS.agentk.md</code>, learning docs and the bootstrap prompt have no limit.</p></div>
+  <div class="note"><p><strong>Line limits apply only to <code>AGENTS.md</code> maps</strong> (80 at the top, 50 per unit, set in the config). Detail docs, <code>DECISIONS.agentk.md</code>, learning docs and the bootstrap prompt have no limit.</p></div>
 </section>
 
 <section>
