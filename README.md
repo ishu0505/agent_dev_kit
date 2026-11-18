@@ -27,11 +27,11 @@ names keep no suffix, because agents load them only by these exact names:
 |---|---|---|
 | Maps | `AGENTS.md` in the root, and in each unit past a size threshold | Short pages: what is where, rules, how to run. An agent loads the root map and the maps on the path to the folder it works in, nothing else |
 | Detail docs | `README.agentk.md` beside each unit map | The detail a map points to. Your own `README.md` in the same folder is linked, never changed |
-| Command card | `KIT.agentk.md` at the root | How to use the kit in this repo. Your root `README.md` is not changed |
+| Command card | `KIT.agentk.md` at the root, under `.agents/` when kept local | How to use the kit here and the reasons for lasting setup choices |
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
-| Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Every decision with why, alternatives, evidence, and what would reverse it |
+| Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Project decisions with reasons, alternatives, evidence, and what would reverse them |
 | Plan | `PLAN.agentk.md` (new projects) | The goal, the first milestone, the planned units |
-| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, and three that run only when you ask: `interactive-docs`, `arch-emulator`, `repo-md-sync` |
+| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo opt-in). On request: `interactive-docs`, `arch-emulator`, `repo-md-sync` |
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
@@ -256,8 +256,9 @@ unit gets its map, and `check.sh` stays green.
 2. In the repo, type `agent-kit upgrade`.
 3. It runs house cleaning first (see "House cleaning"), then compares
    `.agents/kit/VERSION` with the kit's `VERSION`, reads `CHANGELOG.md`, and
-   runs `install.sh`. Your config, maps, decisions and settings stay byte
-   for byte. Skills are handled as in "Your skills are safe".
+   runs `install.sh`. During that install step, your config, maps,
+   decisions and settings stay byte for byte. Skills are handled as in
+   "Your skills are safe".
 4. It lists anything partial or missing and asks only about that.
 5. **From kit 0.5 or older**, the kit's files still have plain names
    (`DECISIONS.md`, a unit's `README.md`). Nothing breaks: the old names
@@ -265,14 +266,18 @@ unit gets its map, and `check.sh` stays green.
    `README.md` files the kit wrote and which are yours, and offers to rename
    the kit's files to `*.agentk.md` (with `git mv`, so history follows).
    Say no, and it keeps the old names.
-6. Review the changes and commit.
+6. **From kit 0.16 or older**, the agent offers to move any kit-only setup
+   decisions from project lineage into **Setup decisions** in the command
+   card. Choose which to move. The move keeps existing IDs and links
+   working. Active settings stay in `.agents/agent-kit.conf`.
+7. Review the changes and commit.
 
 ## Your skills are safe
 
-The kit brings fourteen skills: `lineage`, `scaffold`, `docs-sync`,
+The kit brings fifteen skills: `lineage`, `scaffold`, `docs-sync`,
 `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
 `explain-d-in`, `todo`, `use-adkit`, `interactive-docs`, `arch-emulator`,
-`repo-md-sync`. A skill with any
+`repo-md-sync`, `portfolio-update`. A skill with any
 other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
@@ -389,6 +394,22 @@ mode.
 | Work on a long task | ask for the task; the agent opens a task file | It opens one when the work spans sessions or parts, needs your OK on a plan, or is an investigation to keep; say "no task file" to skip. `sh .agents/kit/task.sh list` shows open tasks |
 | Save an idea for later | "add to todo: ..." (the `todo` skill) | Picks the category, adds where it came from and refs to files or folders. "what's in todo" lists them; "start T-007" reads its refs as context; "T-007 is done" deletes it. `sh .agents/kit/todo.sh list` works without an agent |
 | Find what agents should skip | `sh .agents/kit/candidates.sh [folder]` | No AI, read only. Test data, generated code, big data files, old copies. You confirm each row before it goes in a map |
+
+### Offer portfolio updates for a project
+
+Run these in the source project. Use the local path to your portfolio
+checkout and the ID of the existing project entry on the site.
+
+```sh
+git config --local agentkit.portfolioRepo "/absolute/path/to/portfolio"
+git config --local agentkit.portfolioProject "example-project"
+```
+
+When a verified change affects that entry, `wrap-up` shows the proposed
+site edits and asks whether to apply them. You can also request
+`portfolio-update` directly. The settings stay in your local Git config.
+To turn offers off for this project, run
+`git config --local --unset agentkit.portfolioProject`.
 
 ### How to see and call skills in each agent
 

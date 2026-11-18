@@ -90,7 +90,14 @@ With no task file, propose a map row only when this task hit a real trap,
 at most two, each with the user's yes. Never add a row from a guess: each
 one must come from something this task saw.
 
-## 6. Pull request
+## 6. Portfolio
+
+After successful checks, read the source repo's local Git settings
+`agentkit.portfolioRepo` and `agentkit.portfolioProject`. When both are set
+and the task has a change worth showing to portfolio readers, run
+`portfolio-update`. The skill asks before any site edit.
+
+## 7. Pull request
 
 When a pull request is being opened or updated, run the `explain-diff`
 skill for `since <base>` and put its section in the pull request
@@ -98,7 +105,7 @@ description (replace the old section between the markers; never add a
 second one). When the user asks for the plainer explanation, use
 `explain-d-ez` instead; for an interactive page, `explain-d-in`.
 
-## 7. Report
+## 8. Report
 
 A short list: checks (pass or fixed), docs changed, learning docs
 refreshed or still stale, interactive pages synced or still stale, catch-up items, other people's commits waiting
