@@ -1,8 +1,11 @@
 # Using the agent kit in this repo
 
 This repo uses [agent_dev_kit](<kit url>). It gives coding agents short
-maps (`AGENTS.md`), keeps the reason behind each choice
+maps (`AGENTS.md`), keeps the reasons behind project decisions
 (`DECISIONS.agentk.md`), and checks that the docs stay true.
+
+Active kit settings live in `.agents/agent-kit.conf`. When a kit setup
+choice has a lasting reason, record it here under `## Setup decisions`.
 
 Every Markdown file the kit writes ends in `.agentk.md`, except `AGENTS.md`,
 `CLAUDE.md` and `GEMINI.md`, which agents need by those exact names. The kit
@@ -26,7 +29,8 @@ and tells you when one no longer matches the code.
 | Learn the system by clicking | `interactive-docs` (pages in `learning_docs/interactive_l_docs/`); `interactive-docs sync` updates them; `wrap-up` and `docs-sync` ask when they are stale |
 | How does the system scale? | `arch-emulator`: a read-only review with gaps and fixes, in `learning_docs/architecture/` |
 | Tidy agent and doc files | `agent-kit cleanup` |
-| Record a decision or result | `lineage` |
+| Record a project decision or experiment result | `lineage` |
+| Propose an update to an existing portfolio entry | `portfolio-update` (opt in with local Git settings `agentkit.portfolioRepo` and `agentkit.portfolioProject`) |
 | Which docs may be stale? | `sh .agents/kit/stale.sh` (read only) |
 | A commit that needs no docs | put `[no-docs]` in its message |
 | Add a service, package or experiment | `scaffold` |

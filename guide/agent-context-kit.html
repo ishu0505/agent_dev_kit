@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.16.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.17.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -112,11 +112,12 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>See that the kit is in use, and what the agent used</td><td>every reply</td><td>Every reply starts with <code>agent-kit 0.15.0 · level: repo · map: AGENTS.md</code> and ends with <code>agent-kit used: maps ... · skills ... · tools Read ×3, Bash ×2</code>. A per-prompt hook asks for it in Claude, Codex, Gemini and Antigravity; Cursor reads the ask in the root map. First reply only: <code>SESSION_BANNER="first"</code>; off: <code>"off"</code></td></tr>
       <tr><td>Load the kit by hand in a chat</td><td><code>/use-adkit</code></td><td>When a reply had no <code>agent-kit</code> line (Cursor, or hooks that did not run): reads the maps, says the line, then does the prompt. Codex: <code>$use-adkit</code></td></tr>
       <tr><td>Which repos and agents use the kit</td><td><code>agent-kit doctor [folder]</code></td><td>Read only. Each repo in a folder: kit version, level, and per agent its wiring and last session</td></tr>
+      <tr><td>Refresh a portfolio entry</td><td><code>portfolio-update</code></td><td>Opt in per source repo. Wrap-up proposes site edits and asks before applying them.</td></tr>
       <tr><td>Update your README and other docs</td><td><code>repo-md-sync</code></td><td>Only when you ask. Lists the Markdown files people wrote with how much code changed since each; you pick the files, then approve each file's edits. Never commits</td></tr>
       <tr><td>Learn the system</td><td><code>learning-docs</code></td><td>Writes local <code>learning_docs/</code>; <code>learning-docs stale</code> refreshes only what changed</td></tr>
       <tr><td>Learn the system by clicking</td><td><code>interactive-docs</code></td><td>Only when you name it. One HTML page per learning doc in <code>learning_docs/interactive_l_docs/</code>: clickable diagrams, step-through flows, database diagrams, a quiz. <code>interactive-docs sync</code> rebuilds the pages whose learning doc changed; once you have pages, <code>wrap-up</code> and <code>docs-sync</code> ask whether to sync the stale ones</td></tr>
       <tr><td>See how the system scales</td><td><code>arch-emulator</code></td><td>Only when you name it. Read only: what fills up first as load grows, latency per path, pros and cons of each tool, gaps, tests, and fixes (quick, medium, long term). A dated report and a page with a load slider in <code>learning_docs/architecture/</code></td></tr>
-      <tr><td>A decision or result</td><td><code>lineage</code></td><td>Asks why, alternatives, evidence; writes a decision file and its row in <code>DECISIONS.agentk.md</code></td></tr>
+      <tr><td>A project decision or experiment result</td><td><code>lineage</code></td><td>Records decisions, reasons and evidence in project lineage</td></tr>
       <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>
       <tr><td>Tidy agent and doc files</td><td><code>agent-kit cleanup</code></td><td>Lists every agent and doc file, proposes keep, merge, own or remove, and asks one group at a time</td></tr>
       <tr><td>A long task</td><td>Ask for the task; the agent opens a task file</td><td>When the work spans sessions or parts, needs your OK on a plan, or is an investigation to keep. Notes go in <code>.agents/work/</code>, never committed; <code>wrap-up</code> closes it</td></tr>
@@ -144,7 +145,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Your skills are safe, and the repo gets a clean-up first</h2>
-  <p>The kit brings fourteen skills (three of them, <code>interactive-docs</code>, <code>arch-emulator</code> and <code>repo-md-sync</code>, run only when you ask). A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
+  <p>The kit brings fifteen skills (three of them, <code>interactive-docs</code>, <code>arch-emulator</code> and <code>repo-md-sync</code>, run only when you ask). A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>The skill in your repo</th><th>What the install does</th></tr></thead>
     <tbody>
@@ -166,12 +167,12 @@ footer { color: var(--muted); font-size: 14px; }
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>
       <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop and SessionStart hooks, <code>queue.sh</code>, <code>stale.sh</code>, <code>map-rows.sh</code>, <code>writing-style.agentk.md</code>, <code>coding-standard.agentk.md</code> (loaded at every session start), <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
-      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>, <code>todo</code>, <code>use-adkit</code>, <code>interactive-docs</code>, <code>arch-emulator</code>, <code>repo-md-sync</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>, <code>todo</code>, <code>use-adkit</code>, <code>portfolio-update</code>, <code>interactive-docs</code>, <code>arch-emulator</code>, <code>repo-md-sync</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.githooks/pre-commit</code>, <code>post-commit</code></td><td>Checks what a commit breaks; queues code committed without its docs</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, map thresholds, line limits, pointer files, interface files, ledger, decisions folder</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root and in every unit past the size threshold</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>README.agentk.md</code>, <code>KIT.agentk.md</code></td><td>The detail doc beside each unit map; how to use the kit here. Your own <code>README.md</code> files are never changed</td><td><span class="pill check">repo</span></td></tr>
-      <tr><td><code>DECISIONS.agentk.md</code>, <code>PLAN.agentk.md</code></td><td>The decision index (one file per decision in <code>docs/decisions/</code>); the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>README.agentk.md</code>, <code>KIT.agentk.md</code></td><td>The detail doc beside each unit map and the command card with the reasons for kit setup choices</td><td><span class="pill check">repo</span></td></tr>
+      <tr><td><code>DECISIONS.agentk.md</code>, <code>PLAN.agentk.md</code></td><td>The project decision index (one file per decision in <code>docs/decisions/</code>) and the plan for a new project</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>TODO.agentk.md</code></td><td>The todo list: ideas and follow-ups for a later session. Pushed or local by share mode; always local in a team repo</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>.claude/settings.json</code>, <code>.codex/hooks.json</code></td><td>Stop hook for Claude Code and Codex; SessionStart hook for Claude Code</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>.agents/hooks.json</code></td><td>SessionStart and Stop hooks for Antigravity (agy CLI, IDE, app), through <code>.agents/kit/agy-hook.sh</code></td><td><span class="pill check">repo</span></td></tr>
@@ -336,11 +337,12 @@ the folder that contains this file. The kit gives the repo:
 1. **Maps**: short `AGENTS.md` files so any agent works here without reading
    all the code: one at the root, and one per unit big enough to need it.
    `CLAUDE.md` / `GEMINI.md` only import them.
-2. **Lineage**: `DECISIONS.agentk.md`, the index of every decision and its
-   reason (one file per decision); an optional experiment ledger.
+2. **Lineage**: `DECISIONS.agentk.md`, the index of project decisions and
+   their reasons (one file per decision), and an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-   `explain-d-in`, `todo`, `use-adkit`; and three that run only when the user asks:
+   `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo
+   opt-in). Three more run on request:
    `interactive-docs`, `arch-emulator`, `repo-md-sync` (edits the repo&#x27;s own
    Markdown, file by file, after the user&#x27;s yes).
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
@@ -515,7 +517,7 @@ repo. House cleaning then marks the team&#x27;s agent files &quot;leave alone&qu
 2. **Propose.** For each file, propose one action with a one-line reason:
    - **keep** as it is;
    - **merge** its content into a kit file (old rules into `AGENTS.md`, old
-     decisions into `DECISIONS.agentk.md`, other agents&#x27; rule files into
+     project decisions into `DECISIONS.agentk.md`, other agents&#x27; rule files into
      the maps so every agent reads the same rules), then remove it. Offer
      this only for agent files (old `CLAUDE.md` text, `.cursorrules`, old
      decision notes), never for a `README.md` or other docs people wrote;
@@ -601,8 +603,10 @@ Every case:
    CI should also run the kit&#x27;s checks**. Choices: yes, add a GitHub Actions
    file (recommended when the repo uses GitHub); no; I use another CI (then
    tell me to run `sh .agents/kit/check.sh --ci` there).
-7. **Decisions already made** and where their reasons are written. Each new
-   decision becomes one file in `docs/decisions/`, listed in
+7. **Project decisions already made** and where their reasons are written.
+   Ask about architecture, pipeline choices, feature flag strategy and
+   choices informed by experiments. Each new project decision becomes one
+   file in `docs/decisions/`, listed in
    `DECISIONS.agentk.md`. Old decision records (ADRs) can stay where they
    are. (Sets `DECISIONS_DIR`.)
 8. **Experiments or benchmarks** that decide what ships, and their folder.
@@ -707,8 +711,8 @@ Show three things and wait for my approval:
    rows. Keep the root map&#x27;s &quot;Tasks&quot; block.
 4. **Lineage**: `DECISIONS.agentk.md` from `KIT/templates/docs/DECISIONS.md` (the
    index), and one file per decision from `KIT/templates/docs/decision.md`
-   in `DECISIONS_DIR`, seeded with the decisions from the interview (write
-   &quot;not recorded&quot; for a reason nobody wrote down). With `DECISIONS_DIR`
+   in `DECISIONS_DIR`, seeded with the project decisions from the interview
+   (write &quot;not recorded&quot; for a reason nobody wrote down). With `DECISIONS_DIR`
    empty, keep every entry in `DECISIONS.agentk.md`. In case C with full
    entries in the index, offer the split (the `lineage` skill says how).
    Decision files are named `D-NNN-&lt;short-name&gt;.agentk.md`. If `LEDGER` is
@@ -718,9 +722,40 @@ Show three things and wait for my approval:
    folders that exist; each unit gets its map when its folder is created.
 6. **Command card**: `KIT/templates/docs/KIT.md`, saved as
    `KIT.agentk.md` at the root (`.agents/KIT.agentk.md` with `SHARE`
-   `learning` or `none`, and in a team repo). Replace `&lt;kit url&gt;` with the kit&#x27;s remote
+   `learning` or `none`, and in a team repo). Use the repo&#x27;s configured
+   suffix when creating the card. Replace `&lt;kit url&gt;` with the kit&#x27;s remote
    (`git -C KIT remote get-url origin`, as an https link). Never add it to
    the root `README.md`.
+
+   Keep active kit settings in `.agents/agent-kit.conf`. When the interview
+   gives a lasting reason for a kit setup choice, add it under `## Setup
+   decisions` in the command card. For example, record why the repo uses
+   beside mode to keep the team&#x27;s maps in charge. Create the section only
+   when there is a reason to record.
+
+   **Case C before 0.17.0, or when asked to move old setup decisions.** Read
+   the kit&#x27;s decision index and any files it lists. Identify entries solely
+   about how this repo uses the kit. Skip entries already marked `moved to
+   kit setup` with a working link to the command card. Keep project
+   decisions and entries that also govern the project in lineage. Show the
+   proposed moves by ID and ask which to apply. If there are no candidates,
+   finish this step.
+
+   For approved entries, append the full record under `## Setup decisions`
+   in the existing kit-owned card at the location for the repo&#x27;s share mode.
+   Create the card from the template if it is missing. Honor `DOC_SUFFIX`
+   and reuse an existing kit-owned `KIT.agentk.md` at that location if it
+   uses the older naming convention. Preserve the original ID, date, status,
+   reasoning and links. Adjust relative links for the new location. Keep
+   the original heading or file path as a link to the moved entry, so old
+   references still work and the ID stays reserved. For a file per decision,
+   keep its index row and front matter, set both statuses to `moved to kit
+   setup`, and replace the body below the heading with the link. For inline
+   entries, keep the heading and use the same status and link in the entry.
+   If the card already has that ID, check that the copy is complete before
+   replacing the old text. Skip a move if it would publish local material
+   or require editing a team-owned file. Verify the old and new links
+   resolve in phase 5.
 7. **Wiring** (team repo, `MAPS=&quot;beside&quot;`). Run `sh .agents/kit/wire.sh --plan`
    and show me its list: for each folder and agent, what it will write and
    why, plus any limit. Apply it after one question (apply all, recommended

@@ -3,6 +3,21 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.17.0
+
+Project decisions go in `DECISIONS.agentk.md`. Record lasting reasons for
+kit setup choices under **Setup decisions** in the command card. Active
+kit settings live in `.agents/agent-kit.conf`.
+
+The `portfolio-update` skill lets `wrap-up` offer an update to an existing
+portfolio entry. Set the site checkout and entry ID in local Git config
+for each project you want to opt in. Site edits require approval.
+
+**Upgrade with `agent-kit upgrade`.** The agent offers to move existing
+kit-only entries to the card in your repo's share mode. Approve the entries
+you want moved. Each move keeps the original ID and a link at the old
+location. Decision moves are part of the guided upgrade.
+
 ## 0.16.0 — 2026-11-15
 
 Three changes that make agents work better.

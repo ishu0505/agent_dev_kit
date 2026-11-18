@@ -241,7 +241,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync|use-adkit)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync|use-adkit|portfolio-update)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"

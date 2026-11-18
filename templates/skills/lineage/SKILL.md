@@ -1,6 +1,6 @@
 ---
 name: lineage
-description: Record a decision or an experiment result in the repo's lineage (DECISIONS.agentk.md, one file per decision, and the experiment ledger), and bring the AGENTS.md maps up to date. Use when the user decides something about architecture, a model, a library, a stage or a tool; when an experiment or benchmark finishes; or when a folder, service or unit is added, moved, renamed or retired.
+description: Record a project decision or experiment result in the repo's lineage (DECISIONS.agentk.md and the experiment ledger), or record the reason for a kit setup choice in the command card. Use for project choices about architecture, models, libraries, pipeline stages, feature flags or tools, and when an experiment finishes or a project unit changes.
 ---
 
 # Lineage
@@ -21,6 +21,17 @@ this skill writes; below, `DECISIONS<suffix>` means `DECISIONS.agentk.md`
 - empty: every decision is an entry in `DECISIONS<suffix>` itself.
 
 Write by `.agents/kit/writing-style.agentk.md`.
+
+## Scope
+
+The project lineage holds choices about how the project is built and run.
+If the choice is solely about how this repo uses the kit, keep the active
+settings in `.agents/agent-kit.conf`. Record a lasting reason under
+`## Setup decisions` in the kit-owned command card (`KIT.agentk.md` at the
+root for `SHARE="agent"` or `"all"`, under `.agents/` otherwise or in beside
+mode). Use the existing card for that share mode, or create it using the
+repo's configured suffix. Create the section when there is a reason to
+record. Then stop. The setup choice needs no lineage ID.
 
 ## 1. Name the change
 

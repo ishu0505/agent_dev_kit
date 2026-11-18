@@ -17,11 +17,12 @@ the folder that contains this file. The kit gives the repo:
 1. **Maps**: short `AGENTS.md` files so any agent works here without reading
    all the code: one at the root, and one per unit big enough to need it.
    `CLAUDE.md` / `GEMINI.md` only import them.
-2. **Lineage**: `DECISIONS.agentk.md`, the index of every decision and its
-   reason (one file per decision); an optional experiment ledger.
+2. **Lineage**: `DECISIONS.agentk.md`, the index of project decisions and
+   their reasons (one file per decision), and an optional experiment ledger.
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
-   `explain-d-in`, `todo`, `use-adkit`; and three that run only when the user asks:
+   `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo
+   opt-in). Three more run on request:
    `interactive-docs`, `arch-emulator`, `repo-md-sync` (edits the repo's own
    Markdown, file by file, after the user's yes).
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
@@ -196,7 +197,7 @@ repo. House cleaning then marks the team's agent files "leave alone".
 2. **Propose.** For each file, propose one action with a one-line reason:
    - **keep** as it is;
    - **merge** its content into a kit file (old rules into `AGENTS.md`, old
-     decisions into `DECISIONS.agentk.md`, other agents' rule files into
+     project decisions into `DECISIONS.agentk.md`, other agents' rule files into
      the maps so every agent reads the same rules), then remove it. Offer
      this only for agent files (old `CLAUDE.md` text, `.cursorrules`, old
      decision notes), never for a `README.md` or other docs people wrote;
@@ -282,8 +283,10 @@ Every case:
    CI should also run the kit's checks**. Choices: yes, add a GitHub Actions
    file (recommended when the repo uses GitHub); no; I use another CI (then
    tell me to run `sh .agents/kit/check.sh --ci` there).
-7. **Decisions already made** and where their reasons are written. Each new
-   decision becomes one file in `docs/decisions/`, listed in
+7. **Project decisions already made** and where their reasons are written.
+   Ask about architecture, pipeline choices, feature flag strategy and
+   choices informed by experiments. Each new project decision becomes one
+   file in `docs/decisions/`, listed in
    `DECISIONS.agentk.md`. Old decision records (ADRs) can stay where they
    are. (Sets `DECISIONS_DIR`.)
 8. **Experiments or benchmarks** that decide what ships, and their folder.
@@ -388,8 +391,8 @@ Show three things and wait for my approval:
    rows. Keep the root map's "Tasks" block.
 4. **Lineage**: `DECISIONS.agentk.md` from `KIT/templates/docs/DECISIONS.md` (the
    index), and one file per decision from `KIT/templates/docs/decision.md`
-   in `DECISIONS_DIR`, seeded with the decisions from the interview (write
-   "not recorded" for a reason nobody wrote down). With `DECISIONS_DIR`
+   in `DECISIONS_DIR`, seeded with the project decisions from the interview
+   (write "not recorded" for a reason nobody wrote down). With `DECISIONS_DIR`
    empty, keep every entry in `DECISIONS.agentk.md`. In case C with full
    entries in the index, offer the split (the `lineage` skill says how).
    Decision files are named `D-NNN-<short-name>.agentk.md`. If `LEDGER` is
@@ -399,9 +402,40 @@ Show three things and wait for my approval:
    folders that exist; each unit gets its map when its folder is created.
 6. **Command card**: `KIT/templates/docs/KIT.md`, saved as
    `KIT.agentk.md` at the root (`.agents/KIT.agentk.md` with `SHARE`
-   `learning` or `none`, and in a team repo). Replace `<kit url>` with the kit's remote
+   `learning` or `none`, and in a team repo). Use the repo's configured
+   suffix when creating the card. Replace `<kit url>` with the kit's remote
    (`git -C KIT remote get-url origin`, as an https link). Never add it to
    the root `README.md`.
+
+   Keep active kit settings in `.agents/agent-kit.conf`. When the interview
+   gives a lasting reason for a kit setup choice, add it under `## Setup
+   decisions` in the command card. For example, record why the repo uses
+   beside mode to keep the team's maps in charge. Create the section only
+   when there is a reason to record.
+
+   **Case C before 0.17.0, or when asked to move old setup decisions.** Read
+   the kit's decision index and any files it lists. Identify entries solely
+   about how this repo uses the kit. Skip entries already marked `moved to
+   kit setup` with a working link to the command card. Keep project
+   decisions and entries that also govern the project in lineage. Show the
+   proposed moves by ID and ask which to apply. If there are no candidates,
+   finish this step.
+
+   For approved entries, append the full record under `## Setup decisions`
+   in the existing kit-owned card at the location for the repo's share mode.
+   Create the card from the template if it is missing. Honor `DOC_SUFFIX`
+   and reuse an existing kit-owned `KIT.agentk.md` at that location if it
+   uses the older naming convention. Preserve the original ID, date, status,
+   reasoning and links. Adjust relative links for the new location. Keep
+   the original heading or file path as a link to the moved entry, so old
+   references still work and the ID stays reserved. For a file per decision,
+   keep its index row and front matter, set both statuses to `moved to kit
+   setup`, and replace the body below the heading with the link. For inline
+   entries, keep the heading and use the same status and link in the entry.
+   If the card already has that ID, check that the copy is complete before
+   replacing the old text. Skip a move if it would publish local material
+   or require editing a team-owned file. Verify the old and new links
+   resolve in phase 5.
 7. **Wiring** (team repo, `MAPS="beside"`). Run `sh .agents/kit/wire.sh --plan`
    and show me its list: for each folder and agent, what it will write and
    why, plus any limit. Apply it after one question (apply all, recommended

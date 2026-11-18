@@ -10,8 +10,8 @@ Priorities, in this order when they conflict: **<first>**, **<second>**,
 | Path | What | Read first |
 |---|---|---|
 | `<folder>/` | <one line> | `<folder>/AGENTS.md` |
-| `DECISIONS.agentk.md` | Every decision, its reason and its evidence | |
-| `KIT.agentk.md` | How to use the agent kit here | |
+| `DECISIONS.agentk.md` | Project decisions, reasons and evidence | |
+| `KIT.agentk.md` | How and why this repo uses the agent kit | |
 
 Before you work in a folder, read the `AGENTS.md` maps on the path to it.
 Read nothing else until the task needs it.
