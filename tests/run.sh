@@ -241,7 +241,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync|use-adkit|portfolio-update)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync|use-adkit|portfolio-update|force-learn|force-learn-deep)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -1111,6 +1111,20 @@ for skill in docs-sync wrap-up; do
   grep -q 'interactive-docs/status.sh' "$KIT/templates/skills/$skill/SKILL.md" &&
     ok "$skill asks to sync stale interactive pages" || bad "$skill asks to sync stale interactive pages"
 done
+
+# --- On-request mastery skills: force-learn, force-learn-deep -------------------
+for skill in force-learn force-learn-deep; do
+  [ -f "$R/.agents/skills/$skill/SKILL.md" ] && [ -f "$R/.claude/skills/$skill/SKILL.md" ] &&
+    grep -q "^name: $skill\$" "$R/.agents/skills/$skill/SKILL.md" &&
+    ok "$skill: installed for every agent, name matches its folder" || bad "$skill: installed for every agent, name matches its folder"
+  grep '^description:' "$KIT/templates/skills/$skill/SKILL.md" | grep -q "ONLY when the user names it" &&
+    ok "$skill runs only on the user's request" || bad "$skill runs only on the user's request"
+  grep -q '\.agents/work/learn-' "$KIT/templates/skills/$skill/SKILL.md" &&
+    grep -q 'LEARNING_DIR' "$KIT/templates/skills/$skill/SKILL.md" &&
+    ok "$skill uses .agents/work/ checklist and references learning docs" || bad "$skill uses .agents/work/ checklist and references learning docs"
+done
+grep -qi 'Never use multiple-choice questions' "$KIT/templates/skills/force-learn-deep/SKILL.md" &&
+  ok "force-learn-deep forbids multiple-choice questions" || bad "force-learn-deep forbids multiple-choice questions"
 
 new_repo ix
 I="$WORK/ix"

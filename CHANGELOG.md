@@ -3,6 +3,28 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.18.0
+
+Two on-request mastery skills:
+
+- **`force-learn`** acts as an incremental teacher for a PR, diff, feature,
+  bug, file, learning doc, concept, or the current session. It tracks a
+  running checklist in `.agents/work/learn-<slug>.agentk.md` (gitignored),
+  references the repo's learning docs and maps for big-picture gaps, and
+  verifies each stage with open-ended or multiple-choice quizzes before
+  moving on.
+- **`force-learn-deep`** runs the same incremental mastery loop with **no
+  multiple-choice questions**: you explain each piece in your own words, the
+  agent pinpoints gaps and missed edge cases (linking code and learning
+  docs), and re-tests until every checklist item is solid.
+
+Both run **only when you name them** (`/force-learn`, `/force-learn-deep`,
+or `$force-learn`, `$force-learn-deep` in Codex).
+
+**Upgrade with `agent-kit upgrade`** (or `sh <kit>/install.sh <repo>`): both
+skills are installed into `.agents/skills/` and linked for every agent. No
+config changes are needed.
+
 ## 0.17.0
 
 Project decisions go in `DECISIONS.agentk.md`. Record lasting reasons for
