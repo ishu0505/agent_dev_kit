@@ -31,7 +31,7 @@ names keep no suffix, because agents load them only by these exact names:
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
 | Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Project decisions with reasons, alternatives, evidence, and what would reverse them |
 | Plan | `PLAN.agentk.md` (new projects) | The goal, the first milestone, the planned units |
-| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo opt-in). On request: `interactive-docs`, `arch-emulator`, `repo-md-sync` |
+| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo opt-in). On request: `interactive-docs`, `arch-emulator`, `repo-md-sync`, `force-learn`, `force-learn-deep` |
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
@@ -274,10 +274,10 @@ unit gets its map, and `check.sh` stays green.
 
 ## Your skills are safe
 
-The kit brings fifteen skills: `lineage`, `scaffold`, `docs-sync`,
+The kit brings seventeen skills: `lineage`, `scaffold`, `docs-sync`,
 `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
 `explain-d-in`, `todo`, `use-adkit`, `interactive-docs`, `arch-emulator`,
-`repo-md-sync`, `portfolio-update`. A skill with any
+`repo-md-sync`, `portfolio-update`, `force-learn`, `force-learn-deep`. A skill with any
 other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
@@ -383,6 +383,8 @@ mode.
 | Learn the system | `learning-docs` | First time: all, or overview only. Later: `learning-docs stale` |
 | Learn the system by clicking | `interactive-docs` | Only when you name it. One page per learning doc in `learning_docs/interactive_l_docs/`. `interactive-docs sync` rebuilds the pages whose learning doc changed; once you have pages, `wrap-up` and `docs-sync` ask whether to sync the stale ones |
 | See how the system scales | `arch-emulator` | Only when you name it. Read only: what fills up first as load grows, latency per request path, pros and cons of each tool (queues, HTTP, databases), gaps, tests to run, fixes (quick, medium, long term). A dated report and a page with a load slider in `learning_docs/architecture/` |
+| Make sure you deeply understand a PR, feature, bug, file, learning doc or concept | `force-learn` | Only when you name it (`/force-learn`, Codex `$force-learn`). Incremental teaching + open-ended/MCQ quizzes, references `learning_docs/` for big-picture gaps, tracks mastery in `.agents/work/learn-<slug>.agentk.md` |
+| Same, explaining in your own words (no MCQs) | `force-learn-deep` | Only when you name it (`/force-learn-deep`, Codex `$force-learn-deep`). Free-recall (Feynman) mastery check: you explain in your own words, the agent pinpoints gaps and missed edge cases, links `learning_docs/`, and re-tests until every checklist item is solid |
 | Record a decision or a result | `lineage` | It asks why, what else, evidence, what would reverse it |
 | Add a service, package or experiment | `scaffold` | Creates its README, map and pointer files |
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |

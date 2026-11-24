@@ -28,6 +28,8 @@ and tells you when one no longer matches the code.
 | Learn the system | `learning-docs` (writes `learning_docs/`; pushed only in share mode `all` or `learning`) |
 | Learn the system by clicking | `interactive-docs` (pages in `learning_docs/interactive_l_docs/`); `interactive-docs sync` updates them; `wrap-up` and `docs-sync` ask when they are stale |
 | How does the system scale? | `arch-emulator`: a read-only review with gaps and fixes, in `learning_docs/architecture/` |
+| Make sure I truly understand a PR, feature, bug, file, learning doc or concept | `force-learn` (only when you ask): incremental teaching + quizzes, running checklist in `.agents/work/` |
+| Same, explaining in my own words (no MCQs) | `force-learn-deep` (only when you ask): free-recall mastery check, pinpoints gaps and links learning docs |
 | Tidy agent and doc files | `agent-kit cleanup` |
 | Record a project decision or experiment result | `lineage` |
 | Propose an update to an existing portfolio entry | `portfolio-update` (opt in with local Git settings `agentkit.portfolioRepo` and `agentkit.portfolioProject`) |
