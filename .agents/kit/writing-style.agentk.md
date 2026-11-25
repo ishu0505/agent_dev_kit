@@ -118,6 +118,18 @@ Code names, paths, API fields and commands stay exactly as in the code.
   errors it raises, and any side effect. A comment says why, not what.
 - Keep a correct existing docstring. Make a vague one exact. Fix a wrong
   one. Never delete one without the user's yes.
+- Never narrate obvious code ("increment counter", "return result"), and
+  never leave AI-tell filler or commented-out dead code. Encode real
+  constraints in types, assertions, or tests instead of prose comments.
+
+## No AI slop in docs and replies
+
+- Cut filler openers ("Great question!", "Let's dive in", "In summary, this
+  enhances...") and hype adjectives ("robust", "seamless", "comprehensive",
+  "cutting-edge", "leveraging").
+- State facts, counts, `file:line` evidence, and tradeoffs plainly.
+- Say each point once; do not restate the same paragraph as a summary bullet
+  right below it.
 - Never change code behaviour when you change a comment.
 
 ## Safety

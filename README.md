@@ -31,7 +31,7 @@ names keep no suffix, because agents load them only by these exact names:
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
 | Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Project decisions with reasons, alternatives, evidence, and what would reverse them |
 | Plan | `PLAN.agentk.md` (new projects) | The goal, the first milestone, the planned units |
-| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo opt-in). On request: `interactive-docs`, `arch-emulator`, `repo-md-sync`, `force-learn`, `force-learn-deep` |
+| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo opt-in). On request: `interactive-docs`, `arch-emulator`, `repo-md-sync`, `force-learn`, `force-learn-deep`, `interrogate`, `blast-radius`, `formal-verify`, `correct` |
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern; every skill that writes follows it |
@@ -274,10 +274,11 @@ unit gets its map, and `check.sh` stays green.
 
 ## Your skills are safe
 
-The kit brings seventeen skills: `lineage`, `scaffold`, `docs-sync`,
+The kit brings twenty-one skills: `lineage`, `scaffold`, `docs-sync`,
 `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
 `explain-d-in`, `todo`, `use-adkit`, `interactive-docs`, `arch-emulator`,
-`repo-md-sync`, `portfolio-update`, `force-learn`, `force-learn-deep`. A skill with any
+`repo-md-sync`, `portfolio-update`, `force-learn`, `force-learn-deep`,
+`interrogate`, `blast-radius`, `formal-verify`, `correct`. A skill with any
 other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
@@ -385,6 +386,10 @@ mode.
 | See how the system scales | `arch-emulator` | Only when you name it. Read only: what fills up first as load grows, latency per request path, pros and cons of each tool (queues, HTTP, databases), gaps, tests to run, fixes (quick, medium, long term). A dated report and a page with a load slider in `learning_docs/architecture/` |
 | Make sure you deeply understand a PR, feature, bug, file, learning doc or concept | `force-learn` | Only when you name it (`/force-learn`, Codex `$force-learn`). Incremental teaching + open-ended/MCQ quizzes, references `learning_docs/` for big-picture gaps, tracks mastery in `.agents/work/learn-<slug>.agentk.md` |
 | Same, explaining in your own words (no MCQs) | `force-learn-deep` | Only when you name it (`/force-learn-deep`, Codex `$force-learn-deep`). Free-recall (Feynman) mastery check: you explain in your own words, the agent pinpoints gaps and missed edge cases, links `learning_docs/`, and re-tests until every checklist item is solid |
+| Try to break a branch or PR before merge | `interrogate` | Only when you name it (`/interrogate`, Codex `$interrogate`). Adversarial diff review across any language: hunts for races, edge cases, contract breaks, silent failures, and leaks, keeping only findings proven by a run or exact trace |
+| Check what else a change could break | `blast-radius` | Only when you name it (`/blast-radius`, Codex `$blast-radius`). Maps direct and hidden dependents (`AGENTS.md`, `Hidden links`, workspace maps) and proves the key safety claim by running code |
+| Formally verify critical code (TLA+, SMT, Lean 4) | `formal-verify` | Only when you name it (`/formal-verify`, Codex `$formal-verify`). `create` picks the highest-risk promise (races, retries, state machines, parsers), chooses TLA+/SMT/Lean, proves the check can fail, and leaves a verify skill with `sync_commit`; `maintain` separates model drift from real bugs; `statechart` draws user-visible Mermaid states and shortest counterexample paths |
+| Stop agents from repeating the same mistake | `correct` | Only when you name it (`/correct`, Codex `$correct`). Pushes recurring mistake classes up the enforcement ladder (architecture → types/compiler → lint/CI → tests → docs last) instead of adding more prose to `AGENTS.md` |
 | Record a decision or a result | `lineage` | It asks why, what else, evidence, what would reverse it |
 | Add a service, package or experiment | `scaffold` | Creates its README, map and pointer files |
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |

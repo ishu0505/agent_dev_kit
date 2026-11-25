@@ -76,7 +76,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">agent_dev_kit 0.18.0 · any agent · any language</span>
+  <span class="eyebrow">agent_dev_kit 0.19.0 · any agent · any language</span>
   <h1>Agent Context Kit</h1>
   <p class="lede">Give any coding agent a map of a repo instead of the whole codebase. Decisions keep their reasons, conventions are written once, checks keep the docs true without anyone remembering to run them, and local learning docs teach people the architecture.</p>
 </header>
@@ -119,6 +119,10 @@ footer { color: var(--muted); font-size: 14px; }
       <tr><td>See how the system scales</td><td><code>arch-emulator</code></td><td>Only when you name it. Read only: what fills up first as load grows, latency per path, pros and cons of each tool, gaps, tests, and fixes (quick, medium, long term). A dated report and a page with a load slider in <code>learning_docs/architecture/</code></td></tr>
       <tr><td>Deeply understand a PR, feature, bug, file, learning doc or concept</td><td><code>force-learn</code></td><td>Only when you name it. Incremental teacher with open-ended/MCQ quizzes, links to <code>learning_docs/</code> for big-picture gaps, and a running checklist in <code>.agents/work/</code></td></tr>
       <tr><td>Same, in your own words (no MCQs)</td><td><code>force-learn-deep</code></td><td>Only when you name it. Free-recall (Feynman) mastery check: you explain in your own words, the agent pinpoints gaps and edge cases, links <code>learning_docs/</code>, and re-tests until every item is verified</td></tr>
+      <tr><td>Try to break a PR before merge</td><td><code>interrogate</code></td><td>Only when you name it. Adversarial diff review that keeps only findings proven by running code, a failing test, or an exact trace</td></tr>
+      <tr><td>Check what else a change could break</td><td><code>blast-radius</code></td><td>Only when you name it. Maps direct and hidden dependents (maps, <code>Hidden links</code>, workspace) and proves safety by running code</td></tr>
+      <tr><td>Formally verify races, retries or invariants</td><td><code>formal-verify</code></td><td>Only when you name it. TLA+, SMT/code verifiers, or Lean 4: <code>create</code> (with <code>sync_commit</code>), <code>maintain</code> (drift vs. bugs), and <code>statechart</code> (Mermaid + counterexamples)</td></tr>
+      <tr><td>Stop repeated agent mistakes</td><td><code>correct</code></td><td>Only when you name it. Encodes lessons in structure (architecture &rarr; types &rarr; lint/CI &rarr; tests &rarr; docs last)</td></tr>
       <tr><td>A project decision or experiment result</td><td><code>lineage</code></td><td>Records decisions, reasons and evidence in project lineage</td></tr>
       <tr><td>A new service or package</td><td><code>scaffold</code></td><td>Creates its README, map and pointer files</td></tr>
       <tr><td>Tidy agent and doc files</td><td><code>agent-kit cleanup</code></td><td>Lists every agent and doc file, proposes keep, merge, own or remove, and asks one group at a time</td></tr>
@@ -147,7 +151,7 @@ footer { color: var(--muted); font-size: 14px; }
 
 <section>
   <h2>Your skills are safe, and the repo gets a clean-up first</h2>
-  <p>The kit brings seventeen skills (five of them, <code>interactive-docs</code>, <code>arch-emulator</code>, <code>repo-md-sync</code>, <code>force-learn</code> and <code>force-learn-deep</code>, run only when you ask). A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
+  <p>The kit brings twenty-one skills (nine of them, <code>interactive-docs</code>, <code>arch-emulator</code>, <code>repo-md-sync</code>, <code>force-learn</code>, <code>force-learn-deep</code>, <code>interrogate</code>, <code>blast-radius</code>, <code>formal-verify</code> and <code>correct</code>, run only when you ask). A skill with any other name is never touched. For those it records a fingerprint at install, so it can tell whether you edited one.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>The skill in your repo</th><th>What the install does</th></tr></thead>
     <tbody>
@@ -169,7 +173,7 @@ footer { color: var(--muted); font-size: 14px; }
     <thead><tr><th>File</th><th>What</th><th>Owner</th></tr></thead>
     <tbody>
       <tr><td><code>.agents/kit/</code></td><td><code>check.sh</code>, the Stop and SessionStart hooks, <code>queue.sh</code>, <code>stale.sh</code>, <code>map-rows.sh</code>, <code>writing-style.agentk.md</code>, <code>coding-standard.agentk.md</code> (loaded at every session start), <code>VERSION</code></td><td><span class="pill ok">kit</span></td></tr>
-      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>, <code>todo</code>, <code>use-adkit</code>, <code>portfolio-update</code>, <code>interactive-docs</code>, <code>arch-emulator</code>, <code>repo-md-sync</code>, <code>force-learn</code>, <code>force-learn-deep</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
+      <tr><td><code>.agents/skills/</code></td><td><code>lineage</code>, <code>scaffold</code>, <code>docs-sync</code>, <code>learning-docs</code>, <code>wrap-up</code>, <code>catch-up</code>, <code>explain-diff</code>, <code>explain-d-ez</code>, <code>explain-d-in</code>, <code>todo</code>, <code>use-adkit</code>, <code>portfolio-update</code>, <code>interactive-docs</code>, <code>arch-emulator</code>, <code>repo-md-sync</code>, <code>force-learn</code>, <code>force-learn-deep</code>, <code>interrogate</code>, <code>blast-radius</code>, <code>formal-verify</code>, <code>correct</code>; <code>.claude/skills</code> links here</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.githooks/pre-commit</code>, <code>post-commit</code></td><td>Checks what a commit breaks; queues code committed without its docs</td><td><span class="pill ok">kit</span></td></tr>
       <tr><td><code>.agents/agent-kit.conf</code></td><td>Units, map thresholds, line limits, pointer files, interface files, ledger, decisions folder</td><td><span class="pill check">repo</span></td></tr>
       <tr><td><code>AGENTS.md</code> + <code>CLAUDE.md</code></td><td>Maps at the root and in every unit past the size threshold</td><td><span class="pill check">repo</span></td></tr>
@@ -344,10 +348,11 @@ the folder that contains this file. The kit gives the repo:
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
    `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo
-   opt-in). Five more run on request:
+   opt-in). Nine more run on request:
    `interactive-docs`, `arch-emulator`, `repo-md-sync` (edits the repo&#x27;s own
-   Markdown, file by file, after the user&#x27;s yes), `force-learn`, and
-   `force-learn-deep`.
+   Markdown, file by file, after the user&#x27;s yes), `force-learn`,
+   `force-learn-deep`, `interrogate`, `blast-radius`, `formal-verify`, and
+   `correct`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
    commit breaks blocks), after every agent turn that changed files, and in
    CI, so the docs stay true.

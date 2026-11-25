@@ -3,6 +3,44 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.19.0
+
+Production-rigor and anti-slop upgrades (language-agnostic: Python, C++,
+Rust, Go, TypeScript/JS, and more):
+
+- **Tighter coding & writing standards:**
+  - `.agents/kit/coding-standard.agentk.md` now enforces subtracting dead
+    weight first, fixing root causes (never band-aid guards), boundary
+    parsing and idempotency, no comment slop, proving work against real
+    runs, attacking the premise after two failed fixes, behavior-driven
+    tests, TDD for bug fixes, and property-based testing (PBT) for core
+    invariants.
+  - `.agents/kit/writing-style.agentk.md` adds a **No AI slop** section
+    cutting filler openers, hype adjectives, and redundant restatements.
+- **Benchmark vetting in `arch-emulator`:** `checklist.agentk.md` and
+  `SKILL.md` now vet measured speedups, regressions, and load numbers
+  (bottleneck, apples-to-apples setup, repeat runs + p50/p95/p99, error
+  rates under load, and end-to-end relevance).
+- **Four new on-request-only engineering skills** (run only when you name
+  them):
+  - **`interrogate`**: adversarial diff/PR review that actively tries to
+    break a change and reports only findings proven by a run, failing test,
+    or exact trace.
+  - **`blast-radius`**: maps direct and hidden dependents (reading
+    `AGENTS.md` maps, `Hidden links`, and workspace maps) and proves safety
+    by running code instead of asserting it.
+  - **`formal-verify`** (`create`, `maintain`, `statechart`): formal
+    verification using TLA+ (concurrency/ordering), SMT/code verifiers
+    (Kani, CBMC, Z3), or Lean 4 (unbounded proofs), with `sync_commit`
+    drift tracking and plain-English Mermaid statecharts.
+  - **`correct`**: pushes recurring mistakes up the enforcement ladder
+    (architecture → types/compiler → lint/CI → tests → docs last) instead
+    of piling prose rules into `AGENTS.md`.
+
+**Upgrade with `agent-kit upgrade`** (or `sh <kit>/install.sh <repo>`):
+updates the coding/writing standards, `arch-emulator`, and installs the
+four new skills into `.agents/skills/`. No config changes are needed.
+
 ## 0.18.0
 
 Two on-request mastery skills:
