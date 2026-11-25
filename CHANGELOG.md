@@ -3,6 +3,26 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.19.1
+
+Two refinements to `0.19.0`:
+
+- **Concise docstrings & strict comment keep-list** (in
+  `coding-standard.agentk.md` and `writing-style.agentk.md`): default to
+  one-line docstrings on public APIs, skip docstrings on small self-evident
+  private helpers, omit redundant `Args:`/`Returns:`/`Raises:` blocks when
+  names and types already say it, never list caller-specific values in
+  generic helpers, and keep inline comments only for external gotchas,
+  non-obvious *why* invariants, issue/RFC links, or legal headers.
+- **PR links & "worth verifying?" gate in `formal-verify`:** accepts
+  `pr <n|url>` and `since <ref>` directly, routes covered-file diffs to
+  `maintain`, and tells you plainly when unit tests or property-based
+  testing (PBT) are a better fit than TLA+/SMT/Lean.
+
+**Upgrade with `agent-kit upgrade`** (or `sh <kit>/install.sh <repo>`):
+updates `coding-standard.agentk.md`, `writing-style.agentk.md`, and
+`formal-verify`. No config changes are needed.
+
 ## 0.19.0
 
 Production-rigor and anti-slop upgrades (language-agnostic: Python, C++,

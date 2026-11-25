@@ -112,15 +112,23 @@ Code names, paths, API fields and commands stay exactly as in the code.
 ## Code comments and docstrings
 
 - Use the language's own convention: Python docstrings (PEP 257), JSDoc or
-  TSDoc, Go doc comments that start with the name, rustdoc `///`, Javadoc,
-  C# XML doc comments. Match the style the repo already uses.
-- A docstring says what the function does, its inputs, its output, the
-  errors it raises, and any side effect. A comment says why, not what.
-- Keep a correct existing docstring. Make a vague one exact. Fix a wrong
-  one. Never delete one without the user's yes.
-- Never narrate obvious code ("increment counter", "return result"), and
-  never leave AI-tell filler or commented-out dead code. Encode real
-  constraints in types, assertions, or tests instead of prose comments.
+  TSDoc, Go doc comments that start with the name, rustdoc `///`, Doxygen,
+  Javadoc, C# XML doc comments. Match the style the repo already uses.
+- **Default to a one-line docstring** on public APIs, and skip docstrings on
+  small private helpers whose name and types already say everything.
+- **Omit obvious `Args:` / `Returns:` / `Raises:` blocks** when names and
+  type annotations already state them. Document only non-obvious units,
+  invariants, side effects, security rules, or error contracts. Never list
+  caller-specific values inside a generic helper's docstring.
+- **Inline comments survive only for:** external/platform/protocol gotchas
+  you cannot reshape, non-obvious *why* (security or concurrency invariants),
+  issue/RFC links, or legal headers.
+- Keep a correct existing docstring. Trim bloated boilerplate. Fix a wrong
+  one. Never delete a public API contract without the user's yes.
+- Never narrate obvious code ("increment counter", "return result"), never
+  leave commented-out dead code or correctness-hiding lint/type suppressions.
+  When a quirk in your own code needs a paragraph to explain, rename or
+  reshape the code instead.
 
 ## No AI slop in docs and replies
 
