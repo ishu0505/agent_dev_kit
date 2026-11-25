@@ -30,6 +30,10 @@ and tells you when one no longer matches the code.
 | How does the system scale? | `arch-emulator`: a read-only review with gaps and fixes, in `learning_docs/architecture/` |
 | Make sure I truly understand a PR, feature, bug, file, learning doc or concept | `force-learn` (only when you ask): incremental teaching + quizzes, running checklist in `.agents/work/` |
 | Same, explaining in my own words (no MCQs) | `force-learn-deep` (only when you ask): free-recall mastery check, pinpoints gaps and links learning docs |
+| Try to break a branch or PR before merge | `interrogate` (only when you ask): adversarial diff review, reports only proven bugs |
+| What else could this change break? | `blast-radius` (only when you ask): maps direct & hidden dependents and proves safety by running code |
+| Formally verify races, retries, state machines or invariants | `formal-verify` (only when you ask): TLA+, SMT/code verifiers, or Lean 4 (`create`, `maintain`, `statechart`) |
+| Stop agents from repeating the same mistake | `correct` (only when you ask): pushes the fix up to architecture, types, lint/CI, or tests instead of more doc text |
 | Tidy agent and doc files | `agent-kit cleanup` |
 | Record a project decision or experiment result | `lineage` |
 | Propose an update to an existing portfolio entry | `portfolio-update` (opt in with local Git settings `agentkit.portfolioRepo` and `agentkit.portfolioProject`) |

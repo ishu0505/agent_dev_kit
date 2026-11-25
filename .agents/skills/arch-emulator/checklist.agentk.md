@@ -99,3 +99,22 @@ provider limit from memory.
 
 Run them on a staging copy with fake data, never on production, unless
 the people who run production plan it with you.
+
+## Benchmark and measurement vetting
+
+Apply before trusting, reporting, or acting on any measured speedup,
+regression, throughput, latency, memory, or eval number:
+
+- **What actually limited the run?** Identify the bottleneck (CPU, lock,
+  pool, network, disk, GC, test harness) and rule out that you measured
+  something else (for example, cold cache, logging overhead, or a mock).
+- **Apples-to-apples setup:** Same hardware, build flags (release vs. debug,
+  for example `-O2`/`--release`), dataset size, concurrency, and warm-up
+  before and after.
+- **Repeat runs & tail latency:** Report multiple runs with p50, p95, p99
+  and variance—never a single lucky run or an average alone.
+- **Error rate under load:** Confirm the faster run did not drop requests,
+  return errors, skip validation, or short-circuit work.
+- **End-to-end relevance:** Check whether a micro-benchmark win actually
+  moves the end-to-end user or system metric; a 10x speedup on 1% of request
+  time saves less than 1% overall.

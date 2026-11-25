@@ -125,7 +125,10 @@ well, and keep a tool when the gain from a change is small.
   production**), the metric to watch (p95 and p99 latency, error rate,
   queue age, pool waits, CPU, memory) and the pass line: a load test at
   the expected peak, a spike test, a soak test of some hours, a failure
-  test (stop one dependency), a queue backlog drain test.
+  test (stop one dependency), a queue backlog drain test. Vet every
+  benchmark or measured speedup/regression against the **Benchmark and
+  measurement vetting** section of `checklist.agentk.md` before trusting or
+  reporting a number.
 
 Never claim a gain you did not estimate. Say "about" and give the
 reasoning.

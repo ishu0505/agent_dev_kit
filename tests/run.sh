@@ -241,7 +241,7 @@ skill_is "$V" "our own step" && [ ! -d "$(incoming "$V")" ] && ok "edited skill 
 sh "$KIT2/install.sh" "$V" > "$WORK/edited2.log" 2>&1
 skill_is "$V" "our own step" && ! skill_is "$V" "a step added in a newer kit" && grep -q "a step added in a newer kit" "$(incoming "$V")/SKILL.md" &&
   grep -q "Merge the new kit version" "$WORK/edited2.log" && ok "edited skill kept; newer kit version waits in incoming" || bad "edited skill kept; newer kit version waits in incoming" "$(cat "$WORK/edited2.log")"
-[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync|use-adkit|portfolio-update|force-learn|force-learn-deep)$')" ] &&
+[ ! -e "$V/.agents/skills/scaffold.kit-new" ] && [ -z "$(ls "$V/.agents/skills" | grep -v -E '^(docs-sync|learning-docs|lineage|scaffold|catch-up|wrap-up|explain-diff|explain-d-ez|explain-d-in|todo|interactive-docs|arch-emulator|repo-md-sync|use-adkit|portfolio-update|force-learn|force-learn-deep|interrogate|blast-radius|formal-verify|correct)$')" ] &&
   ok "incoming versions stay out of the skills folder" || bad "incoming versions stay out of the skills folder" "$(ls "$V/.agents/skills")"
 git_quiet -C "$V" add -A
 expect_pass "checks pass while an update waits in incoming" "$V"
@@ -1125,6 +1125,24 @@ for skill in force-learn force-learn-deep; do
 done
 grep -qi 'Never use multiple-choice questions' "$KIT/templates/skills/force-learn-deep/SKILL.md" &&
   ok "force-learn-deep forbids multiple-choice questions" || bad "force-learn-deep forbids multiple-choice questions"
+
+# --- On-request engineering rigor skills: interrogate, blast-radius, formal-verify, correct ---
+for skill in interrogate blast-radius formal-verify correct; do
+  [ -f "$R/.agents/skills/$skill/SKILL.md" ] && [ -f "$R/.claude/skills/$skill/SKILL.md" ] &&
+    grep -q "^name: $skill\$" "$R/.agents/skills/$skill/SKILL.md" &&
+    ok "$skill: installed for every agent, name matches its folder" || bad "$skill: installed for every agent, name matches its folder"
+  grep '^description:' "$KIT/templates/skills/$skill/SKILL.md" | grep -q "ONLY when the user names it" &&
+    ok "$skill runs only on the user's request" || bad "$skill runs only on the user's request"
+done
+grep -q 'sync_commit' "$KIT/templates/skills/formal-verify/SKILL.md" &&
+  grep -q 'TLA+' "$KIT/templates/skills/formal-verify/SKILL.md" &&
+  grep -q 'Lean 4' "$KIT/templates/skills/formal-verify/SKILL.md" &&
+  ok "formal-verify covers TLA+, Lean 4 and sync_commit drift tracking" || bad "formal-verify covers TLA+, Lean 4 and sync_commit drift tracking"
+grep -q 'Benchmark and measurement vetting' "$KIT/templates/skills/arch-emulator/checklist.agentk.md" &&
+  ok "arch-emulator checklist includes benchmark vetting" || bad "arch-emulator checklist includes benchmark vetting"
+grep -q 'Property-Based Testing' "$KIT/templates/kit/coding-standard.agentk.md" &&
+  grep -q 'No AI slop' "$KIT/templates/kit/writing-style.agentk.md" &&
+  ok "coding and writing standards include PBT and anti-slop rules" || bad "coding and writing standards include PBT and anti-slop rules"
 
 new_repo ix
 I="$WORK/ix"
