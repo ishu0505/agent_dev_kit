@@ -67,5 +67,5 @@ none>`. When a kit hook gives you these lines, use its words.
   skill. Other skills (`lineage`, `scaffold`, `catch-up`, `explain-diff`,
   `explain-d-ez`, `explain-d-in`) are in `.agents/skills/`. Run
   `interactive-docs`, `arch-emulator`, `force-learn`, `force-learn-deep`,
-  `interrogate`, `blast-radius`, `formal-verify` and `correct` only when the
-  user asks for them.
+  `interrogate`, `blast-radius`, `formal-verify`, `correct`, `architect` and
+  `refactor` only when the user asks for them.

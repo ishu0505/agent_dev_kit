@@ -3,6 +3,30 @@
 Each entry says what changed and what a repo must do when it upgrades
 (`agent-kit upgrade`). Versions follow `VERSION`.
 
+## 0.20.0
+
+Two on-request design and refactoring skills (language-agnostic: Python,
+C++, Rust, Go, TypeScript/JS, and more):
+
+- **`architect`**: settles data structures, state ownership, types,
+  signatures, and module boundaries before writing non-trivial code by
+  sketching two genuinely different designs and recommending the simplest
+  one with minimum caller load.
+- **`refactor`**: behavior-preserving structural refactoring aligned with
+  `.agents/kit/coding-standard.agentk.md` (repo `## Code style` wins on
+  conflict): pins current behavior with characterization/equivalence tests
+  first, lists dead code and legacy APIs with proof of zero live callers
+  (checking `Hidden links` and workspace maps) and waits for your explicit
+  approval before deleting anything, migrates callers in small green steps,
+  and verifies equivalence and lower reader load.
+
+Both run **only when you name them** (`/architect`, `/refactor`, or
+`$architect`, `$refactor` in Codex).
+
+**Upgrade with `agent-kit upgrade`** (or `sh <kit>/install.sh <repo>`):
+installs `architect` and `refactor` into `.agents/skills/` and links them
+for every agent. No config changes are needed.
+
 ## 0.19.1
 
 Two refinements to `0.19.0`:

@@ -22,11 +22,11 @@ the folder that contains this file. The kit gives the repo:
 3. **Skills** in `.agents/skills/`: `lineage`, `scaffold`, `docs-sync`,
    `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
    `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo
-   opt-in). Nine more run on request:
+   opt-in). Eleven more run on request:
    `interactive-docs`, `arch-emulator`, `repo-md-sync` (edits the repo's own
    Markdown, file by file, after the user's yes), `force-learn`,
-   `force-learn-deep`, `interrogate`, `blast-radius`, `formal-verify`, and
-   `correct`.
+   `force-learn-deep`, `interrogate`, `blast-radius`, `formal-verify`,
+   `correct`, `architect`, and `refactor`.
 4. **Checks**: `.agents/kit/check.sh`, run on every commit (only what the
    commit breaks blocks), after every agent turn that changed files, and in
    CI, so the docs stay true.
