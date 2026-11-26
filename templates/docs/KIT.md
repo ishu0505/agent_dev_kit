@@ -34,6 +34,8 @@ and tells you when one no longer matches the code.
 | What else could this change break? | `blast-radius` (only when you ask): maps direct & hidden dependents and proves safety by running code |
 | Formally verify races, retries, state machines or invariants | `formal-verify` (only when you ask): TLA+, SMT/code verifiers, or Lean 4 (`create`, `maintain`, `statechart`) |
 | Stop agents from repeating the same mistake | `correct` (only when you ask): pushes the fix up to architecture, types, lint/CI, or tests instead of more doc text |
+| Design data shapes & module boundaries before coding | `architect` (only when you ask): sketches two competing designs and recommends the simplest shape with minimum caller load |
+| Refactor safely without changing behavior | `refactor` (only when you ask): pins behavior first, asks before deleting dead code, follows the coding standard, and proves equivalence |
 | Tidy agent and doc files | `agent-kit cleanup` |
 | Record a project decision or experiment result | `lineage` |
 | Propose an update to an existing portfolio entry | `portfolio-update` (opt in with local Git settings `agentkit.portfolioRepo` and `agentkit.portfolioProject`) |

@@ -11,10 +11,11 @@ Works with Claude Code, Codex, Cursor, Muse, Antigravity and Gemini CLI, in a
 repo of any language, on macOS, Linux and Windows. The HTML guide is
 `guide/agent-context-kit.html`.
 
-> **NEW in 0.19.0:** Production-rigor & anti-slop upgrades (language-agnostic: Python, C++, Rust, Go, TypeScript/JS):
-> - **4 new on-request skills:** `interrogate` (adversarial diff review — proven bugs only), `blast-radius` (direct + hidden dependents with runtime proof), `formal-verify` (TLA+, SMT/code verifiers, Lean 4 — `create`, `maintain`, `statechart`), and `correct` (encode recurring mistakes in architecture/types/lint/CI/tests, not prose).
-> - **Tighter standards:** `coding-standard.agentk.md` adds root-cause fixes, prove-it-works & attack-the-premise, boundary parsing & idempotency, no comment slop, TDD for bugs, and property-based testing (PBT); `writing-style.agentk.md` adds **No AI slop**.
-> - **Benchmark vetting:** `arch-emulator` now vets speedups, regressions, and load numbers before reporting them.
+> **NEW in 0.20.0:** Two on-request design & refactoring skills (language-agnostic: Python, C++, Rust, Go, TypeScript/JS):
+> - **`architect`**: settles data structures, state ownership, types, signatures, and module boundaries before coding by sketching two competing designs and picking the simplest shape with minimum caller load.
+> - **`refactor`**: behavior-preserving structural refactoring aligned with `coding-standard.agentk.md` — pins behavior with characterization tests first, asks for your approval before deleting dead code or legacy APIs (checking `Hidden links` and workspace maps), migrates callers in small green steps, and proves equivalence + lower reader load.
+>
+> *(0.19.0–0.19.1 added `interrogate`, `blast-radius`, `formal-verify` for TLA+/SMT/Lean 4, `correct`, benchmark vetting in `arch-emulator`, concise one-line docstrings + strict comment keep-list, and anti-slop + PBT/TDD rules in `coding-standard.agentk.md`.)*
 
 ## What you get in a repo
 
@@ -36,7 +37,7 @@ names keep no suffix, because agents load them only by these exact names:
 | Pointer files | `CLAUDE.md` (and `GEMINI.md`) beside each map | Contain only `@AGENTS.md`, so every agent reads the same map |
 | Lineage | `DECISIONS.agentk.md` (an index) + one file per decision in `docs/decisions/` (+ an optional experiment ledger) | Project decisions with reasons, alternatives, evidence, and what would reverse them |
 | Plan | `PLAN.agentk.md` (new projects) | The goal, the first milestone, the planned units |
-| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo opt-in). On request: `interactive-docs`, `arch-emulator`, `repo-md-sync`, `force-learn`, `force-learn-deep`, `interrogate`, `blast-radius`, `formal-verify`, `correct` |
+| Skills | `.agents/skills/` (`.claude/skills` links here) | `lineage`, `scaffold`, `docs-sync`, `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`, `explain-d-in`, `todo`, `use-adkit`, `portfolio-update` (per-repo opt-in). On request: `interactive-docs`, `arch-emulator`, `repo-md-sync`, `force-learn`, `force-learn-deep`, `interrogate`, `blast-radius`, `formal-verify`, `correct`, `architect`, `refactor` |
 | Checks | `.agents/kit/check.sh` | Fails when a map is too long or names a missing path (in a table or in prose), a big unit has no map, a decision is missing from the index, agent files are not in git, a hook is not portable, or learning docs are tracked. Optional: env var names, and the map's own run commands |
 | Automatic runs | `.githooks/pre-commit`, `post-commit`, SessionStart and Stop hooks, CI | Before a commit: only what the commit breaks blocks. After a commit: code without its docs is queued for `catch-up`. After an agent turn: checks only what the turn changed. In CI: the same checks, so a skipped hook cannot let drift in |
 | Writing style | `.agents/kit/writing-style.agentk.md` | ASD-STE100 Simplified Technical English, written for an intern, plus **No AI slop** (**NEW in 0.19.0**); every skill that writes follows it |
@@ -279,11 +280,12 @@ unit gets its map, and `check.sh` stays green.
 
 ## Your skills are safe
 
-The kit brings twenty-one skills: `lineage`, `scaffold`, `docs-sync`,
+The kit brings twenty-three skills: `lineage`, `scaffold`, `docs-sync`,
 `learning-docs`, `wrap-up`, `catch-up`, `explain-diff`, `explain-d-ez`,
 `explain-d-in`, `todo`, `use-adkit`, `interactive-docs`, `arch-emulator`,
 `repo-md-sync`, `portfolio-update`, `force-learn`, `force-learn-deep`,
-`interrogate`, `blast-radius`, `formal-verify`, `correct`. A skill with any
+`interrogate`, `blast-radius`, `formal-verify`, `correct`, `architect`,
+`refactor`. A skill with any
 other name is never touched. For these, `install.sh` records a fingerprint of each one it installs
 (`.agents/kit/skills.sum`) and on every later run:
 
@@ -391,10 +393,12 @@ mode.
 | See how the system scales | `arch-emulator` | Only when you name it. Read only: what fills up first as load grows, latency per request path, pros and cons of each tool (queues, HTTP, databases), gaps, tests to run, fixes (quick, medium, long term). A dated report and a page with a load slider in `learning_docs/architecture/` |
 | Make sure you deeply understand a PR, feature, bug, file, learning doc or concept | `force-learn` | Only when you name it (`/force-learn`, Codex `$force-learn`). Incremental teaching + open-ended/MCQ quizzes, references `learning_docs/` for big-picture gaps, tracks mastery in `.agents/work/learn-<slug>.agentk.md` |
 | Same, explaining in your own words (no MCQs) | `force-learn-deep` | Only when you name it (`/force-learn-deep`, Codex `$force-learn-deep`). Free-recall (Feynman) mastery check: you explain in your own words, the agent pinpoints gaps and missed edge cases, links `learning_docs/`, and re-tests until every checklist item is solid |
-| Try to break a branch or PR before merge | `interrogate` **`NEW in 0.19.0`** | Only when you name it (`/interrogate`, Codex `$interrogate`). Adversarial diff review across any language: hunts for races, edge cases, contract breaks, silent failures, and leaks, keeping only findings proven by a run or exact trace |
-| Check what else a change could break | `blast-radius` **`NEW in 0.19.0`** | Only when you name it (`/blast-radius`, Codex `$blast-radius`). Maps direct and hidden dependents (`AGENTS.md`, `Hidden links`, workspace maps) and proves the key safety claim by running code |
-| Formally verify critical code (TLA+, SMT, Lean 4) | `formal-verify` **`NEW in 0.19.0`** | Only when you name it (`/formal-verify`, Codex `$formal-verify`). `create` picks the highest-risk promise (races, retries, state machines, parsers), chooses TLA+/SMT/Lean, proves the check can fail, and leaves a verify skill with `sync_commit`; `maintain` separates model drift from real bugs; `statechart` draws user-visible Mermaid states and shortest counterexample paths |
-| Stop agents from repeating the same mistake | `correct` **`NEW in 0.19.0`** | Only when you name it (`/correct`, Codex `$correct`). Pushes recurring mistake classes up the enforcement ladder (architecture → types/compiler → lint/CI → tests → docs last) instead of adding more prose to `AGENTS.md` |
+| Try to break a branch or PR before merge | `interrogate` | Only when you name it (`/interrogate`, Codex `$interrogate`). Adversarial diff review across any language: hunts for races, edge cases, contract breaks, silent failures, and leaks, keeping only findings proven by a run or exact trace |
+| Check what else a change could break | `blast-radius` | Only when you name it (`/blast-radius`, Codex `$blast-radius`). Maps direct and hidden dependents (`AGENTS.md`, `Hidden links`, workspace maps) and proves the key safety claim by running code |
+| Formally verify critical code (TLA+, SMT, Lean 4) | `formal-verify` | Only when you name it (`/formal-verify`, Codex `$formal-verify`). Accepts a PR link/number, diff, file, or flow; checks whether formal verification is warranted first, then runs `create` (with `sync_commit`), `maintain` (drift vs. real bugs), or `statechart` (Mermaid + shortest counterexample paths) |
+| Stop agents from repeating the same mistake | `correct` | Only when you name it (`/correct`, Codex `$correct`). Pushes recurring mistake classes up the enforcement ladder (architecture → types/compiler → lint/CI → tests → docs last) instead of adding more prose to `AGENTS.md` |
+| Settle data shapes & module boundaries before coding | `architect` **`NEW in 0.20.0`** | Only when you name it (`/architect`, Codex `$architect`). Traces touched systems, sketches two competing designs (types, signatures, state ownership), and recommends the simplest shape with minimum caller load before any code is written |
+| Refactor safely without changing behavior | `refactor` **`NEW in 0.20.0`** | Only when you name it (`/refactor`, Codex `$refactor`). Pins behavior with characterization tests first, asks for your approval before deleting dead code or legacy APIs (checking `Hidden links` and workspace maps), follows `coding-standard.agentk.md`, migrates callers in small green steps, and proves equivalence + lower reader load |
 | Record a decision or a result | `lineage` | It asks why, what else, evidence, what would reverse it |
 | Add a service, package or experiment | `scaffold` | Creates its README, map and pointer files |
 | See if the kit is installed | `agent-kit check` | Runs `check.sh`, or offers setup |
